@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TRK PCP 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bg4:#21262d;
+  --bd:#30363d;--bd2:#484f58;
+  --blue:#58a6ff;--blue2:#1f6feb;--blue3:#0d2040;
+  --green:#56d364;--green2:#238636;--green3:#0f2d1f;
+  --yellow:#e3b341;--yellow2:#9e6a03;--yellow3:#2b1800;
+  --orange:#f0883e;--orange2:#bd561d;--orange3:#271200;
+  --red:#f85149;--red2:#a40e26;--red3:#3b1219;
+  --purple:#bc8cff;--purple2:#6e40c9;--purple3:#1e0a4b;
+  --text:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --r:10px;--rs:6px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── TOPBAR ── */
+.topbar{background:linear-gradient(135deg,#1a2236,#0d1b2a);border-bottom:2px solid var(--blue2);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.logo{font-size:1.05rem;font-weight:700;color:var(--blue);letter-spacing:.5px;white-space:nowrap;}
+.logo small{color:var(--t2);font-weight:400;font-size:.8rem;margin-left:4px;}
+.tabs{display:flex;gap:2px;margin:0 16px;}
+.tab{background:none;border:none;color:var(--t2);padding:6px 14px;border-radius:var(--rs);cursor:pointer;font-size:.8rem;transition:.15s;white-space:nowrap;}
+.tab:hover{color:var(--text);background:var(--bg4);}
+.tab.active{color:var(--blue);background:var(--blue3);border:1px solid var(--blue2);}
+.topbar-r{display:flex;align-items:center;gap:8px;}
+.clock{font-size:.75rem;color:var(--t2);background:var(--bg3);padding:3px 8px;border-radius:var(--rs);border:1px solid var(--bd);}
+.btn{padding:5px 12px;border-radius:var(--rs);border:none;cursor:pointer;font-size:.78rem;font-weight:600;transition:.15s;white-space:nowrap;}
+.btn-p{background:var(--blue2);color:#fff;}.btn-p:hover{background:#388bfd;}
+.btn-g{background:var(--bg4);border:1px solid var(--bd);color:var(--t2);}.btn-g:hover{color:var(--text);border-color:var(--blue);}
+.btn-s{background:var(--green2);color:#fff;}.btn-s:hover{background:#2ea043;}
+
+/* ── VIEWS ── */
+.view{display:none;}.view.active{display:block;}
+
+/* ── KPI BAR ── */
+.kpi-bar{background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 20px;display:flex;gap:8px;overflow-x:auto;}
+.kpi{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:7px 14px;text-align:center;min-width:85px;flex:1;transition:.15s;cursor:pointer;}
+.kpi:hover{border-color:var(--blue);transform:translateY(-1px);}
+.kpi .v{font-size:1.35rem;font-weight:700;line-height:1;}
+.kpi .l{font-size:.58rem;color:var(--t2);margin-top:2px;text-transform:uppercase;letter-spacing:.4px;}
+.c-bl .v{color:var(--blue);}.c-ye .v{color:var(--yellow);}.c-or .v{color:var(--orange);}
+.c-pu .v{color:var(--purple);}.c-gr .v{color:var(--green);}.c-re .v{color:var(--red);}.c-gy .v{color:var(--t2);}
+
+/* ── TOOLBAR ── */
+.toolbar{padding:8px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border-bottom:1px solid var(--bd);}
+.toolbar input,.toolbar select{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:5px 9px;font-size:.78rem;outline:none;}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue);}
+.toolbar input{width:190px;}
+.sp{flex:1;}
+
+/* ── KANBAN ── */
+.kb-wrap{padding:14px 20px;overflow-x:auto;}
+.kanban{display:flex;gap:12px;min-width:max-content;}
+.col{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);width:272px;flex-shrink:0;display:flex;flex-direction:column;max-height:calc(100vh - 220px);}
+.col-hdr{padding:9px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:var(--r) var(--r) 0 0;}
+.col-cnt{background:var(--bg4);border:1px solid var(--bd);border-radius:20px;padding:1px 7px;font-size:.68rem;color:var(--t2);}
+.col-body{padding:7px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;}
+.col-body.dov{background:var(--bg3);}
+
+/* ── CARD ── */
+.card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:9px;cursor:pointer;transition:.15s;user-select:none;}
+.card:hover{border-color:var(--blue2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.4);}
+.card.dragging{opacity:.35;}
+.card.r-late{border-left:3px solid var(--red);}
+.card.r-warn{border-left:3px solid var(--yellow);}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.card-id{font-size:.65rem;color:var(--t3);font-weight:600;}
+.card-rota{font-size:.75rem;font-weight:700;color:var(--blue);}
+.card-badges{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;}
+.badge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:.6rem;font-weight:700;text-transform:uppercase;}
+.b-ltl{background:#0d2040;color:var(--blue);border:1px solid var(--blue2);}
+.b-flt{background:var(--yellow3);color:var(--yellow);border:1px solid var(--yellow2);}
+.b-inb{background:var(--green3);color:var(--green);border:1px solid var(--green2);}
+.b-ext{background:var(--purple3);color:var(--purple);border:1px solid var(--purple2);}
+.ci{font-size:.7rem;color:var(--t2);display:flex;flex-direction:column;gap:2px;}
+.ci .row{display:flex;justify-content:space-between;}
+.ci .lbl{color:var(--t3);}.ci .val{color:var(--text);font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ct{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--bd);}
+.tb .tl{font-size:.6rem;color:var(--t3);margin-bottom:1px;}
+.tb .tv{font-size:.72rem;font-weight:600;}
+.tv-p{color:var(--t2);}.tv-ok{color:var(--green);}.tv-w{color:var(--yellow);}.tv-l{color:var(--red);}.tv-nd{color:var(--t3);}
+.ab{background:var(--red3);color:var(--red);border:1px solid var(--red2);font-size:.6rem;padding:1px 5px;border-radius:3px;margin-top:3px;display:inline-block;}
+.col-empty{text-align:center;padding:18px;color:var(--t3);font-size:.72rem;}
+
+/* ── STATUS BADGE ── */
+.sb{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:700;text-transform:uppercase;}
+.sb-PROG{background:var(--bg4);color:var(--t2);border:1px solid var(--bd);}
+.sb-AGUCARR{background:var(--yellow3);color:var(--yellow);border:1px solid var(--yellow2);}
+.sb-EMCARR{background:var(--orange3);color:var(--orange);border:1px solid var(--orange2);}
+.sb-TRAN{background:var(--blue3);color:var(--blue);border:1px solid var(--blue2);}
+.sb-AGUDESC{background:var(--purple3);color:var(--purple);border:1px solid var(--purple2);}
+.sb-FIN{background:var(--green3);color:var(--green);border:1px solid var(--green2);}
+.sb-CANC{background:var(--red3);color:var(--red);border:1px solid var(--red2);}
+.sb-REC{background:var(--red3);color:var(--red);border:1px solid var(--red2);}
+.sb-PERN{background:#2b1d00;color:#d4a017;border:1px solid #8b6914;}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;overflow-y:auto;padding:20px;}
+.overlay.open{display:block;}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);width:100%;max-width:800px;margin:0 auto;}
+.mhdr{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;border-radius:var(--r) var(--r) 0 0;}
+.mhdr h2{font-size:.95rem;font-weight:700;color:var(--blue);}
+.mclose{background:none;border:none;color:var(--t2);font-size:1.2rem;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.mclose:hover{color:var(--text);background:var(--bg4);}
+.mbody{padding:18px;}
+.mfoot{padding:12px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--bg2);border-radius:0 0 var(--r) var(--r);}
+.fg{display:flex;flex-direction:column;gap:3px;}
+.fg label{font-size:.67rem;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+.fg input,.fg select,.fg textarea{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 9px;font-size:.8rem;outline:none;width:100%;font-family:inherit;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);}
+.fg textarea{resize:vertical;min-height:55px;}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fgrid.c3{grid-template-columns:1fr 1fr 1fr;}
+.fgrid.c1{grid-template-columns:1fr;}
+.sec{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--t3);border-bottom:1px solid var(--bd);padding-bottom:5px;margin:14px 0 10px;font-weight:700;}
+.db{font-size:.7rem;padding:3px 7px;border-radius:4px;display:inline-block;}
+.db-ok{background:var(--green3);color:var(--green);}
+.db-w{background:var(--yellow3);color:var(--yellow);}
+.db-l{background:var(--red3);color:var(--red);}
+.caf-row{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:9px;display:grid;grid-template-columns:1fr 1fr 80px auto;gap:7px;align-items:end;}
+.crm{background:var(--red3);border:1px solid var(--red2);color:var(--red);border-radius:var(--rs);padding:4px 7px;cursor:pointer;font-size:.75rem;}
+.crm:hover{background:var(--red2);color:#fff;}
+.hist-list{display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;}
+.hi{background:var(--bg3);border-left:3px solid var(--blue2);padding:4px 9px;border-radius:0 4px 4px 0;font-size:.72rem;}
+.hi .ht{color:var(--t3);font-size:.65rem;}
+
+/* ── LIST TABLE ── */
+.lt-wrap{padding:14px 20px;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.72rem;}
+thead th{background:var(--bg2);padding:7px 9px;text-align:left;color:var(--t2);border-bottom:2px solid var(--bd);white-space:nowrap;position:sticky;top:0;z-index:5;font-size:.65rem;text-transform:uppercase;letter-spacing:.3px;}
+tbody tr{border-bottom:1px solid var(--bg3);transition:.1s;cursor:pointer;}
+tbody tr:hover{background:var(--bg2);}
+tbody td{padding:6px 9px;vertical-align:middle;white-space:nowrap;}
+
+/* ── MASSA ── */
+.mi{background:var(--bg3);border:1px solid var(--bd);color:var(--text);padding:4px 7px;border-radius:4px;font-size:.73rem;font-family:inherit;outline:none;width:100%;}
+.mi:focus{border-color:var(--blue);}
+
+/* ── FUP ── */
+.fup-kpi{display:flex;gap:0;background:var(--bg2);border-bottom:1px solid var(--bd);}
+.fkpi{flex:1;padding:8px 12px;text-align:center;border-right:1px solid var(--bd);}
+.fkpi:last-child{border-right:none;}
+.fkpi .fv{font-size:1.4rem;font-weight:700;line-height:1;}
+.fkpi .fl{font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;color:var(--t2);}
+
+.fup-table{width:100%;border-collapse:collapse;font-size:.71rem;min-width:1050px;}
+.fup-table thead .th-grp td{padding:3px 8px;font-size:.58rem;text-transform:uppercase;letter-spacing:.5px;font-weight:700;text-align:center;color:var(--t2);}
+.th-orig{border-top:2px solid var(--blue2);background:#0d1b2a;}
+.th-dest{border-top:2px solid var(--purple2);background:#13062e;}
+.fup-table thead .th-main th{background:var(--bg2);padding:7px 8px;text-align:left;color:var(--t2);border-bottom:2px solid var(--bd);white-space:nowrap;font-size:.63rem;text-transform:uppercase;letter-spacing:.3px;}
+.fup-table tbody tr{border-bottom:1px solid var(--bg3);transition:.1s;}
+.fup-table tbody tr:hover{background:var(--bg2);}
+.fup-table tbody tr.fr-ok{border-left:3px solid var(--green);}
+.fup-table tbody tr.fr-late{border-left:3px solid var(--red);}
+.fup-table tbody tr.fr-w{border-left:3px solid var(--yellow);}
+.fup-table tbody tr.fr-canc{border-left:3px solid var(--red2);opacity:.6;}
+.fup-table tbody tr.fr-nd{border-left:3px solid var(--bd);}
+.fup-table td{padding:6px 8px;vertical-align:middle;white-space:nowrap;}
+.fup-table .center{text-align:center;}
+
+.tp{display:flex;flex-direction:column;gap:0;}
+.tp .tpl{font-size:.6rem;color:var(--t3);}
+.tp .trl{font-size:.74rem;font-weight:600;}
+.trl-ok{color:var(--green);}.trl-w{color:var(--yellow);}.trl-l{color:var(--red);}.trl-nd{color:var(--t3);}
+.dp{display:inline-block;padding:1px 5px;border-radius:3px;font-size:.6rem;font-weight:700;margin-top:1px;}
+.dp-ok{background:var(--green3);color:var(--green);}
+.dp-w{background:var(--yellow3);color:var(--yellow);}
+.dp-l{background:var(--red3);color:var(--red);}
+
+.fup-rota-sep td{background:var(--bg3);border-top:2px solid var(--blue2);border-bottom:1px solid var(--bd);padding:5px 10px;font-weight:700;font-size:.72rem;color:var(--blue);}
+.fup-rota-sep .rsi{color:var(--t2);font-weight:400;font-size:.65rem;margin-left:8px;}
+
+.sla-ok{color:var(--green);font-weight:700;font-size:.71rem;}
+.sla-late{color:var(--red);font-weight:700;font-size:.71rem;}
+.sla-nd{color:var(--t3);font-size:.71rem;}
+
+/* PRINT FUP */
+@media print{
+  .topbar,.tab,.toolbar,.btn,.fup-toolbar{display:none!important;}
+  body{background:#fff;color:#000;}
+  .fup-table thead .th-main th{background:#eee;color:#333;}
+  .fup-table tbody tr.fr-ok{border-left:3px solid #16a34a;}
+  .fup-table tbody tr.fr-late{border-left:3px solid #dc2626;}
+  .fup-table tbody tr.fr-w{border-left:3px solid #ca8a04;}
+  .trl-ok{color:#16a34a;}.trl-w{color:#b45309;}.trl-l{color:#dc2626;}.trl-nd{color:#888;}
+  .dp-ok{background:#dcfce7;color:#16a34a;}.dp-w{background:#fef9c3;color:#b45309;}.dp-l{background:#fee2e2;color:#dc2626;}
+  .sla-ok{color:#16a34a;}.sla-late{color:#dc2626;}
+}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">🚛 TRK PCP <small>2026</small></div>
+  <div class="tabs">
+    <button class="tab active" id="tb-kanban" onclick="setView('kanban')">⬜ Kanban</button>
+    <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
+    <button class="tab" id="tb-prog" onclick="setView('prog')">📅 D-1</button>
+    <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Prog. em Massa</button>
+    <button class="tab" id="tb-fup" onclick="setView('fup')" style="color:var(--purple);border:1px solid var(--purple2)">📋 FUP FC</button>
+  </div>
+  <div class="topbar-r">
+    <span class="clock" id="clock"></span>
+    <button class="btn btn-g" onclick="exportCSV()">📥 CSV</button>
+    <button class="btn btn-p" onclick="openNew()">+ Nova Op.</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ KANBAN ═══════════════════ -->
+<div class="view active" id="view-kanban">
+  <div class="kpi-bar" id="kpiBar"></div>
+  <div class="toolbar">
+    <input id="sQ" placeholder="🔍 ID, placa, motorista, CAF, SM..." oninput="render()"/>
+    <select id="fRo" onchange="render()"><option value="">Todas as Rotas</option></select>
+    <select id="fSt" onchange="render()"><option value="">Todos os Status</option></select>
+    <select id="fTr" onchange="render()"><option value="">Todas as Transportadoras</option></select>
+    <select id="fTp" onchange="render()"><option value="">Todos os Tipos</option></select>
+    <div class="sp"></div>
+    <button class="btn btn-g" onclick="clrF()" style="font-size:.73rem">✕ Limpar</button>
+  </div>
+  <div class="kb-wrap"><div class="kanban" id="kanban"></div></div>
+</div>
+
+<!-- ═══════════════════ LISTA ═══════════════════ -->
+<div class="view" id="view-lista">
+  <div class="lt-wrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Data</th><th>Rota</th><th>Tipo</th>
+        <th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th>
+        <th>Pl.Saída</th><th>Rl.Saída</th><th>Pl.FC</th><th>Rl.FC</th>
+        <th>Δ Saída</th><th>Δ FC</th><th>T.Doca</th><th>Status</th>
+      </tr></thead>
+      <tbody id="listBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════ D-1 ═══════════════════ -->
+<div class="view" id="view-prog">
+  <div style="padding:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h2 style="font-size:.95rem;color:var(--blue)">📅 Programação D-1</h2>
+      <button class="btn btn-p" onclick="openNew()">+ Programar Operação</button>
+    </div>
+    <div id="progGrid" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MASSA ═══════════════════ -->
+<div class="view" id="view-massa">
+  <div style="padding:18px;max-width:1200px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <h2 style="font-size:.95rem;color:var(--blue)">⚡ Programação em Massa</h2>
+        <p style="font-size:.74rem;color:var(--t2);margin-top:2px">Defina quantas viagens por rota e preencha os detalhes</p>
+      </div>
+      <button class="btn btn-s" onclick="confirmarMassa()">✅ Gerar Operações</button>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px">
+      <div class="sec" style="margin-top:0">Passo 1 — Definir quantidades</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+        <div class="fg"><label>Data da Operação</label><input type="date" id="mData" style="width:150px"></div>
+        <div class="fg"><label>Transportadora Padrão</label><select id="mTranspP" style="width:170px"><option value="">— definir depois —</option></select></div>
+        <div class="fg"><label>Tipo de Carga</label><select id="mTipoP" style="width:120px"></select></div>
+        <div class="fg"><label>Tipologia</label><select id="mTipolP" style="width:120px"></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px" id="rotaGrid"></div>
+      <button class="btn btn-p" style="margin-top:12px;font-size:.75rem" onclick="gerarMassa()">→ Gerar tabela</button>
+    </div>
+    <div id="massaStep2" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:14px">
+      <div class="sec" style="margin-top:0">Passo 2 — Completar detalhes <span id="mCnt" style="color:var(--blue);font-size:.8rem;text-transform:none;font-weight:400;letter-spacing:0"></span></div>
+      <div style="overflow-x:auto">
+        <table id="massaTable">
+          <thead><tr>
+            <th>#</th><th>Rota</th><th>Transportadora</th><th>Motorista</th>
+            <th>Placa</th><th>SM</th><th>ID TMS</th>
+            <th>Pl.Apres</th><th>Pl.Saída</th><th>Pl.Cheg.FC</th><th>Tipo</th><th></th>
+          </tr></thead>
+          <tbody id="massaBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FUP FC ═══════════════════ -->
+<div class="view" id="view-fup">
+  <!-- FUP KPIs -->
+  <div class="fup-kpi" id="fupKpi"></div>
+  <!-- FUP toolbar -->
+  <div class="toolbar fup-toolbar">
+    <select id="ffRota" onchange="renderFUP()"><option value="">Todas as Rotas</option></select>
+    <select id="ffStatus" onchange="renderFUP()"><option value="">Todos os Status</option></select>
+    <select id="ffSLA" onchange="renderFUP()">
+      <option value="">Todos SLAs</option>
+      <option value="ok">✔ No Prazo</option>
+      <option value="late">✘ Atrasado</option>
+      <option value="nd">— Sem info</option>
+    </select>
+    <input id="ffBusca" placeholder="🔍 Placa, motorista, SM..." oninput="renderFUP()" style="width:190px"/>
+    <div class="sp"></div>
+    <span id="fupCnt" style="font-size:.72rem;color:var(--t2)"></span>
+    <button class="btn btn-g" style="font-size:.72rem" onclick="()=>{['ffRota','ffStatus','ffSLA'].forEach(i=>document.getElementById(i).value='');document.getElementById('ffBusca').value='';renderFUP();}">✕</button>
+    <button class="btn btn-g" onclick="fupGrouped=!fupGrouped;renderFUP()">⊞ Agrupar</button>
+    <button class="btn btn-g" onclick="exportFUP()">📥 CSV</button>
+    <button class="btn btn-s" onclick="window.print()">🖨 Imprimir</button>
+  </div>
+  <div style="padding:10px 20px 20px;overflow-x:auto">
+    <div id="fupWrap"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mhdr">
+      <h2 id="mTitle">Nova Operação</h2>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="mBody"></div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="saveCard()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ CONSTANTES ══════════════════════════════════════════
+const ROTAS=['TZX_GR8','TZX_XC9','TZX_JDU','TZX_GR9','TZX_GR5'];
+const TIPOS=['LTL','FLT','Inbound','Extra'];
+const TIPOLS=['CARRETA','TOCO','TRUCK','VAN','UTILITÁRIO'];
+const TRANSPS=['FRATELLI','GALEGOS','PRC','FULLFLEX','HORIZONTE','SPEED','VOXEL','NEW ALPHA','REALUZ','SETAG','INNOVATION','SABOIA'];
+const STS=[
+  {id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},
+  {id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},
+  {id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},
+  {id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'PERN',lb:'EM PERNOITE'},
+];
+const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','PERN'];
+const COL_BRD={PROG:'var(--t3)',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)',TRAN:'var(--blue)',AGUDESC:'var(--purple)',FIN:'var(--green)',CANC:'var(--red)',REC:'var(--red2)',PERN:'#8b6914'};
+
+let ops=[], editId=null, seq=1000, mRows=[], fupGrouped=false;
+
+// ═══════════════════════ HELPERS ═════════════════════════════════════════════
+const genId=()=>'OP-'+(++seq);
+const ts=()=>new Date().toLocaleString('pt-BR');
+const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'';
+const stObj=id=>STS.find(s=>s.id===id)||STS[0];
+const tCls=t=>({LTL:'b-ltl',FLT:'b-flt',Inbound:'b-inb',Extra:'b-ext'}[t]||'b-ltl');
+const pMin=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};
+const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);return(pa!==null&&pb!==null)?pb-pa:null;};
+const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
+const dCls=d=>d===null?'':d>30?'late':d>0?'warn':'ok';
+const tvCls=d=>d===null?'tv-nd':d>30?'tv-l':d>0?'tv-w':'tv-ok';
+
+// ═══════════════════════ STORAGE ════════════════════════════════════════════
+function saveOps(){try{localStorage.setItem('trk_pcp_ops',JSON.stringify(ops));localStorage.setItem('trk_pcp_seq',String(seq));}catch(e){}}
+function loadOps(){
+  try{
+    const s=localStorage.getItem('trk_pcp_seq');
+    if(s)seq=parseInt(s);
+    const d=localStorage.getItem('trk_pcp_ops');
+    if(d){ops=JSON.parse(d);return true;}
+  }catch(e){}
+  return false;
+}
+
+// ═══════════════════════ SEED ════════════════════════════════════════════════
+(function(){
+  if(loadOps())return; // já tem dados salvos, não sobrescreve
+  const t=new Date().toISOString().split('T')[0];
+  [
+    {r:'TZX_XC9',tp:'LTL',tr:'FRATELLI',m:'Vidomar Dias da Rocha',pl:'AYV-8F46',st:'AGUDESC',pa:'06:00',ps:'07:00',pc:'09:00',ra:'06:10',rs:'07:15',rc:'09:45',sm:'2036821',tms:'TMS-4418'},
+    {r:'TZX_GR9',tp:'FLT',tr:'GALEGOS',m:'Natalino Silveira de Souza',pl:'PGY-9G57',st:'TRAN',pa:'07:00',ps:'08:00',pc:'11:00',ra:'07:05',rs:'08:10',rc:'',sm:'2036820',tms:'TMS-4419'},
+    {r:'TZX_XC9',tp:'LTL',tr:'PRC',m:'Fabio Chagas Vitoriano',pl:'PRL-0F47',st:'EMCARR',pa:'08:00',ps:'09:00',pc:'12:00',ra:'08:20',rs:'',rc:'',sm:'2036819',tms:''},
+    {r:'TZX_GR8',tp:'FLT',tr:'FULLFLEX',m:'Wesley Damasceno',pl:'EFU-2D23',st:'AGUCARR',pa:'09:00',ps:'10:00',pc:'13:00',ra:'',rs:'',rc:'',sm:'',tms:''},
+    {r:'TZX_XC9',tp:'LTL',tr:'HORIZONTE',m:'Diego Angelo da Costa Silva',pl:'CVR-3F60',st:'PROG',pa:'10:00',ps:'11:00',pc:'14:00',ra:'',rs:'',rc:'',sm:'',tms:''},
+    {r:'TZX_GR9',tp:'Inbound',tr:'SPEED',m:'Cesar Henrique Silva Lima',pl:'FLU-3J60',st:'FIN',pa:'05:00',ps:'06:00',pc:'08:00',ra:'05:05',rs:'06:05',rc:'08:10',rd:'08:50',sm:'2036815',tms:'TMS-4412'},
+    {r:'TZX_XC9',tp:'LTL',tr:'FRATELLI',m:'Rodrigo Vieira Rosa',pl:'EHH-8C74',st:'CANC',pa:'11:00',ps:'12:00',pc:'15:00',ra:'',rs:'',rc:'',sm:'',tms:''},
+    {r:'TZX_GR8',tp:'FLT',tr:'VOXEL',m:'Eduardo Henrique Assis',pl:'IZB-D66',st:'AGUDESC',pa:'07:00',ps:'08:00',pc:'11:00',ra:'07:20',rs:'08:35',rc:'11:50',sm:'2036818',tms:''},
+    {r:'TZX_XC9',tp:'LTL',tr:'NEW ALPHA',m:'João Pedro Teodoro',pl:'GBR-3C53',st:'FIN',pa:'06:00',ps:'07:00',pc:'09:30',ra:'06:00',rs:'07:00',rc:'09:25',rd:'10:05',sm:'2036817',tms:'TMS-4415'},
+    {r:'TZX_XC9',tp:'LTL',tr:'REALUZ',m:'Rafael Anderson Oliveira',pl:'CMT-7C63',st:'FIN',pa:'05:30',ps:'06:30',pc:'09:00',ra:'05:35',rs:'06:40',rc:'09:10',rd:'09:55',sm:'2036816',tms:'TMS-4414'},
+  ].forEach(d=>ops.push({
+    id:genId(),dataProg:t,dataOp:t,rota:d.r,tipoCarga:d.tp,tipologia:'CARRETA',
+    transp:d.tr,mot:d.m,placa:d.pl,placaCarreta:'',sm:d.sm||'',tms:d.tms||'',isa:'',
+    planApres:d.pa,planSaida:d.ps,planChegFC:d.pc,
+    realApres:d.ra||'',realSaida:d.rs||'',realChegFC:d.rc||'',realDescarga:d.rd||'',
+    status:d.st,obs:'',
+    cafs:[{num:'2308'+Math.floor(Math.random()*9999),tipo:d.tp,qtd:String(Math.floor(Math.random()*30)+5),vol:'',obs:''}],
+    hist:[{t:ts(),txt:'Criado (demo)'}],updatedAt:ts(),updatedBy:'Sistema'
+  }));
+})();
+
+// ═══════════════════════ FILTER ══════════════════════════════════════════════
+function getFilt(){
+  const q=(document.getElementById('sQ')?.value||'').toLowerCase();
+  const fR=document.getElementById('fRo')?.value||'';
+  const fS=document.getElementById('fSt')?.value||'';
+  const fT=document.getElementById('fTr')?.value||'';
+  const fTp=document.getElementById('fTp')?.value||'';
+  return ops.filter(o=>{
+    if(fR&&o.rota!==fR)return false;
+    if(fS&&o.status!==fS)return false;
+    if(fT&&o.transp!==fT)return false;
+    if(fTp&&o.tipoCarga!==fTp)return false;
+    if(q){const hay=[o.id,o.placa,o.mot,o.sm,o.tms,...o.cafs.map(c=>c.num)].join('|').toLowerCase();if(!hay.includes(q))return false;}
+    return true;
+  });
+}
+function buildSels(){
+  const u=fn=>[...new Set(ops.map(fn).filter(Boolean))].sort();
+  fSel('fRo',u(o=>o.rota));fSel('fTr',u(o=>o.transp));
+  fSel('fSt',STS.map(s=>({v:s.id,l:s.lb})),true);fSel('fTp',TIPOS);
+}
+function fSel(id,opts,obj=false){
+  const el=document.getElementById(id);if(!el)return;
+  const cur=el.value,base=el.options[0].outerHTML;
+  el.innerHTML=base+(obj?opts.map(o=>`<option value="${o.v}">${o.l}</option>`).join(''):opts.map(o=>`<option>${o}</option>`).join(''));
+  el.value=cur;
+}
+function clrF(){['fRo','fSt','fTr','fTp'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});const e=document.getElementById('sQ');if(e)e.value='';render();}
+
+// ═══════════════════════ RENDER ═══════════════════════════════════════════════
+function render(){buildSels();renderKPIs();renderKanban();renderList();renderProg();}
+
+function renderKPIs(){
+  const d=getFilt(),c=s=>d.filter(o=>o.status===s).length;
+  document.getElementById('kpiBar').innerHTML=[
+    {cl:'c-bl',v:d.length,l:'Total'},{cl:'c-gy',v:c('PROG'),l:'Programado'},
+    {cl:'c-ye',v:c('AGUCARR'),l:'Ag.Carregamento'},{cl:'c-or',v:c('EMCARR'),l:'Em Carregamento'},
+    {cl:'c-bl',v:c('TRAN'),l:'Em Trânsito'},{cl:'c-pu',v:c('AGUDESC'),l:'Ag.Descarga'},
+    {cl:'c-gr',v:c('FIN'),l:'Finalizado'},{cl:'c-re',v:c('CANC')+c('REC'),l:'Canc/Recusado'},
+  ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+}
+
+function cardHTML(op){
+  const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
+  const rc=dC>30||dS>30?'r-late':dC>0||dS>0?'r-warn':'';
+  return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${op.id}')" onclick="openEdit('${op.id}')">
+    <div class="card-top"><span class="card-id">${op.id}${op.sm?' · SM '+op.sm:''}</span><span class="card-rota">${op.rota}</span></div>
+    <div class="card-badges"><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span>${op.cafs.length>1?`<span class="badge" style="background:var(--bg4);color:var(--t2);border:1px solid var(--bd)">${op.cafs.length} CAFs</span>`:''}</div>
+    <div class="ci">
+      <div class="row"><span class="lbl">Transp.</span><span class="val">${op.transp||'—'}</span></div>
+      <div class="row"><span class="lbl">Motorista</span><span class="val">${op.mot||'—'}</span></div>
+      <div class="row"><span class="lbl">Placa</span><span class="val">${op.placa||'—'}</span></div>
+      ${op.tms?`<div class="row"><span class="lbl">TMS</span><span class="val">${op.tms}</span></div>`:''}
+    </div>
+    <div class="ct">
+      <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}</div></div>
+      <div class="tb"><div class="tl">Saída Real</div><div class="tv ${tvCls(dS)}">${op.realSaida||'—'}</div></div>
+      <div class="tb"><div class="tl">FC Plan.</div><div class="tv tv-p">${op.planChegFC||'—'}</div></div>
+      <div class="tb"><div class="tl">FC Real</div><div class="tv ${tvCls(dC)}">${op.realChegFC||'—'}</div></div>
+    </div>
+    ${dS!==null&&dS>0?`<span class="ab">⚠ Saída ${fDiff(dS)}</span>`:''}
+    ${dC!==null&&dC>0?`<span class="ab">⚠ FC ${fDiff(dC)}</span>`:''}
+  </div>`;
+}
+
+function renderKanban(){
+  const data=getFilt();
+  document.getElementById('kanban').innerHTML=COL_ORD.map(sid=>{
+    const st=stObj(sid),cards=data.filter(o=>o.status===sid);
+    return `<div class="col" style="border-top:3px solid ${COL_BRD[sid]||'var(--t3)'}">
+      <div class="col-hdr"><span class="sb sb-${sid}">${st.lb}</span><span class="col-cnt">${cards.length}</span></div>
+      <div class="col-body" id="cb-${sid}"
+        ondragover="event.preventDefault();this.classList.add('dov')"
+        ondragleave="this.classList.remove('dov')"
+        ondrop="onDrop(event,'${sid}')">
+        ${cards.length?cards.map(cardHTML).join(''):'<div class="col-empty">Sem operações</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderList(){
+  const data=getFilt();
+  document.getElementById('listBody').innerHTML=data.map(op=>{
+    const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
+    const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
+    return `<tr onclick="openEdit('${op.id}')">
+      <td style="color:var(--blue);font-weight:700">${op.id}</td><td>${fmtD(op.dataOp)}</td>
+      <td style="color:var(--blue)">${op.rota}</td>
+      <td><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span></td>
+      <td>${op.transp}</td><td>${op.mot}</td><td><strong>${op.placa}</strong></td>
+      <td style="color:var(--t2)">${op.sm||'—'}</td><td style="color:var(--t2)">${op.tms||'—'}</td>
+      <td>${op.planSaida||'—'}</td><td style="color:${dc(dS)}">${op.realSaida||'—'}</td>
+      <td>${op.planChegFC||'—'}</td><td style="color:${dc(dC)}">${op.realChegFC||'—'}</td>
+      <td style="color:${dc(dS)}">${fDiff(dS)}</td><td style="color:${dc(dC)}">${fDiff(dC)}</td>
+      <td style="color:var(--purple)">${fDiff(dDoc)}</td>
+      <td><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderProg(){
+  const data=ops.filter(o=>o.status==='PROG');
+  document.getElementById('progGrid').innerHTML=data.length
+    ?data.map(op=>`<div class="card" onclick="openEdit('${op.id}')">
+      <div class="card-top"><span class="card-id">${op.id}</span><span class="card-rota">${op.rota}</span></div>
+      <div class="card-badges"><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span></div>
+      <div class="ci">
+        <div class="row"><span class="lbl">Transp.</span><span class="val">${op.transp||'—'}</span></div>
+        <div class="row"><span class="lbl">Motorista</span><span class="val">${op.mot||'—'}</span></div>
+        <div class="row"><span class="lbl">SM</span><span class="val">${op.sm||'—'}</span></div>
+        <div class="row"><span class="lbl">Data Op.</span><span class="val">${fmtD(op.dataOp)}</span></div>
+      </div>
+    </div>`).join('')
+    :'<div style="color:var(--t3);text-align:center;padding:40px">Nenhuma operação programada</div>';
+}
+
+// ═══════════════════════ FUP FC ══════════════════════════════════════════════
+function getSLAOp(op){
+  if(op.status==='CANC')return'nd';
+  const d=dMin(op.planChegFC,op.realChegFC);
+  if(d===null)return'nd';
+  return d>0?'late':'ok';
+}
+
+function getFUPFilt(){
+  const fR=document.getElementById('ffRota')?.value||'';
+  const fS=document.getElementById('ffStatus')?.value||'';
+  const fSLA=document.getElementById('ffSLA')?.value||'';
+  const q=(document.getElementById('ffBusca')?.value||'').toLowerCase();
+  return ops.filter(o=>{
+    if(fR&&o.rota!==fR)return false;
+    if(fS&&o.status!==fS)return false;
+    const sla=getSLAOp(o);
+    if(fSLA&&sla!==fSLA)return false;
+    if(q&&![o.id,o.placa,o.mot,o.sm||''].join('|').toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+
+function timePairFUP(plan,real){
+  const d=dMin(plan,real);
+  const rc=d===null?'trl-nd':d>30?'trl-l':d>0?'trl-w':'trl-ok';
+  const dp=real&&d!==null&&d!==0?`<span class="dp dp-${dCls(d)}">${fDiff(d)}</span>`:'';
+  return `<div class="tp">
+    <div class="tpl">${plan||'—'}</div>
+    <div class="trl ${rc}">${real||'—'}</div>
+    ${dp}
+  </div>`;
+}
+
+function fupRowCls(op){
+  const sla=getSLAOp(op);
+  if(op.status==='CANC')return'fr-canc';
+  if(sla==='ok')return'fr-ok';
+  if(sla==='late')return'fr-late';
+  if(['TRAN','EMCARR','AGUCARR'].includes(op.status))return'fr-w';
+  return'fr-nd';
+}
+
+function fupRow(op){
+  const sla=getSLAOp(op);
+  const dC=dMin(op.planChegFC,op.realChegFC);
+  const slaCell=sla==='ok'?'<span class="sla-ok">✔ No Prazo</span>':sla==='late'?'<span class="sla-late">✘ Atraso</span>':'<span class="sla-nd">—</span>';
+  return `<tr class="${fupRowCls(op)}" onclick="openEdit('${op.id}')" style="cursor:pointer">
+    <td><div style="font-weight:700;color:var(--blue);font-size:.72rem">${op.id}</div>${op.sm?`<div style="font-size:.62rem;color:var(--t3)">SM ${op.sm}</div>`:''}</td>
+    <td><strong style="color:var(--blue)">${op.rota}</strong></td>
+    <td>${op.transp}</td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">${op.mot}</td>
+    <td><strong>${op.placa}</strong></td>
+    <td class="center">${timePairFUP(op.planApres,op.realApres)}</td>
+    <td class="center">${timePairFUP(op.planSaida,op.realSaida)}</td>
+    <td class="center">${timePairFUP(op.planChegFC,op.realChegFC)}</td>
+    <td class="center">${dC!==null?`<span class="dp dp-${dCls(dC)}">${fDiff(dC)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+    <td class="center" style="color:${op.realDescarga?'var(--green)':'var(--t3)'};font-weight:${op.realDescarga?700:400}">${op.realDescarga||'—'}</td>
+    <td class="center"><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
+    <td class="center">${slaCell}</td>
+  </tr>`;
+}
+
+function fupHead(){
+  return `<table class="fup-table">
+    <thead>
+      <tr class="th-grp">
+        <td colspan="5"></td>
+        <td colspan="2" class="th-orig">◀ ORIGEM (TZX)</td>
+        <td colspan="3" class="th-dest">▶ DESTINO (FC)</td>
+        <td colspan="2"></td>
+      </tr>
+      <tr class="th-main">
+        <th>ID / SM</th><th>Rota</th><th>Transportadora</th><th>Motorista</th><th>Placa</th>
+        <th class="center">Apres.<br><span style="font-size:.56rem;color:var(--t3)">Plan/Real/Δ</span></th>
+        <th class="center">Saída TZX<br><span style="font-size:.56rem;color:var(--t3)">Plan/Real/Δ</span></th>
+        <th class="center">Cheg. FC<br><span style="font-size:.56rem;color:var(--t3)">Plan/Real/Δ</span></th>
+        <th class="center">Δ FC</th>
+        <th class="center">Final.Desc.</th>
+        <th class="center">Status</th>
+        <th class="center">SLA</th>
+      </tr>
+    </thead><tbody>`;
+}
+
+function renderFUP(){
+  const data=getFUPFilt();
+  // KPIs
+  const c=s=>data.filter(o=>o.status===s).length;
+  const praz=data.filter(o=>getSLAOp(o)==='ok').length;
+  const atr=data.filter(o=>getSLAOp(o)==='late').length;
+  document.getElementById('fupKpi').innerHTML=[
+    {cl:'c-bl',v:data.length,l:'TOTAL'},{cl:'c-ye',v:c('AGUCARR')+c('EMCARR'),l:'CARREGAMENTO'},
+    {cl:'c-or',v:c('TRAN'),l:'EM TRÂNSITO'},{cl:'c-pu',v:c('AGUDESC'),l:'AG. DESCARGA'},
+    {cl:'c-gr',v:c('FIN'),l:'FINALIZADO'},{cl:'c-gr',v:praz,l:'NO PRAZO'},{cl:'c-re',v:atr,l:'ATRASO'},
+  ].map(k=>`<div class="fkpi"><div class="fv ${k.cl.replace('c-','c-')}" style="color:${
+    {bl:'var(--blue)',ye:'var(--yellow)',or:'var(--orange)',pu:'var(--purple)',gr:'var(--green)',re:'var(--red)',gy:'var(--t2)'}[k.cl.split('-')[1]]
+  }">${k.v}</div><div class="fl">${k.l}</div></div>`).join('');
+  document.getElementById('fupCnt').textContent=`${data.length} operação(ões)`;
+
+  // Fills selects
+  const rotas=[...new Set(ops.map(o=>o.rota))].sort();
+  const sel=document.getElementById('ffRota');
+  const cur=sel?.value||'';
+  if(sel){sel.innerHTML='<option value="">Todas as Rotas</option>'+rotas.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');}
+
+  if(!data.length){document.getElementById('fupWrap').innerHTML='<div style="text-align:center;padding:40px;color:var(--t3)">Nenhuma operação encontrada.</div>';return;}
+
+  let html='';
+  if(fupGrouped){
+    const byR={};data.forEach(o=>(byR[o.rota]=byR[o.rota]||[]).push(o));
+    Object.entries(byR).sort(([a],[b])=>a.localeCompare(b)).forEach(([rota,rows])=>{
+      const fin=rows.filter(r=>getSLAOp(r)==='ok').length;
+      const atr=rows.filter(r=>getSLAOp(r)==='late').length;
+      html+=fupHead()+`<tr class="fup-rota-sep"><td colspan="12">${rota}<span class="rsi">${rows.length} viagem(s) · ✔ ${fin} no prazo · ✘ ${atr} atrasado(s)</span></td></tr>`;
+      html+=rows.map(fupRow).join('')+'</tbody></table>';
+    });
+  } else {
+    html=fupHead()+data.map(fupRow).join('')+'</tbody></table>';
+  }
+  document.getElementById('fupWrap').innerHTML=html;
+}
+
+// ═══════════════════════ DRAG & DROP ═════════════════════════════════════════
+let dragged=null;
+function dStart(e,id){dragged=id;setTimeout(()=>{const el=document.querySelector(`[ondragstart*="${id}"]`);if(el)el.classList.add('dragging');},0);}
+function onDrop(e,sid){
+  e.preventDefault();e.currentTarget.classList.remove('dov');
+  if(!dragged)return;
+  const op=ops.find(o=>o.id===dragged);
+  if(op&&op.status!==sid){const p=stObj(op.status).lb;op.status=sid;op.updatedAt=ts();op.hist.push({t:ts(),txt:`Status: ${p} → ${stObj(sid).lb}`});render();renderFUP();saveOps();}
+  dragged=null;
+}
+
+// ═══════════════════════ MODAL ════════════════════════════════════════════════
+function openNew(){editId=null;document.getElementById('mTitle').textContent='Nova Operação';buildForm(null);document.getElementById('overlay').classList.add('open');}
+function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;document.getElementById('mTitle').textContent='Editar — '+id;buildForm(op);document.getElementById('overlay').classList.add('open');}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
+const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
+
+function buildForm(op){
+  const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1],tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[],updatedBy:''};
+  const dS=dMin(o.planSaida,o.realSaida),dC=dMin(o.planChegFC,o.realChegFC),dA=dMin(o.planApres,o.realApres),dDoc=dMin(o.realChegFC,o.realDescarga);
+  document.getElementById('mBody').innerHTML=`
+<div class="sec" style="margin-top:0">📋 Identificação</div>
+<div class="fgrid c3">
+  <div class="fg"><label>ID</label><input id="fId" value="${o.id}" placeholder="Auto" ${op?'readonly':''}></div>
+  <div class="fg"><label>Data Programação</label><input id="fDP" type="date" value="${o.dataProg}"></div>
+  <div class="fg"><label>Data Operação</label><input id="fDO" type="date" value="${o.dataOp}"></div>
+  <div class="fg"><label>SM</label><input id="fSM" value="${o.sm}" placeholder="Nº SM"></div>
+  <div class="fg"><label>ID TMS</label><input id="fTMS" value="${o.tms}" placeholder="ID TMS"></div>
+  <div class="fg"><label>ISA</label><input id="fISA" value="${o.isa}" placeholder="ISA"></div>
+</div>
+<div class="sec">🗺️ Rota & Carga</div>
+<div class="fgrid">
+  <div class="fg"><label>Rota</label><select id="fRota">${sl(ROTAS,o.rota)}</select></div>
+  <div class="fg"><label>Tipo de Carga</label><select id="fTipo">${sl(TIPOS,o.tipoCarga)}</select></div>
+</div>
+<div class="sec">🚛 Operação</div>
+<div class="fgrid">
+  <div class="fg"><label>Transportadora</label><select id="fTransp"><option value="">Selecione...</option>${sl(TRANSPS,o.transp)}</select></div>
+  <div class="fg"><label>Tipologia</label><select id="fTipol" onchange="tgPlaca()">${sl(TIPOLS,o.tipologia)}</select></div>
+  <div class="fg"><label>Motorista</label><input id="fMot" value="${o.mot}" placeholder="Nome do motorista"></div>
+  <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX-0000"></div>
+</div>
+<div id="wCarreta" style="${o.tipologia!=='CARRETA'?'display:none':''}margin-top:10px">
+  <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="fPlacaC" value="${o.placaCarreta||''}" placeholder="XXX-0000"></div>
+</div>
+<div class="sec">🕐 Horários Planejados</div>
+<div class="fgrid c3">
+  <div class="fg"><label>Apres. Plan.</label><input id="fPA" type="time" value="${o.planApres}"></div>
+  <div class="fg"><label>Saída Plan.</label><input id="fPS" type="time" value="${o.planSaida}"></div>
+  <div class="fg"><label>Cheg. FC Plan.</label><input id="fPC" type="time" value="${o.planChegFC}"></div>
+</div>
+<div class="sec">🕐 Horários Reais</div>
+<div class="fgrid c3">
+  <div class="fg"><label>Apres. Real</label><input id="fRA" type="time" value="${o.realApres}" oninput="calcD()"></div>
+  <div class="fg"><label>Saída Real</label><input id="fRS" type="time" value="${o.realSaida}" oninput="calcD()"></div>
+  <div class="fg"><label>Cheg. FC Real</label><input id="fRC" type="time" value="${o.realChegFC}" oninput="calcD()"></div>
+  <div class="fg"><label>Descarga Real</label><input id="fRD" type="time" value="${o.realDescarga}" oninput="calcD()"></div>
+</div>
+<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px">
+  <div id="ddA" class="db ${dA!==null?'db-'+dCls(dA):''}" style="${dA===null?'display:none':''}">${dA!==null?'Δ Apres: '+fDiff(dA):''}</div>
+  <div id="ddS" class="db ${dS!==null?'db-'+dCls(dS):''}" style="${dS===null?'display:none':''}">${dS!==null?'Δ Saída: '+fDiff(dS):''}</div>
+  <div id="ddC" class="db ${dC!==null?'db-'+dCls(dC):''}" style="${dC===null?'display:none':''}">${dC!==null?'Δ FC: '+fDiff(dC):''}</div>
+  <div id="ddDoc" class="db db-ok" style="${dDoc===null?'display:none':''}">${dDoc!==null?'⏱ Doca: '+fDiff(dDoc):''}</div>
+</div>
+<div class="sec">📊 Status</div>
+<div class="fgrid">
+  <div class="fg"><label>Status Atual</label><select id="fStatus">${slO(STS,o.status)}</select></div>
+  <div class="fg"><label>Responsável</label><input id="fResp" value="${o.updatedBy||''}" placeholder="Seu nome"></div>
+</div>
+<div class="sec">📦 CAFs</div>
+<div id="cafList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:9px">${o.cafs.map((c,i)=>cafR(c,i)).join('')}</div>
+<button class="btn btn-g" style="font-size:.73rem" type="button" onclick="addCaf()">+ Adicionar CAF</button>
+<div class="sec">📝 Observações</div>
+<div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="3">${o.obs||''}</textarea></div></div>
+${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${h.txt}</div>`).join('')}</div>`:''}`;}
+
+function tgPlaca(){const v=document.getElementById('fTipol').value,w=document.getElementById('wCarreta');if(w)w.style.display=v==='CARRETA'?'':'none';}
+function calcD(){
+  const upd=(id,pId,rId,lbl)=>{const d=dMin(document.getElementById(pId)?.value,document.getElementById(rId)?.value),el=document.getElementById(id);if(!el)return;if(d===null){el.style.display='none';return;}el.style.display='inline-block';el.className='db db-'+dCls(d);el.textContent=lbl+': '+fDiff(d);};
+  upd('ddA','fPA','fRA','Δ Apres');upd('ddS','fPS','fRS','Δ Saída');upd('ddC','fPC','fRC','Δ FC');
+  const dDoc=dMin(document.getElementById('fRC')?.value,document.getElementById('fRD')?.value),el=document.getElementById('ddDoc');
+  if(el){if(dDoc!==null){el.style.display='inline-block';el.textContent='⏱ Doca: '+fDiff(dDoc);}else el.style.display='none';}
+}
+
+let cafIdx=0;
+function cafR(c,i){return `<div class="caf-row" id="cr-${i}">
+  <div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234"></div>
+  <div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div>
+  <div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div>
+  <button class="crm" type="button" onclick="this.closest('.caf-row').remove()">✕</button>
+</div>`;}
+function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
+
+function saveCard(){
+  const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  const cafs=[...document.querySelectorAll('#cafList .caf-row')].map(row=>({num:row.querySelector('.cn')?.value||'',tipo:row.querySelector('.ct2')?.value||'LTL',qtd:row.querySelector('.cq')?.value||''})).filter(c=>c.num.trim());
+  if(editId){
+    const op=ops.find(o=>o.id===editId);if(!op)return;
+    const ch=[],upd=(k,v)=>{if(String(op[k])!==String(v)){ch.push(`${k}: "${op[k]}"→"${v}"`);op[k]=v;}};
+    upd('dataProg',g('fDP'));upd('dataOp',g('fDO'));upd('rota',g('fRota'));upd('tipoCarga',g('fTipo'));
+    upd('tipologia',g('fTipol'));upd('transp',g('fTransp'));upd('mot',g('fMot'));upd('placa',g('fPlaca'));
+    upd('placaCarreta',g('fPlacaC'));upd('sm',g('fSM'));upd('tms',g('fTMS'));upd('isa',g('fISA'));
+    upd('planApres',g('fPA'));upd('planSaida',g('fPS'));upd('planChegFC',g('fPC'));
+    upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
+    upd('status',g('fStatus'));upd('obs',g('fObs'));
+    op.cafs=cafs;op.updatedAt=ts();op.updatedBy=g('fResp')||'Usuário';
+    if(ch.length)op.hist.push({t:ts(),txt:'Alterações: '+ch.join('; ')});
+  } else {
+    ops.push({id:g('fId')||genId(),dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),cafs,hist:[{t:ts(),txt:'Criado'}],updatedAt:ts(),updatedBy:g('fResp')||'Usuário'});
+  }
+  closeModal();render();renderFUP();saveOps();
+}
+
+// ═══════════════════════ EXPORT ══════════════════════════════════════════════
+function exportCSV(){
+  const data=getFilt();
+  const rows=[['ID','Data Op','Rota','Tipo','Transportadora','Motorista','Placa','SM','TMS','Pl.Saída','Rl.Saída','Pl.FC','Rl.FC','Δ Saída(min)','Δ FC(min)','T.Doca(min)','Status','SLA']];
+  data.forEach(o=>rows.push([o.id,fmtD(o.dataOp),o.rota,o.tipoCarga,o.transp,o.mot,o.placa,o.sm||'',o.tms||'',o.planSaida,o.realSaida||'',o.planChegFC,o.realChegFC||'',dMin(o.planSaida,o.realSaida)??'',dMin(o.planChegFC,o.realChegFC)??'',dMin(o.realChegFC,o.realDescarga)??'',stObj(o.status).lb,getSLAOp(o)==='ok'?'No Prazo':getSLAOp(o)==='late'?'Atrasado':'—']));
+  dlCSV(rows,'TRK_PCP');
+}
+function exportFUP(){
+  const data=getFUPFilt();
+  const rows=[['ID','SM','Rota','Transportadora','Motorista','Placa','Pl.Apres','Rl.Apres','Pl.Saída','Rl.Saída','Pl.ChegFC','Rl.ChegFC','Δ FC(min)','Final.Desc','Status','SLA']];
+  data.forEach(o=>rows.push([o.id,o.sm||'',o.rota,o.transp,o.mot,o.placa,o.planApres,o.realApres||'',o.planSaida,o.realSaida||'',o.planChegFC,o.realChegFC||'',dMin(o.planChegFC,o.realChegFC)??'',o.realDescarga||'',stObj(o.status).lb,getSLAOp(o)==='ok'?'No Prazo':getSLAOp(o)==='late'?'Atrasado':'—']));
+  dlCSV(rows,'FUP_FC');
+}
+function dlCSV(rows,name){
+  const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`${name}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
+  document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},100);
+}
+
+// ═══════════════════════ MASSA ════════════════════════════════════════════════
+function initMassa(){
+  const tp=document.getElementById('mTranspP');if(tp&&tp.options.length<=1)TRANSPS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tp.appendChild(o);});
+  const tt=document.getElementById('mTipoP');if(tt&&!tt.options.length)TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tt.appendChild(o);});
+  const tl=document.getElementById('mTipolP');if(tl&&!tl.options.length)TIPOLS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tl.appendChild(o);});
+  const md=document.getElementById('mData');if(md&&!md.value){const d=new Date();d.setDate(d.getDate()+1);md.value=d.toISOString().split('T')[0];}
+  const grid=document.getElementById('rotaGrid');
+  if(grid&&!grid.children.length)grid.innerHTML=ROTAS.map(r=>`<div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:11px"><div style="font-size:.82rem;font-weight:700;color:var(--blue);margin-bottom:7px">🛣 ${r}</div><div class="fg"><label>Qtd. viagens</label><input type="number" min="0" max="50" value="0" id="mq-${r}" style="font-size:1.05rem;font-weight:700;text-align:center"></div></div>`).join('');
+}
+function gerarMassa(){
+  mRows=[];
+  const tp=document.getElementById('mTranspP')?.value||'',tipo=document.getElementById('mTipoP')?.value||'LTL',tipol=document.getElementById('mTipolP')?.value||'CARRETA';
+  ROTAS.forEach(r=>{const q=parseInt(document.getElementById('mq-'+r)?.value||0);for(let i=0;i<q;i++)mRows.push({rota:r,transp:tp,mot:'',placa:'',sm:'',tms:'',planApres:'',planSaida:'',planChegFC:'',tipoCarga:tipo,tipologia:tipol});});
+  if(!mRows.length){alert('Defina pelo menos 1 viagem.');return;}
+  renderMassa();document.getElementById('massaStep2').style.display='';document.getElementById('mCnt').textContent=`— ${mRows.length} viagem(s)`;
+}
+function renderMassa(){
+  document.getElementById('massaBody').innerHTML=mRows.map((r,i)=>`
+    <tr style="border-bottom:1px solid var(--bd)">
+      <td style="padding:5px 7px;color:var(--t3);font-size:.68rem">${i+1}</td>
+      <td style="padding:4px 5px"><strong style="color:var(--blue)">${r.rota}</strong></td>
+      <td style="padding:3px 4px"><select class="mi" style="width:145px" onchange="mRows[${i}].transp=this.value"><option value="">Selecione...</option>${TRANSPS.map(t=>`<option${r.transp===t?' selected':''}>${t}</option>`).join('')}</select></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:140px" placeholder="Motorista" value="${r.mot}" oninput="mRows[${i}].mot=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:90px" placeholder="Placa" value="${r.placa}" oninput="mRows[${i}].placa=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:82px" placeholder="SM" value="${r.sm}" oninput="mRows[${i}].sm=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:90px" placeholder="ID TMS" value="${r.tms}" oninput="mRows[${i}].tms=this.value"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:90px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:90px" value="${r.planSaida}" oninput="mRows[${i}].planSaida=this.value"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:90px" value="${r.planChegFC}" oninput="mRows[${i}].planChegFC=this.value"></td>
+      <td style="padding:3px 4px"><select class="mi" style="width:85px" onchange="mRows[${i}].tipoCarga=this.value">${TIPOS.map(t=>`<option${r.tipoCarga===t?' selected':''}>${t}</option>`).join('')}</select></td>
+      <td style="padding:3px 4px"><button onclick="mRows.splice(${i},1);renderMassa();document.getElementById('mCnt').textContent='— '+mRows.length+' viagem(s)'" style="background:var(--red3);border:1px solid var(--red2);color:var(--red);padding:3px 7px;border-radius:4px;cursor:pointer;font-size:.7rem">✕</button></td>
+    </tr>`).join('');
+}
+function confirmarMassa(){
+  if(!mRows.length){alert('Nenhuma viagem para gerar.');return;}
+  const dataOp=document.getElementById('mData')?.value||new Date().toISOString().split('T')[0];
+  const dataProg=new Date().toISOString().split('T')[0];
+  mRows.forEach(r=>ops.push({id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:'Criado via Prog. em Massa'}],updatedAt:ts(),updatedBy:'Prog. em Massa'}));
+  const n=mRows.length;mRows=[];ROTAS.forEach(r=>{const el=document.getElementById('mq-'+r);if(el)el.value=0;});
+  document.getElementById('massaStep2').style.display='none';
+  render();saveOps();setView('kanban');setTimeout(()=>alert(`✅ ${n} operação(ões) criada(s)!`),100);
+}
+
+// ═══════════════════════ NAV ═════════════════════════════════════════════════
+function setView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  const v=document.getElementById('view-'+name),nb=document.getElementById('tb-'+name);
+  if(v)v.classList.add('active');if(nb)nb.classList.add('active');
+  if(name==='massa')initMassa();
+  if(name==='fup')renderFUP();
+}
+
+// ═══════════════════════ CLOCK ════════════════════════════════════════════════
+setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleString('pt-BR'),1000);
+
+// ═══════════════════════ INIT ═════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
