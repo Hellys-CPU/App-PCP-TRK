@@ -36,7 +36,28 @@ body.dark{
   --sh:0 1px 3px rgba(0,0,0,.3);--sh2:0 4px 6px rgba(0,0,0,.4);--sh3:0 10px 25px rgba(0,0,0,.5);
 }
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-body.dark .topbar{background:linear-gradient(135deg,#1a2236,#0d1b2a);}
+body.dark .lfg label{color:var(--gray2);}
+body.dark .fg label{color:var(--gray2);}
+body.dark .sec{color:var(--t2);}
+body.dark .ll h1{color:#ff6666;}
+body.dark .mhdr h2{color:#ff6666;}
+body.dark .card-rota{color:#ff8888;}
+body.dark .fup-sep td{color:#ff8888;}
+body.dark .sla-late{color:#ff6666;}
+body.dark thead th{color:var(--gray2);}
+body.dark .kpi .l{color:var(--t2);}
+body.dark .ci .lbl{color:var(--t3);}
+body.dark .ci .val{color:var(--gray2);}
+body.dark .uname{color:var(--gray2);}
+body.dark .logo-txt{color:var(--gray3);}
+body.dark .col-cnt{color:var(--t2);}
+body.dark .admin-card h3{color:var(--gray3);}
+body.dark .user-name{color:var(--gray3);}
+body.dark .config-label{color:var(--gray2);}
+body.dark .stat-box .sl{color:var(--t2);}
+body.dark .fkpi .fl{color:var(--t2);}
+body.dark .hi .ht{color:var(--t2);}
+body.dark .log-item .lt{color:var(--t2);}
 
 /* LOGIN */
 .ls{position:fixed;inset:0;background:linear-gradient(135deg,#cc0000,#7f0000 60%,#1a1a1a);display:none;align-items:center;justify-content:center;z-index:999;}
@@ -333,8 +354,7 @@ tbody td{padding:6px 9px;vertical-align:middle;white-space:nowrap;}
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
-  <div class="topbar-r">
-    <div id="onlineBar" style="display:flex;gap:4px;align-items:center"></div>
+  <div class="topbar-r">    <div id="onlineBar" style="display:flex;gap:4px;align-items:center"></div>
     <div id="rtIndicator" style="display:none" class="rt-badge"><div class="rt-dot"></div>Live</div>
     <div class="dbs"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
     <span class="clock" id="clock"></span>
@@ -538,9 +558,7 @@ tbody td{padding:6px 9px;vertical-align:middle;white-space:nowrap;}
           </select>
         </div>
         <div class="fg"><label>Cor do Avatar</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="colorPicker">
-            ${['#cc0000','#7c3aed','#16a34a','#c2410c','#1d4ed8','#374151','#0891b2','#9f1239'].map(c=>`<div onclick="selColor('${c}')" style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:.15s" data-color="${c}"></div>`).join('')}
-          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="colorPicker"></div>
         </div>
       </div>
     </div>
@@ -647,7 +665,9 @@ function initRealtime(){
         const msg=JSON.parse(e.data);
         if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
           await loadFromSupabase();render();renderFUP();
-          addActivityLog(msg.event==='INSERT'?'Nova operação adicionada':msg.event==='UPDATE'?'Operação atualizada':'Operação removida');
+          // Log só para INSERT e DELETE — UPDATE é muito frequente
+          if(msg.event==='INSERT')addActivityLog('Nova operação adicionada via outro dispositivo');
+          if(msg.event==='DELETE')addActivityLog('Operação removida via outro dispositivo');
         }
         if(msg.topic&&msg.topic.includes('sessoes')){renderOnlineFromDB();}
       }catch(err){}
@@ -821,7 +841,12 @@ async function bootApp(){
   loading(false);
   await pingOnlineDB();await renderOnlineFromDB();
   window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
-  window._sync=setInterval(async()=>{if(supabaseOK&&CFG.sync){await loadFromSupabase();render();renderFUP();}},10000);
+  window._sync=setInterval(async()=>{
+    if(supabaseOK&&CFG.sync){
+      await loadFromSupabase(); // silencioso, sem log
+      render();renderFUP();
+    }
+  },10000);
   window._timerTick=setInterval(()=>{if(CFG.timer)renderPainel();},60000);
   loadConfig();
   render();
@@ -862,6 +887,8 @@ function renderUserList(){
 }
 
 function openNewUser(){
+  // Apenas ADMIN pode criar usuários
+  if(currentUser?.perfil!=='ADMIN'){showToast('Apenas administradores podem criar usuários','err');return;}
   editUserId=null;
   document.getElementById('uModalTitle').textContent='Novo Usuário';
   document.getElementById('uNome').value='';
@@ -869,6 +896,18 @@ function openNewUser(){
   document.getElementById('uSenha').value='';
   document.getElementById('uSenha2').value='';
   document.getElementById('uPerfil').value='OPERADOR';
+  // Monta color picker via JS (evita bug de template literal no HTML)
+  const colors=['#cc0000','#7c3aed','#16a34a','#c2410c','#1d4ed8','#374151','#0891b2','#9f1239'];
+  const cp=document.getElementById('colorPicker');
+  cp.innerHTML='';
+  colors.forEach(c=>{
+    const d=document.createElement('div');
+    d.style.cssText=`width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:.15s`;
+    d.dataset.color=c;
+    d.title=c;
+    d.onclick=()=>selColor(c);
+    cp.appendChild(d);
+  });
   selColor('#cc0000');
   document.getElementById('overlayUser').classList.add('open');
 }
