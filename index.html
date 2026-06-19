@@ -467,8 +467,8 @@ tbody td{padding:7px 10px;vertical-align:middle;white-space:nowrap;}
 // SUPABASE CONFIG — substitua com suas credenciais
 // Instruções abaixo no código
 // ══════════════════════════════════════════════════════════════════════
-const SUPABASE_URL = 'COLE_SUA_URL_AQUI';
-const SUPABASE_KEY = 'COLE_SUA_ANON_KEY_AQUI';
+const SUPABASE_URL = 'https://xolqsrcqvobfiiqqokkh.supabase.co';
+const SUPABASE_KEY = 'sb_secret_a6a7ytwjVtOtpIL7Hx4-wA_TLO3DfBd';
 const TABELA = 'operacoes';
 let supabaseOK = false;
 
@@ -483,7 +483,7 @@ async function sbFetch(path, opts={}){
 
 async function checkSupabase(){
   setDbStatus('loading','Conectando...');
-  if(SUPABASE_URL==='COLE_SUA_URL_AQUI'){setDbStatus('off','Offline (local)');return false;}
+  if(SUPABASE_URL==='https://xolqsrcqvobfiiqqokkh.supabase.co'){setDbStatus('off','Offline (local)');return false;}
   try{
     await sbFetch(`${TABELA}?limit=1`);
     setDbStatus('ok','Banco Online ✓');
