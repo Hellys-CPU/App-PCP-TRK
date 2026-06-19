@@ -607,15 +607,33 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome+' · '+currentUser.perfil;
+
+  // 1. Verifica conexão
   await checkSupabase();
-  const fromCloud=await loadFromSupabase();
-  if(!fromCloud) loadLocalOps();
+
+  // 2. Supabase é sempre a fonte principal quando online
+  if(supabaseOK){
+    await loadFromSupabase();
+  } else {
+    // Só usa localStorage se banco offline
+    loadLocalOps();
+  }
+
   pingOnline();
   renderOnline();
+
+  // Ping de presença a cada 30s
   window._ping=setInterval(()=>{pingOnline();renderOnline();},30000);
+
+  // Sincronização em tempo real a cada 8s — sempre puxa do Supabase
   window._sync=setInterval(async()=>{
-    if(supabaseOK){const ok=await loadFromSupabase();if(ok)render();}
-  },15000);
+    if(supabaseOK){
+      await loadFromSupabase();
+      render();
+      renderFUP();
+    }
+  },8000);
+
   render();
 }
 
@@ -709,8 +727,14 @@ function seedDemo(){
 }
 
 async function saveOp(op){
-  saveLocalOps();
-  await saveToSupabase(op);
+  if(supabaseOK){
+    await saveToSupabase(op);
+    // Após salvar, recarrega do Supabase para garantir consistência
+    await loadFromSupabase();
+  } else {
+    // Fallback local apenas se offline
+    saveLocalOps();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════
