@@ -2044,14 +2044,14 @@ function renderAnalise(){
       const bg=p>=92?'var(--green2)':p>=85?'var(--yellow2)':'var(--red4)';
       const cor=p>=92?'var(--green3)':p>=85?'var(--yellow3)':'var(--red)';
       const farol=p>=92?'✅':p>=85?'⚠️':'❌';
-      return\`<tr style="border-bottom:1px solid var(--bg4)">
-        <td style="padding:5px 6px;font-weight:700;color:var(--red)">\${r}</td>
-        <td style="padding:5px 6px;text-align:center">\${d.t}</td>
-        <td style="padding:5px 6px;text-align:center;color:var(--green);font-weight:600">\${d.ok}</td>
-        <td style="padding:5px 6px;text-align:center;color:var(--red);font-weight:600">\${d.t-d.ok}</td>
-        <td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:\${bg};color:\${cor}">\${p}%</span></td>
-        <td style="padding:5px 6px;text-align:center;font-size:1rem">\${farol}</td>
-      </tr>\`;
+      return `<tr style="border-bottom:1px solid var(--bg4)">
+        <td style="padding:5px 6px;font-weight:700;color:var(--red)">${r}</td>
+        <td style="padding:5px 6px;text-align:center">${d.t}</td>
+        <td style="padding:5px 6px;text-align:center;color:var(--green);font-weight:600">${d.ok}</td>
+        <td style="padding:5px 6px;text-align:center;color:var(--red);font-weight:600">${d.t-d.ok}</td>
+        <td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:${bg};color:${cor}">${p}%</span></td>
+        <td style="padding:5px 6px;text-align:center;font-size:1rem">${farol}</td>
+      </tr>`;
     }).join(''):'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--t3)">Sem dados</td></tr>'}
     </tbody>
   </table>
@@ -2289,14 +2289,8 @@ function vincularCAFDialog(cafId){
   // Filtra ops da mesma rota (evita XC9 em GR9)
   const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${c.rota}`,'err');return;}
-  const opcoes=opsRota.map(o=>`${o.id} · ${o.transp||'—'} · ${fmtD(o.dataOp)}`).join('
-');
-  const escolha=prompt(`Vincular CAF ${c.num} (${c.rota}) a qual operação?
-
-Opções disponíveis:
-${opcoes}
-
-Digite o ID da operação (ex: OP-1001):`);
+  const opcoes=opsRota.map(o=>`${o.id} · ${o.transp||'—'} · ${fmtD(o.dataOp)}`).join('\n');
+  const escolha=prompt(`Vincular CAF ${c.num} (${c.rota}) a qual operação?\n\nOpções disponíveis:\n${opcoes}\n\nDigite o ID da operação (ex: OP-1001):`);
   if(!escolha)return;
   const opId=escolha.trim().toUpperCase();
   const op=opsRota.find(o=>o.id===opId);
