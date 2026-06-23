@@ -1968,7 +1968,7 @@ function setView(name){
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
-  if(name==='caf'){buildCAFSelects();renderCAFs();}
+  if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
   curPage=name;pingOnlineDB();renderOnlineFromDB();
 }
