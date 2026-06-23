@@ -778,7 +778,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Destino (Rota)</label>
           <select id="cafRota"><option value="">Selecione a rota</option></select>
         </div>
-        <div class="fg"><label>Vencimento</label><input id="cafVenc" type="datetime-local"></div>
+        <div class="fg"><label>Vencimento</label><input id="cafVenc" type="date"></div>
         <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0"></div>
         <div class="fg"><label>Pallets</label><input id="cafPal" type="number" min="0" step="0.5" placeholder="0"></div>
       </div>
@@ -983,14 +983,16 @@ async function loadUsers(){
       if(pu.length&&Object.keys(ph).length){USERS=pu;Object.assign(HASHES,ph);return;}
     }
   }catch(e){}
-  // 3. Fallback de emergência — senhas padrão hardcoded (só alcançado se banco inacessível e sem cache)
+  // 3. Fallback de emergência — hashes pré-calculados (senhas nunca expostas no código)
   USERS=[...DEFAULT_USERS];
-  const defaults=[
-    {user:'hellys',pw:'pcp@2026'},{user:'bianca.xavier',pw:'bianca@2026'},
-    {user:'pedro.arthur',pw:'pedro@2026'},{user:'vitor.vitorio',pw:'vitor@2026'},
-    {user:'admin',pw:'admin@2026'},
-  ];
-  for(const u of defaults){if(!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}
+  const defaultHashes={
+    'hellys':        '0f1838062d29c6232e9b47b703399ce236df8e31e14a20dcc866a51c29f99d18',
+    'bianca.xavier': '13aafd0caee04e087c9cff067377b397a24e98173e936ff5b233005d2eef3448',
+    'pedro.arthur':  '48b283f3b051f420116ef4374c4283054a2ccac5e7d0189cfe44fe55f6d4db8c',
+    'vitor.vitorio': 'fe4300674dfa046ad6d42792883bef0b43bf93993256487bf6f77dfe3812021d',
+    'admin':         '8b3ce0c3977ee6e8d53efeb1fb5b4f82bfb85e44b706c4eded197bd78875da67',
+  };
+  Object.assign(HASHES, defaultHashes);
   try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
   await syncUsersToSupabase();
 }
@@ -2112,16 +2114,29 @@ async function loadCAFs(){
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||''
       }));
     }
-  }catch(e){console.error('loadCAFs:',e);}
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){
+      console.warn('Tabela cafs não existe no Supabase. Execute o SQL de criação no painel do Supabase.');
+      cafsDB=[];
+    }else{
+      console.error('loadCAFs error:',e);
+    }
+  }
 }
 async function saveCAFToDB(caf){
-  const row={num_caf:caf.num,tipo:caf.tipo,rota:caf.rota,volume:caf.vol,
-    pallets:caf.pallets,vencimento:caf.venc||null,status:caf.status,
-    op_id:caf.opId||null,obs:caf.obs||'',
-    criado_por:caf.criadoPor,criado_em:caf.criadoEm};
+  const now=new Date().toISOString();
+  const row={
+    num_caf:caf.num, tipo:caf.tipo, rota:caf.rota,
+    volume:caf.vol||0, pallets:caf.pallets||0,
+    vencimento:caf.venc||null, status:caf.status,
+    op_id:caf.opId||null, obs:caf.obs||'',
+    criado_por:caf.criadoPor,
+    criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
+  };
   if(caf.id)row.id=caf.id;
   try{await sbUpsert(TABELA_CAF,row);return true;}
-  catch(e){console.error('saveCAF:',e);return false;}
+  catch(e){console.error('saveCAF error:',e);showToast('Erro Supabase: '+e.message,'err');return false;}
 }
 async function deleteCAFFromDB(id){
   try{await sbDelete(TABELA_CAF,'id',id);return true;}
@@ -2158,7 +2173,7 @@ function renderCAFs(){
     const abertas=data.filter(c=>c.status==='aberta').length;
     const vinc=data.filter(c=>c.status==='vinculada').length;
     const fech=data.filter(c=>c.status==='fechada').length;
-    const hoje=new Date().toISOString();
+    const hoje=new Date().toISOString().split('T')[0];
     const venc=data.filter(c=>c.venc&&c.venc<hoje&&c.status!=='fechada').length;
     kpiEl.innerHTML=[
       {v:data.length,l:'Total',c:'var(--text)'},{v:abertas,l:'Abertas',c:'var(--blue)'},
@@ -2170,12 +2185,12 @@ function renderCAFs(){
   // Table
   const stCls={aberta:'b-ltl',vinculada:'b-inb',fechada:'b-ext'};
   const stLbl={aberta:'Aberta',vinculada:'Vinculada',fechada:'Fechada'};
-  const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
+  const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
   body.innerHTML=data.length?data.map(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    const vStr=c.venc?new Date(c.venc).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    const vStr=c.venc?new Date(c.venc+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
     return`<tr onclick="openEditCAF('${c.id}')" style="cursor:pointer">
       <td><strong style="color:var(--green)">${c.num}</strong></td>
       <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
@@ -2241,13 +2256,14 @@ async function saveCAF(){
   const who=currentUser?.nome||'Sistema';
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
-    rota,vol:parseInt(document.getElementById('cafVol')?.value||0),
-    pallets:parseFloat(document.getElementById('cafPal')?.value||0),
+    rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
+    pallets:parseFloat(document.getElementById('cafPal')?.value||0)||0,
     venc:document.getElementById('cafVenc')?.value||'',
     status:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.status||'aberta'):'aberta',
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
-    criadoPor:who,criadoEm:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.criadoEm||ts()):ts()
+    criadoPor:who,
+    criadoEm:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.criadoEm||new Date().toISOString()):new Date().toISOString(),
   };
   loading(true);
   const ok=await saveCAFToDB(caf);
@@ -2286,16 +2302,29 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
-  // Filtra ops da mesma rota (evita XC9 em GR9)
   const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${c.rota}`,'err');return;}
-  const opcoes=opsRota.map(o=>`${o.id} · ${o.transp||'—'} · ${fmtD(o.dataOp)}`).join('\n');
-  const escolha=prompt(`Vincular CAF ${c.num} (${c.rota}) a qual operação?\n\nOpções disponíveis:\n${opcoes}\n\nDigite o ID da operação (ex: OP-1001):`);
-  if(!escolha)return;
-  const opId=escolha.trim().toUpperCase();
-  const op=opsRota.find(o=>o.id===opId);
-  if(!op){showToast(`Operação ${opId} não encontrada ou rota incompatível (${c.rota})`,'err');return;}
-  _vincularCAF(cafId,op);
+  // Modal inline sem prompt()
+  const existing=document.getElementById('_cafVincModal');
+  if(existing)existing.remove();
+  const div=document.createElement('div');
+  div.id='_cafVincModal';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:20px;width:100%;max-width:460px;box-shadow:var(--sh3)">
+    <div style="font-size:.9rem;font-weight:700;color:var(--green);margin-bottom:12px">🔗 Vincular CAF ${c.num} (${c.rota})</div>
+    <div class="fg" style="margin-bottom:12px"><label>Selecione a operação</label>
+      <select id="_cafVincSel" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px;font-size:.82rem;width:100%;outline:none">
+        <option value="">— escolha uma operação —</option>
+        ${opsRota.map(o=>`<option value="${o.id}">${o.id} · ${o.rota} · ${o.transp||'—'} · ${fmtD(o.dataOp)}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-g" onclick="document.getElementById('_cafVincModal').remove()">Cancelar</button>
+      <button class="btn btn-s" onclick="(()=>{const sel=document.getElementById('_cafVincSel');if(!sel.value){showToast('Selecione uma operação','err');return;}const op=ops.find(o=>o.id===sel.value);document.getElementById('_cafVincModal').remove();_vincularCAF('${cafId}',op);})()">✅ Vincular</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
 }
 
 async function _vincularCAF(cafId,op){
