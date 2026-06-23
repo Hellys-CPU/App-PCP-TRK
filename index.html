@@ -10,6 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="description" content="TRK PCP 2026 — Sistema Operacional Logístico Total Express"/>
 <title>TRK PCP 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -379,6 +380,9 @@ body.dark .an-card h3{color:var(--gray2);}
 .tr-name{width:110px;font-weight:600;color:var(--gray2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
 .tr-cnt{width:28px;text-align:right;font-weight:700;color:var(--red);flex-shrink:0;font-size:.75rem;}
 .rota-sla-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:.72rem;}
+.farol-ok{color:#16a34a;font-size:1rem;}
+.farol-warn{color:#b45309;font-size:1rem;}
+.farol-late{color:#cc0000;font-size:1rem;}
 .rota-sla-row:last-child{border-bottom:none;}
 .sla-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.63rem;font-weight:700;}
 .bar7-wrap{display:flex;align-items:flex-end;gap:5px;height:110px;padding-top:10px;}
@@ -470,6 +474,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab" id="tb-prog" onclick="setView('prog')">📅 D-1</button>
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
+    <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
@@ -579,6 +584,36 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div style="padding:10px 16px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="fupWrap"></div></div>
 </div>
 
+<!-- CAFs -->
+<div class="view" id="view-caf">
+  <div style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:.8rem;font-weight:700;color:var(--green)">📦 Banco de CAFs</span>
+    <div class="sp"></div>
+    <select id="cafFRota" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todas as Rotas</option></select>
+    <select id="cafFTipo" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todos os Tipos</option></select>
+    <select id="cafFStatus" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;">
+      <option value="">Todos os Status</option>
+      <option value="aberta">Abertas</option>
+      <option value="vinculada">Vinculadas</option>
+      <option value="fechada">Fechadas</option>
+    </select>
+    <input id="cafBusca" placeholder="🔍 Nº CAF, destino..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:160px;"/>
+    <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
+    <button class="btn btn-g" onclick="exportCAFs()" style="font-size:.72rem">📥 CSV</button>
+  </div>
+  <div style="padding:10px 16px 20px;overflow-x:auto">
+    <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <table>
+      <thead><tr>
+        <th>Nº CAF</th><th>Destino (Rota)</th><th>Tipo</th><th>Volume</th><th>Pallets</th>
+        <th>Vencimento</th><th>Status</th><th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
+      </tr></thead>
+      <tbody id="cafBody"></tbody>
+    </table>
+  </div>
+</div>
+
+
 <!-- ANÁLISE -->
 <div class="view" id="view-analise">
   <div style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -597,6 +632,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="sp"></div>
     <span id="aFiltroLabel" style="font-size:.72rem;color:var(--t2);font-weight:600"></span>
     <button class="btn btn-g" onclick="resetAnaliseFiltro()" style="font-size:.7rem">✕ Limpar</button>
+    <button class="btn btn-p" onclick="exportRD()" style="font-size:.72rem;background:var(--blue)">📊 Exportar RD</button>
   </div>
   <div class="analise-grid" id="analiseGrid">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t2)">Carregando análise...</div>
@@ -715,9 +751,48 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-prog" onclick="setView('prog')"><span class="mni">📅</span>D-1</button>
     <button class="mnav-btn" id="mn-massa" onclick="setView('massa')"><span class="mni">⚡</span>Massa</button>
     <button class="mnav-btn" id="mn-fup" onclick="setView('fup')"><span class="mni">📋</span>FUP</button>
+    <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
     <button class="mnav-btn" id="mn-admin" onclick="setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
     <button class="mnav-btn" onclick="openNew()"><span class="mni">➕</span>Nova Op</button>
+  </div>
+</div>
+
+
+<!-- MODAL CAF -->
+<div class="overlay" id="overlayCAF">
+  <div class="modal" style="max-width:560px">
+    <div class="mhdr" style="border-top-color:var(--green)">
+      <h2 id="cafMTitle" style="color:var(--green)">📦 Nova CAF</h2>
+      <div class="mhdr-actions">
+        <button class="btn btn-del" id="cafBtnDel" onclick="deleteCAF()" style="display:none;font-size:.7rem">🗑 Excluir</button>
+        <button class="mclose" onclick="closeCAFModal()">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Nº da CAF</label><input id="cafNum" placeholder="Ex: 23081234" style="font-weight:700;font-size:1rem"></div>
+        <div class="fg"><label>Tipo de Carga</label>
+          <select id="cafTipo"><option>LTL</option><option>Inbound</option><option>FLT</option><option>Extra</option></select>
+        </div>
+        <div class="fg"><label>Destino (Rota)</label>
+          <select id="cafRota"><option value="">Selecione a rota</option></select>
+        </div>
+        <div class="fg"><label>Vencimento</label><input id="cafVenc" type="datetime-local"></div>
+        <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0"></div>
+        <div class="fg"><label>Pallets</label><input id="cafPal" type="number" min="0" step="0.5" placeholder="0"></div>
+      </div>
+      <div class="fg" style="margin-top:11px"><label>Observações</label><textarea id="cafObs" rows="2"></textarea></div>
+      <div id="cafOpVinc" style="margin-top:11px;display:none">
+        <div class="sec" style="margin-top:0">🔗 Operação Vinculada</div>
+        <div id="cafOpVincInfo" style="font-size:.78rem;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:8px 10px"></div>
+        <button class="btn btn-del" style="margin-top:6px;font-size:.7rem" onclick="desvincularCAF()">✕ Desvincular da operação</button>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closeCAFModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="saveCAF()">💾 Salvar CAF</button>
+    </div>
   </div>
 </div>
 
@@ -729,7 +804,7 @@ const APP_VERSION='v67';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
-const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios';
+const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs';
 let supabaseOK=false,realtimeWS=null;
 
 async function sbFetch(path,opts={}){
@@ -987,6 +1062,7 @@ async function bootApp(){
   await pingOnlineDB();await renderOnlineFromDB();
   window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
   // OTIMIZADO: só re-renderiza se dados mudaram
+  await loadCAFs();
   window._sync=setInterval(async()=>{if(supabaseOK&&CFG.sync){const _pl=ops.length,_pu=ops.slice(0,5).map(o=>o.updatedAt).join('');await loadFromSupabase();const _nl=ops.length,_nu=ops.slice(0,5).map(o=>o.updatedAt).join('');if(_pl!==_nl||_pu!==_nu){render();renderFUP();}}},10000);
   window._timerTick=setInterval(()=>{if(CFG.timer||CFG.countdown)renderPainel();},30000);
   render();
@@ -1117,6 +1193,8 @@ function liveTimer(op){
 
 function countdown(op){
   if(!CFG.countdown||!['PROG','AGUCARR'].includes(op.status)||!op.planSaida)return'';
+  const hojeStr=new Date().toISOString().split('T')[0];
+  if(op.dataOp&&op.dataOp!==hojeStr)return''; // só mostra para operações de hoje
   const tStr=toTime(op.planSaida)||op.planSaida;
   const hoje=new Date();const[h,m]=tStr.split(':').map(Number);
   const saida=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate(),h,m);
@@ -1487,6 +1565,7 @@ function imprimirCard(){
 
 document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('overlayUser').addEventListener('click',function(e){if(e.target===this)closeUserModal();});
+document.getElementById('overlayCAF').addEventListener('click',function(e){if(e.target===this)closeCAFModal();});
 
 const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
@@ -1705,19 +1784,39 @@ function renderMassa(){
       <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=this.value">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
       <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" oninput="mRows[${i}].sm=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" oninput="mRows[${i}].tms=this.value"></td>
-      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value"></td>
-      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planSaida}" oninput="mRows[${i}].planSaida=this.value"></td>
-      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planChegFC}" oninput="mRows[${i}].planChegFC=this.value"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value" id="mApres_${i}"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planSaida}" oninput="mRows[${i}].planSaida=this.value" id="mSaida_${i}"></td>
+      <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planChegFC}" id="mFC_${i}" oninput="mRows[${i}].planChegFC=this.value;autoHoraMassa(${i},this.value)"></td>
       <td style="padding:3px 4px"><select class="mi" style="width:78px" onchange="mRows[${i}].tipoCarga=this.value">${TIPOS.map(t=>`<option${r.tipoCarga===t?' selected':''}>${t}</option>`).join('')}</select></td>
       <td style="padding:3px 4px"><button onclick="mRows.splice(${i},1);renderMassa();document.getElementById('mCnt').textContent='— '+mRows.length+' viagem(s)'" style="background:var(--red4);border:1.5px solid #fca5a5;color:var(--red);padding:3px 7px;border-radius:4px;cursor:pointer;font-size:.68rem;font-weight:700">✕</button></td>
     </tr>`).join('');
+}
+// Subtrai minutos de um HH:MM
+function subMin(t,mins){
+  if(!t)return'';
+  const[h,m]=t.split(':').map(Number);
+  let total=h*60+m-mins;
+  if(total<0)total+=1440;
+  return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+}
+// Ao digitar FC em uma linha: auto-calcula Saída (FC-1h) e Apres. (FC-3h)
+function autoHoraMassa(i,fc){
+  if(!fc)return;
+  const saida=subMin(fc,60),apres=subMin(fc,180);
+  mRows[i].planSaida=saida;mRows[i].planApres=apres;
+  const es=document.getElementById('mSaida_'+i),ea=document.getElementById('mApres_'+i);
+  if(es)es.value=saida;if(ea)ea.value=apres;
 }
 function aplicarHorariosMassa(){
   const a=document.getElementById('mhApres')?.value||'';
   const s=document.getElementById('mhSaida')?.value||'';
   const f=document.getElementById('mhFC')?.value||'';
   if(!a&&!s&&!f){showToast('Preencha ao menos um horário','err');return;}
-  mRows.forEach(r=>{if(a)r.planApres=a;if(s)r.planSaida=s;if(f)r.planChegFC=f;});
+  mRows.forEach((r,i)=>{
+    if(f){r.planChegFC=f;autoHoraMassa(i,f);}
+    if(s)r.planSaida=s; // override auto se definido manualmente
+    if(a)r.planApres=a;
+  });
   renderMassa();
   showToast(`✅ Horários aplicados em ${mRows.length} viagem(s)`,'ok');
 }
@@ -1728,7 +1827,7 @@ async function confirmarMassa(){
   const who=currentUser?currentUser.nome:'Sistema';
   loading(true);
   for(const r of mRows){
-    const op={id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Prog. em Massa`}],updatedAt:ts(),updatedBy:who};
+    const op={id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:r.placaCarreta||'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Prog. em Massa`}],updatedAt:ts(),updatedBy:who};
     ops.push(op);if(supabaseOK){await saveToSupabase(op);}else{saveLocalOps();}
   }
   if(supabaseOK)await loadFromSupabase();
@@ -1775,6 +1874,7 @@ function setView(name){
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
+  if(name==='caf'){buildCAFSelects();renderCAFs();}
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
   curPage=name;pingOnlineDB();renderOnlineFromDB();
 }
@@ -1903,7 +2003,33 @@ function renderAnalise(){
 </div>
 <div class="an-card">
   <h3>🛣️ SLA por Rota</h3>
-  ${rArr.length?rArr.map(([r,d])=>{const p=Math.round((d.ok/d.t)*100);const bg=p>=80?'var(--green2)':p>=50?'var(--yellow2)':'var(--red4)';const cor=p>=80?'var(--green3)':p>=50?'var(--yellow3)':'var(--red)';return`<div class="rota-sla-row"><span style="font-weight:700;color:var(--red)">${r}</span><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--t2);font-size:.66rem">${d.ok}/${d.t}</span><span class="sla-pill" style="background:${bg};color:${cor}">${p}% SLA</span></div></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
+  <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+    <thead><tr style="border-bottom:2px solid var(--red3)">
+      <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Rota</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Total</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">OK</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Atraso</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">SLA</th>
+      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Farol</th>
+    </tr></thead>
+    <tbody>
+    ${rArr.length?rArr.map(([r,d])=>{
+      const p=Math.round((d.ok/d.t)*100);
+      const late=d.t-d.ok-((d.nd)||0);
+      const bg=p>=92?'var(--green2)':p>=85?'var(--yellow2)':'var(--red4)';
+      const cor=p>=92?'var(--green3)':p>=85?'var(--yellow3)':'var(--red)';
+      const farol=p>=92?'✅':p>=85?'⚠️':'❌';
+      return\`<tr style="border-bottom:1px solid var(--bg4)">
+        <td style="padding:5px 6px;font-weight:700;color:var(--red)">\${r}</td>
+        <td style="padding:5px 6px;text-align:center">\${d.t}</td>
+        <td style="padding:5px 6px;text-align:center;color:var(--green);font-weight:600">\${d.ok}</td>
+        <td style="padding:5px 6px;text-align:center;color:var(--red);font-weight:600">\${d.t-d.ok}</td>
+        <td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:\${bg};color:\${cor}">\${p}%</span></td>
+        <td style="padding:5px 6px;text-align:center;font-size:1rem">\${farol}</td>
+      </tr>\`;
+    }).join(''):'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--t3)">Sem dados</td></tr>'}
+    </tbody>
+  </table>
 </div>
 <div class="an-card">
   <h3>🔵 Distribuição por Status</h3>
@@ -1941,6 +2067,469 @@ window.addEventListener('beforeunload',e=>{
 });
 let _sQTimer=null;
 document.getElementById('sQ').addEventListener('input',()=>{clearTimeout(_sQTimer);_sQTimer=setTimeout(render,180);});
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO CAF
+// ══════════════════════════════════════════════════════════════════
+let cafsDB=[],editCAFId=null;
+
+// Supabase CAF CRUD
+async function loadCAFs(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_CAF}?order=created_at.desc&limit=2000`);
+    if(Array.isArray(data)){
+      cafsDB=data.map(r=>({
+        id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
+        rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
+        venc:r.vencimento||'',status:r.status||'aberta',
+        opId:r.op_id||'',obs:r.obs||'',
+        criadoPor:r.criado_por||'',criadoEm:r.criado_em||''
+      }));
+    }
+  }catch(e){console.error('loadCAFs:',e);}
+}
+async function saveCAFToDB(caf){
+  const row={num_caf:caf.num,tipo:caf.tipo,rota:caf.rota,volume:caf.vol,
+    pallets:caf.pallets,vencimento:caf.venc||null,status:caf.status,
+    op_id:caf.opId||null,obs:caf.obs||'',
+    criado_por:caf.criadoPor,criado_em:caf.criadoEm};
+  if(caf.id)row.id=caf.id;
+  try{await sbUpsert(TABELA_CAF,row);return true;}
+  catch(e){console.error('saveCAF:',e);return false;}
+}
+async function deleteCAFFromDB(id){
+  try{await sbDelete(TABELA_CAF,'id',id);return true;}
+  catch(e){console.error('deleteCAF:',e);return false;}
+}
+
+// UI CAF
+function buildCAFSelects(){
+  const rSel=document.getElementById('cafFRota');
+  const rModal=document.getElementById('cafRota');
+  const tSel=document.getElementById('cafFTipo');
+  if(rSel){const cur=rSel.value;rSel.innerHTML='<option value="">Todas as Rotas</option>'+ROTAS.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');}
+  if(rModal){rModal.innerHTML='<option value="">Selecione a rota</option>'+ROTAS.map(r=>`<option>${r}</option>`).join('');}
+  if(tSel&&tSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});}
+}
+
+function renderCAFs(){
+  buildCAFSelects();
+  const fRota=document.getElementById('cafFRota')?.value||'';
+  const fTipo=document.getElementById('cafFTipo')?.value||'';
+  const fStatus=document.getElementById('cafFStatus')?.value||'';
+  const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
+  const data=cafsDB.filter(c=>{
+    if(fRota&&c.rota!==fRota)return false;
+    if(fTipo&&c.tipo!==fTipo)return false;
+    if(fStatus&&c.status!==fStatus)return false;
+    if(q&&![c.num,c.rota,c.obs].join('|').toLowerCase().includes(q))return false;
+    return true;
+  });
+
+  // KPIs
+  const kpiEl=document.getElementById('cafKPIBar');
+  if(kpiEl){
+    const abertas=data.filter(c=>c.status==='aberta').length;
+    const vinc=data.filter(c=>c.status==='vinculada').length;
+    const fech=data.filter(c=>c.status==='fechada').length;
+    const hoje=new Date().toISOString();
+    const venc=data.filter(c=>c.venc&&c.venc<hoje&&c.status!=='fechada').length;
+    kpiEl.innerHTML=[
+      {v:data.length,l:'Total',c:'var(--text)'},{v:abertas,l:'Abertas',c:'var(--blue)'},
+      {v:vinc,l:'Vinculadas',c:'var(--green)'},{v:fech,l:'Fechadas',c:'var(--gray)'},
+      {v:venc,l:'Vencidas',c:'var(--red)'},
+    ].map(k=>`<div class="kpi" style="min-width:80px;cursor:default"><div class="v" style="font-size:1.3rem;color:${k.c}">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+  }
+
+  // Table
+  const stCls={aberta:'b-ltl',vinculada:'b-inb',fechada:'b-ext'};
+  const stLbl={aberta:'Aberta',vinculada:'Vinculada',fechada:'Fechada'};
+  const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
+  const body=document.getElementById('cafBody');
+  if(!body)return;
+  body.innerHTML=data.length?data.map(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    const vStr=c.venc?new Date(c.venc).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    return`<tr onclick="openEditCAF('${c.id}')" style="cursor:pointer">
+      <td><strong style="color:var(--green)">${c.num}</strong></td>
+      <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
+      <td><span class="badge ${tCls(c.tipo)}">${c.tipo}</span></td>
+      <td style="font-weight:600">${c.vol.toLocaleString('pt-BR')}</td>
+      <td>${c.pallets}</td>
+      <td style="${vencCls(c)}">${vStr}</td>
+      <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
+      <td>${op?`<span style="color:var(--red);font-weight:600">${op.id}</span> <span style="font-size:.65rem;color:var(--t2)">${op.rota}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
+      <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
+}
+
+function openNewCAF(){
+  editCAFId=null;
+  buildCAFSelects();
+  document.getElementById('cafMTitle').textContent='📦 Nova CAF';
+  document.getElementById('cafBtnDel').style.display='none';
+  document.getElementById('cafOpVinc').style.display='none';
+  ['cafNum','cafVol','cafPal','cafObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('cafVenc').value='';
+  document.getElementById('cafTipo').value='LTL';
+  document.getElementById('cafRota').value='';
+  document.getElementById('overlayCAF').classList.add('open');
+}
+
+function openEditCAF(id){
+  const c=cafsDB.find(x=>x.id===id);if(!c)return;
+  editCAFId=id;
+  buildCAFSelects();
+  document.getElementById('cafMTitle').textContent='📦 Editar CAF — '+c.num;
+  document.getElementById('cafBtnDel').style.display='';
+  document.getElementById('cafNum').value=c.num;
+  document.getElementById('cafTipo').value=c.tipo;
+  document.getElementById('cafRota').value=c.rota;
+  document.getElementById('cafVenc').value=c.venc||'';
+  document.getElementById('cafVol').value=c.vol||'';
+  document.getElementById('cafPal').value=c.pallets||'';
+  document.getElementById('cafObs').value=c.obs||'';
+  const vincEl=document.getElementById('cafOpVinc');
+  if(c.opId){
+    const op=ops.find(o=>o.id===c.opId);
+    vincEl.style.display='';
+    document.getElementById('cafOpVincInfo').innerHTML=op
+      ?`<strong style="color:var(--red)">${op.id}</strong> · ${op.rota} · ${op.transp||'—'} · ${fmtD(op.dataOp)}`
+      :`Operação ${c.opId} (não encontrada no período atual)`;
+  }else{vincEl.style.display='none';}
+  document.getElementById('overlayCAF').classList.add('open');
+}
+
+function closeCAFModal(){document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;}
+
+async function saveCAF(){
+  const num=(document.getElementById('cafNum')?.value||'').trim();
+  const rota=document.getElementById('cafRota')?.value||'';
+  if(!num){showToast('⚠ Informe o número da CAF','err');return;}
+  if(!rota){showToast('⚠ Selecione a rota de destino','err');return;}
+  // Verifica duplicata
+  const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
+  if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
+  const who=currentUser?.nome||'Sistema';
+  const caf={
+    id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
+    rota,vol:parseInt(document.getElementById('cafVol')?.value||0),
+    pallets:parseFloat(document.getElementById('cafPal')?.value||0),
+    venc:document.getElementById('cafVenc')?.value||'',
+    status:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.status||'aberta'):'aberta',
+    opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
+    obs:document.getElementById('cafObs')?.value||'',
+    criadoPor:who,criadoEm:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.criadoEm||ts()):ts()
+  };
+  loading(true);
+  const ok=await saveCAFToDB(caf);
+  await loadCAFs();
+  loading(false);
+  if(ok){showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
+  else showToast('❌ Erro ao salvar CAF','err');
+}
+
+async function deleteCAF(){
+  if(!editCAFId)return;
+  const c=cafsDB.find(x=>x.id===editCAFId);
+  if(!confirm(`Excluir CAF ${c?.num}?`))return;
+  loading(true);
+  await deleteCAFFromDB(editCAFId);
+  await loadCAFs();
+  loading(false);
+  closeCAFModal();renderCAFs();
+  showToast('🗑 CAF excluída','ok');
+}
+
+async function desvincularCAF(){
+  if(!editCAFId)return;
+  const c=cafsDB.find(x=>x.id===editCAFId);if(!c)return;
+  // Remove da operação também
+  if(c.opId){
+    const op=ops.find(o=>o.id===c.opId);
+    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
+  }
+  c.opId='';c.status='aberta';
+  await saveCAFToDB(c);await loadCAFs();
+  renderCAFs();closeCAFModal();
+  showToast('✅ CAF desvinculada','ok');
+}
+
+// Vincular CAF a uma operação
+function vincularCAFDialog(cafId){
+  const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  // Filtra ops da mesma rota (evita XC9 em GR9)
+  const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
+  if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${c.rota}`,'err');return;}
+  const opcoes=opsRota.map(o=>`${o.id} · ${o.transp||'—'} · ${fmtD(o.dataOp)}`).join('
+');
+  const escolha=prompt(`Vincular CAF ${c.num} (${c.rota}) a qual operação?
+
+Opções disponíveis:
+${opcoes}
+
+Digite o ID da operação (ex: OP-1001):`);
+  if(!escolha)return;
+  const opId=escolha.trim().toUpperCase();
+  const op=opsRota.find(o=>o.id===opId);
+  if(!op){showToast(`Operação ${opId} não encontrada ou rota incompatível (${c.rota})`,'err');return;}
+  _vincularCAF(cafId,op);
+}
+
+async function _vincularCAF(cafId,op){
+  const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  // Adiciona à op se ainda não está
+  if(!op.cafs.find(x=>x.num===c.num)){
+    op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
+    await saveOp(op);
+  }
+  c.opId=op.id;c.status='vinculada';
+  await saveCAFToDB(c);await loadCAFs();
+  renderCAFs();
+  showToast(`✅ CAF ${c.num} vinculada a ${op.id}`,'ok');
+}
+
+function exportCAFs(){
+  const rows=[['Nº CAF','Rota','Tipo','Volume','Pallets','Vencimento','Status','Op. Vinculada','Criado por','Criado em']];
+  cafsDB.forEach(c=>rows.push([c.num,c.rota,c.tipo,c.vol,c.pallets,c.venc||'',c.status,c.opId||'',c.criadoPor,c.criadoEm]));
+  dlCSV(rows,'CAFs_TRK');showToast('📥 CAFs exportadas','ok');
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// EXPORTAR RD (Relatório de Desempenho) — PPTX no estilo Total Express
+// ══════════════════════════════════════════════════════════════════
+async function exportRD(){
+  if(typeof PptxGenJS==='undefined'){showToast('❌ pptxgenjs não carregado','err');return;}
+  showToast('⏳ Gerando apresentação...','info');
+  const data=getAnaliseOps();
+  const lbl=getAnaliseLabel();
+  const pptx=new PptxGenJS();
+  pptx.layout='LAYOUT_WIDE';
+  pptx.author='TRK PCP 2026';
+  pptx.company='Total Express';
+
+  // Paleta Total Express
+  const RED='CC0000',DARK='0D1117',WHITE='FFFFFF',GRAY='374151',LGRAY='F4F5F7',BLUE='1D4ED8',GREEN='16A34A',YELLOW='B45309';
+
+  // ── helper: slide base ──
+  const addBase=(slide,title,sub)=>{
+    // Header bar
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:RED}});
+    slide.addText('PCP Transferência · Total Express',{x:0.2,y:0.1,w:6,h:0.35,fontSize:11,color:WHITE,bold:true});
+    slide.addText(lbl,{x:6.5,y:0.1,w:3.3,h:0.35,fontSize:9,color:WHITE,align:'right'});
+    // Title
+    if(title)slide.addText(title,{x:0.3,y:0.65,w:9.4,h:0.45,fontSize:18,color:DARK,bold:true});
+    if(sub)slide.addText(sub,{x:0.3,y:1.05,w:9.4,h:0.3,fontSize:11,color:GRAY});
+    // Footer
+    slide.addShape(pptx.ShapeType.rect,{x:0,y:5.25,w:'100%',h:0.25,fill:{color:LGRAY}});
+    slide.addText('TRK PCP 2026  ·  Gerado em '+new Date().toLocaleString('pt-BR'),{x:0.2,y:5.27,w:9.6,h:0.18,fontSize:7,color:GRAY});
+  };
+
+  // ────────────────────────────────────────────
+  // SLIDE 1 — CAPA
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();
+    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
+    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
+    s.addText('PCP',{x:0.5,y:1.6,w:9,h:1.2,fontSize:72,color:WHITE,bold:true});
+    s.addText('Relatório de Desempenho · Transferência',{x:0.5,y:2.85,w:9,h:0.5,fontSize:22,color:'FF8888'});
+    s.addText(lbl,{x:0.5,y:3.4,w:9,h:0.4,fontSize:16,color:'8B949E'});
+    s.addText('Total Express  ·  TRK PCP 2026',{x:0.5,y:4.8,w:9,h:0.3,fontSize:11,color:'484F58'});
+  }
+
+  // ────────────────────────────────────────────
+  // Cálculos
+  // ────────────────────────────────────────────
+  const total=data.length;
+  const fin=data.filter(o=>o.status==='FIN').length;
+  const canc=data.filter(o=>['CANC','REC'].includes(o.status)).length;
+  const slaOk=data.filter(o=>getSLA(o)==='ok').length;
+  const slaLate=data.filter(o=>getSLA(o)==='late').length;
+  const taxaSLA=total?Math.round(slaOk/total*100):0;
+  const taxaCarrierMiss=total?+(slaLate/total*100).toFixed(1):0;
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const avgDC=avg(data.map(o=>dMin(o.planChegFC,o.realChegFC)).filter(v=>v!==null));
+  const avgDoc=avg(data.map(o=>dMin(o.realChegFC,o.realDescarga)).filter(v=>v!==null));
+
+  // SLA por rota
+  const byR={};
+  data.forEach(o=>{if(!o.rota)return;if(!byR[o.rota])byR[o.rota]={t:0,ok:0,late:0};byR[o.rota].t++;if(getSLA(o)==='ok')byR[o.rota].ok++;else if(getSLA(o)==='late')byR[o.rota].late++;});
+  const rotaArr=Object.entries(byR).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  // SLA por transportadora
+  const byT={};
+  data.forEach(o=>{if(!o.transp)return;if(!byT[o.transp])byT[o.transp]={t:0,ok:0};byT[o.transp].t++;if(getSLA(o)==='ok')byT[o.transp].ok++;});
+  const transpArr=Object.entries(byT).sort((a,b)=>b[1].t-a[1].t).slice(0,8);
+
+  // Por semana
+  const bySem={};
+  data.forEach(o=>{const k=isoWeekKey(o.dataOp);if(!k)return;if(!bySem[k])bySem[k]={t:0,ok:0};bySem[k].t++;if(getSLA(o)==='ok')bySem[k].ok++;});
+  const semArr=Object.entries(bySem).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+
+  // ────────────────────────────────────────────
+  // SLIDE 2 — KPI PERFORMANCE
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();addBase(s,'KPI Performance','Visão consolidada do período');
+    // KPI cards 2x3
+    const kpis=[
+      {l:'Total Operações',v:total.toLocaleString('pt-BR'),c:DARK},
+      {l:'Finalizadas',v:fin.toLocaleString('pt-BR'),c:GREEN},
+      {l:'Taxa SLA',v:taxaSLA+'%',c:taxaSLA>=92?GREEN:taxaSLA>=85?YELLOW:RED},
+      {l:'Carrier Miss',v:taxaCarrierMiss+'%',c:taxaCarrierMiss<=2?GREEN:taxaCarrierMiss<=5?YELLOW:RED},
+      {l:'Δ Médio FC',v:avgDC!==null?(avgDC>0?'+':'')+avgDC+'min':'N/D',c:avgDC===null?GRAY:avgDC>30?RED:avgDC>0?YELLOW:GREEN},
+      {l:'T.Médio Doca',v:avgDoc!==null?avgDoc+'min':'N/D',c:BLUE},
+    ];
+    kpis.forEach((k,i)=>{
+      const col=i%3,row=Math.floor(i/3);
+      const x=0.3+col*3.3,y=1.5+row*1.9;
+      s.addShape(pptx.ShapeType.rect,{x,y,w:3.0,h:1.65,fill:{color:LGRAY},line:{color:'D1D5DB',pt:1}});
+      s.addText(k.v,{x,y:y+0.2,w:3.0,h:0.9,fontSize:32,bold:true,align:'center',color:k.c});
+      s.addText(k.l,{x,y:y+1.1,w:3.0,h:0.45,fontSize:11,align:'center',color:GRAY});
+    });
+  }
+
+  // ────────────────────────────────────────────
+  // SLIDE 3 — SLA POR ROTA
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();addBase(s,'SLA por Rota','Performance de pontualidade por destino');
+    if(rotaArr.length){
+      // Tabela
+      const rows=[['Rota','Total','No Prazo','Atrasado','SLA %','Farol']];
+      rotaArr.forEach(([r,d])=>{
+        const pct=Math.round(d.ok/d.t*100);
+        const farol=pct>=92?'✅':pct>=85?'⚠️':'❌';
+        rows.push([r,d.t,d.ok,d.late,pct+'%',farol]);
+      });
+      s.addTable(rows,{
+        x:0.3,y:1.4,w:9.4,
+        colW:[1.8,1.2,1.4,1.4,1.2,1.0],
+        border:{pt:0.5,color:'D1D5DB'},
+        fontSize:11,
+        rowH:0.42,
+        align:'center',
+        fontFace:'Segoe UI',
+        fill:{rows:[{idx:0,color:RED}]},
+        color:{rows:[{idx:0,color:WHITE}]},
+      });
+      // Mini barras
+      const maxT=Math.max(...rotaArr.map(([,d])=>d.t),1);
+      rotaArr.forEach(([r,d],i)=>{
+        const pct=d.ok/d.t;
+        const barW=2.8*(d.t/maxT);
+        const y=1.4+0.42*(i+1)+0.08;
+        const cor=pct>=0.92?GREEN:pct>=0.85?YELLOW:RED;
+        s.addShape(pptx.ShapeType.rect,{x:7.0,y,w:barW,h:0.26,fill:{color:cor}});
+      });
+    }else{
+      s.addText('Sem dados para o período selecionado',{x:1,y:2.5,w:8,h:1,fontSize:16,align:'center',color:GRAY});
+    }
+  }
+
+  // ────────────────────────────────────────────
+  // SLIDE 4 — CARRIER MISS / SLA POR TRANSPORTADORA
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();addBase(s,'Carrier Miss · SLA por Transportadora','Análise de performance por carrier');
+    if(transpArr.length){
+      const rows=[['Transportadora','Total','SLA OK','SLA %','Status']];
+      transpArr.forEach(([t,d])=>{
+        const pct=Math.round(d.ok/d.t*100);
+        rows.push([t,d.t,d.ok,pct+'%',pct>=92?'No Goal':pct>=85?'Atenção':'Fora do Goal']);
+      });
+      s.addTable(rows,{
+        x:0.3,y:1.4,w:9.4,
+        colW:[2.8,1.2,1.2,1.2,2.6],
+        border:{pt:0.5,color:'D1D5DB'},
+        fontSize:11,rowH:0.42,align:'center',
+        fontFace:'Segoe UI',
+        fill:{rows:[{idx:0,color:RED}]},
+        color:{rows:[{idx:0,color:WHITE}]},
+      });
+    }
+    // Total Carrier Miss destaque
+    s.addShape(pptx.ShapeType.rect,{x:0.3,y:4.6,w:9.4,h:0.55,fill:{color:taxaCarrierMiss<=2?'DCFCE7':'FFF0F0'},line:{color:taxaCarrierMiss<=2?'86EFAC':'FCA5A5',pt:1}});
+    s.addText(`Carrier Miss do período: ${taxaCarrierMiss}%  —  Meta: ≤ 2,0%  —  ${taxaCarrierMiss<=2?'✅ DENTRO DO GOAL':'❌ FORA DO GOAL'}`,
+      {x:0.3,y:4.6,w:9.4,h:0.55,fontSize:13,bold:true,align:'center',color:taxaCarrierMiss<=2?GREEN:RED});
+  }
+
+  // ────────────────────────────────────────────
+  // SLIDE 5 — EVOLUÇÃO SEMANAL
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();addBase(s,'Evolução Semanal','Volume e SLA por semana ISO');
+    if(semArr.length>1){
+      const chartData=[
+        {name:'Total',labels:semArr.map(([k])=>semanaLabel(k).split('·')[0].trim()),values:semArr.map(([,d])=>d.t)},
+        {name:'SLA OK',labels:semArr.map(([k])=>semanaLabel(k).split('·')[0].trim()),values:semArr.map(([,d])=>d.ok)},
+      ];
+      s.addChart(pptx.ChartType.bar,chartData,{
+        x:0.3,y:1.35,w:9.4,h:3.7,
+        barDir:'col',barGrouping:'clustered',
+        showLegend:true,legendPos:'b',
+        dataLabelFontSize:9,showValue:true,
+        chartColors:[RED,'3B82F6'],
+        valAxisMinVal:0,
+        fontFace:'Segoe UI',fontSize:9,
+      });
+    }else{
+      s.addText('Dados insuficientes para evolução semanal (mínimo 2 semanas)',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY});
+    }
+  }
+
+  // ────────────────────────────────────────────
+  // SLIDE 6 — DESCARREGAMENTO (T. Doca por Rota)
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();addBase(s,'Descarregamento · Tempo de Doca','Tempo médio (min) entre chegada ao FC e início da descarga');
+    const docaByR={};
+    data.forEach(o=>{
+      if(!o.rota||!o.realChegFC||!o.realDescarga)return;
+      const d=dMin(o.realChegFC,o.realDescarga);
+      if(d===null||d<0||d>720)return;
+      if(!docaByR[o.rota])docaByR[o.rota]=[];
+      docaByR[o.rota].push(d);
+    });
+    const docaArr=Object.entries(docaByR).map(([r,arr])=>({r,avg:Math.round(arr.reduce((a,b)=>a+b,0)/arr.length)})).sort((a,b)=>a.r.localeCompare(b.r));
+    if(docaArr.length){
+      const cData=[{name:'T.Médio Doca (min)',labels:docaArr.map(d=>d.r),values:docaArr.map(d=>d.avg)}];
+      s.addChart(pptx.ChartType.bar,cData,{
+        x:0.5,y:1.35,w:9,h:3.7,
+        barDir:'col',
+        showValue:true,dataLabelFontSize:11,
+        chartColors:[BLUE],
+        valAxisMinVal:0,
+        fontFace:'Segoe UI',fontSize:10,
+        showLegend:false,
+      });
+    }else{
+      s.addText('Sem dados de descarregamento para o período',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY});
+    }
+  }
+
+  // ────────────────────────────────────────────
+  // SLIDE 7 — ENCERRAMENTO
+  // ────────────────────────────────────────────
+  {
+    const s=pptx.addSlide();
+    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
+    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
+    s.addText('Obrigado.',{x:0.5,y:1.8,w:9,h:1,fontSize:52,color:WHITE,bold:true});
+    s.addText('PCP Transferência · Total Express',{x:0.5,y:2.9,w:9,h:0.5,fontSize:18,color:'FF8888'});
+    s.addText(lbl+' · Gerado em '+new Date().toLocaleDateString('pt-BR'),{x:0.5,y:3.5,w:9,h:0.35,fontSize:12,color:'8B949E'});
+  }
+
+  const sem=isoWeekKey(new Date().toISOString().split('T')[0])||'periodo';
+  await pptx.writeFile({fileName:`RD_PCP_${sem.replace('-','_')}.pptx`});
+  showToast('✅ RD exportado com sucesso!','ok');
+}
+
 loadTheme();
 initAuth();
 </script>
