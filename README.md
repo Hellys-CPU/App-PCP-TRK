@@ -177,7 +177,7 @@ A documentação técnica completa está em [`TRK_PCP_2026_Documentacao.md`](./T
 
 <div align="center">
 
-**TRK PCP 2026 · Total Express · PCP Transferência**  
-*Desenvolvido e mantido pela equipe de PCP*
+**TRK PCP 2026 · HELLYS**  
+*Desenvolvido e mantido por HELLYS*
 
 </div>
