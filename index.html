@@ -963,15 +963,53 @@ async function loadUsers(){
       const data=await sbFetch(`${TABELA_USR}?ativo=eq.true&order=criado_em.asc`);
       if(data&&data.length){
         USERS=data.map(r=>({user:r.usuario,nome:r.nome,av:r.avatar||'??',cor:r.cor||'#cc0000',perfil:r.perfil,pw:null}));
-        data.forEach(r=>{if(r.senha_hash)HASHES[r.usuario]=r.senha_hash;});
-        saveUsersLocal();return;
+        let hasHashes=false;
+        data.forEach(r=>{if(r.senha_hash){HASHES[r.usuario]=r.senha_hash;hasHashes=true;}});
+        if(hasHashes){saveUsersLocal();return;}
+        // Banco tem usuários mas sem hashes — provavelmente primeira carga
+        // Não retorna, continua para tentar localStorage ou rebuild
       }
     }catch(e){console.error('loadUsers error:',e);}
   }
-  try{const saved=localStorage.getItem('trk_users');if(saved){const p=JSON.parse(saved);if(p.length){USERS=p;await buildHashesLocal();return;}}}catch(e){}
+  // Tenta localStorage
+  try{
+    const saved=localStorage.getItem('trk_users');
+    if(saved){
+      const p=JSON.parse(saved);
+      if(p&&p.length){
+        USERS=p;
+        // Tenta carregar hashes salvos separadamente
+        try{
+          const savedH=localStorage.getItem('trk_hashes');
+          if(savedH){const h=JSON.parse(savedH);Object.assign(HASHES,h);}
+        }catch(e){}
+        if(Object.keys(HASHES).length>0)return; // tem hashes — ok
+        await buildHashesLocal(); // tenta rebuildar se tiver pw
+        if(Object.keys(HASHES).length>0)return;
+      }
+    }
+  }catch(e){}
+  // Fallback final: usuários padrão com hashes hardcoded (SHA-256 das senhas padrão)
+  // Esses hashes são calculados uma vez e servem só como fallback de emergência
   USERS=[...DEFAULT_USERS];
-  await buildHashesLocal();
+  await buildHashesFromDefaults();
   await syncUsersToSupabase();
+}
+
+// Hashes das senhas padrão — calculados em runtime na primeira vez, salvos no localStorage
+async function buildHashesFromDefaults(){
+  const defaults=[
+    {user:'hellys',        pw:'pcp@2026'},
+    {user:'bianca.xavier', pw:'bianca@2026'},
+    {user:'pedro.arthur',  pw:'pedro@2026'},
+    {user:'vitor.vitorio', pw:'vitor@2026'},
+    {user:'admin',         pw:'admin@2026'},
+  ];
+  for(const u of defaults){
+    if(!HASHES[u.user])HASHES[u.user]=await h256(u.pw);
+  }
+  // Salva hashes no localStorage para uso offline futuro
+  try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
 }
 
 async function buildHashesLocal(){for(const u of USERS){if(u.pw&&!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}}
@@ -1000,11 +1038,15 @@ async function initAuth(){
     const raw=localStorage.getItem('trk_sess');
     if(raw){
       const s=JSON.parse(raw);
-      const valid=s.user&&s.ts&&s.token&&(Date.now()-s.ts<8*3600*1000);
-      if(valid){const u=USERS.find(x=>x.user===s.user);if(u){currentUser=u;await bootApp();return;}}
+      // Aceita sessões antigas sem token (compatibilidade) e sessões novas com token
+      const validTime=s.user&&s.ts&&(Date.now()-s.ts<8*3600*1000);
+      if(validTime){
+        const u=USERS.find(x=>x.user===s.user);
+        if(u){currentUser=u;await bootApp();return;}
+      }
       localStorage.removeItem('trk_sess');
     }
-  }catch(e){}
+  }catch(e){localStorage.removeItem('trk_sess');}
   const el=document.getElementById('lConn');
   el.textContent=supabaseOK?'✓ Banco compartilhado conectado':'⚠ Modo offline (dados locais)';
   el.className='lconn '+(supabaseOK?'ok':'err');
