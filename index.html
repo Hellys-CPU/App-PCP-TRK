@@ -839,10 +839,39 @@ async function checkSupabase(){
 }
 function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.getElementById('dbLbl');if(d)d.className='dbd '+t;if(lb)lb.textContent=l;supabaseOK=(t==='ok');}
 
-async function loadFromSupabase(){
+// Timestamp da última sincronização com o banco
+let _lastSyncAt=null;
+
+async function loadFromSupabase(forceFullLoad=false){
   if(!supabaseOK)return false;
   try{
-    // Carrega últimos 90 dias por padrão — evita carregar histórico infinito
+    if(!forceFullLoad&&_lastSyncAt&&ops.length>0){
+      // ── SYNC DELTA: busca só o que mudou desde o último sync ──
+      // Payload mínimo: ~1-5 KB vs ~1 MB do full load
+      const since=new Date(_lastSyncAt-2000).toISOString(); // -2s de margem
+      const changed=await sbFetch(`${TABELA}?updated_at=gte.${encodeURIComponent(since)}&order=updated_at.asc&limit=500`);
+      if(!Array.isArray(changed)||changed.length===0){
+        _lastSyncAt=Date.now();
+        return false; // nada mudou
+      }
+      // Aplica só as alterações no array local
+      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
+      let changed_count=0;
+      changed.forEach(r=>{
+        const idx=ops.findIndex(o=>o.id===r.id);
+        const mapped=mapOp(r);
+        if(idx>=0){ops[idx]=mapped;}else{ops.push(mapped);} // update ou insert
+        changed_count++;
+      });
+      // Verifica deleções (registros que sumiram) — só a cada 5 min
+      if(!_lastFullCheck||Date.now()-_lastFullCheck>300000){
+        await _checkDeletions();
+      }
+      _lastSyncAt=Date.now();
+      return changed_count>0;
+    }
+
+    // ── FULL LOAD: primeira carga ou forçado ──
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
     const since=cutoff.toISOString().split('T')[0];
     const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
@@ -850,9 +879,28 @@ async function loadFromSupabase(){
       ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
+      _lastSyncAt=Date.now();
+      _lastFullCheck=Date.now();
       return true;
     }
-  }catch(e){console.error('load error:',e);}
+  }catch(e){console.error('loadFromSupabase error:',e);}
+  return false;
+}
+
+let _lastFullCheck=null;
+// Verifica deleções: compara IDs locais com banco (chamado a cada 5 min)
+async function _checkDeletions(){
+  try{
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const since=cutoff.toISOString().split('T')[0];
+    const remote=await sbFetch(`${TABELA}?data_op=gte.${since}&select=id&limit=5000`);
+    if(!Array.isArray(remote))return;
+    const remoteIds=new Set(remote.map(r=>r.id));
+    const before=ops.length;
+    ops=ops.filter(o=>remoteIds.has(o.id));
+    _lastFullCheck=Date.now();
+    if(ops.length!==before)return true; // houve deleção
+  }catch(e){}
   return false;
 }
 
@@ -887,8 +935,9 @@ function initRealtime(){
       try{
         const msg=JSON.parse(e.data);
         if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
-          await loadFromSupabase();render();renderFUP();
-          if(msg.event==='INSERT')addActivityLog('Nova operação adicionada via outro dispositivo');
+          const hadChanges=await loadFromSupabase();
+          if(hadChanges||msg.event==='DELETE'){render();renderFUP();if(curPage==='analise')renderAnalise();}
+          if(msg.event==='INSERT')addActivityLog('Nova operação via outro dispositivo');
           if(msg.event==='DELETE')addActivityLog('Operação removida via outro dispositivo');
         }
         if(msg.topic&&msg.topic.includes('sessoes'))renderOnlineFromDB();
@@ -1095,14 +1144,20 @@ async function bootApp(){
   document.getElementById('uName').textContent=currentUser.nome;
   if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';}
   loading(true);
-  if(supabaseOK){await loadFromSupabase();initRealtime();}else{loadLocalOps();}
+  if(supabaseOK){await loadFromSupabase(true);initRealtime();}else{loadLocalOps();}
   loading(false);
   loadConfig();
   await pingOnlineDB();await renderOnlineFromDB();
   window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
   // OTIMIZADO: só re-renderiza se dados mudaram
   await loadCAFs();
-  window._sync=setInterval(async()=>{if(supabaseOK&&CFG.sync){const _pl=ops.length,_pu=ops.slice(0,5).map(o=>o.updatedAt).join('');await loadFromSupabase();const _nl=ops.length,_nu=ops.slice(0,5).map(o=>o.updatedAt).join('');if(_pl!==_nl||_pu!==_nu){render();renderFUP();}}},10000);
+  // Sync inteligente: delta a cada 30s (reduz requests 3x vs 10s)
+  // O Realtime WebSocket cobre alterações instantâneas — sync é só fallback
+  window._sync=setInterval(async()=>{
+    if(!supabaseOK||!CFG.sync)return;
+    const hadChanges=await loadFromSupabase(); // delta automático
+    if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
+  },30000);
   window._timerTick=setInterval(()=>{if(CFG.timer||CFG.countdown)renderPainel();},30000);
   render();
 }
@@ -2116,7 +2171,7 @@ let cafsDB=[],editCAFId=null;
 async function loadCAFs(){
   if(!supabaseOK)return;
   try{
-    const data=await sbFetch(`${TABELA_CAF}?order=created_at.desc&limit=2000`);
+    const data=await sbFetch(`${TABELA_CAF}?order=criado_em.desc&limit=2000`);
     if(Array.isArray(data)){
       cafsDB=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
