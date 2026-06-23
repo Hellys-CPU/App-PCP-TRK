@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="description" content="TRK PCP 2026 — Sistema Operacional Logístico Total Express"/>
 <title>TRK PCP 2026</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -813,7 +813,19 @@ async function sbFetch(path,opts={}){
   return res.status===204?null:res.json();
 }
 async function sbUpsert(table,row){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(row)});
+  const hasId=row.id!==undefined&&row.id!==null;
+  const prefer=hasId?'resolution=merge-duplicates,return=minimal':'return=minimal';
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':prefer},body:JSON.stringify(row)});
+  if(!res.ok)throw new Error(await res.text());
+}
+// INSERT sem upsert (para registros novos sem id, ex: CAFs)
+async function sbInsert(table,row){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)});
+  if(!res.ok)throw new Error(await res.text());
+}
+// UPDATE por id
+async function sbUpdate(table,id,row){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)});
   if(!res.ok)throw new Error(await res.text());
 }
 async function sbDelete(table,col,val){
@@ -2134,9 +2146,22 @@ async function saveCAFToDB(caf){
     criado_por:caf.criadoPor,
     criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
   };
-  if(caf.id)row.id=caf.id;
-  try{await sbUpsert(TABELA_CAF,row);return true;}
-  catch(e){console.error('saveCAF error:',e);showToast('Erro Supabase: '+e.message,'err');return false;}
+  try{
+    await sbUpsert(TABELA_CAF, caf.id?{...row,id:caf.id}:row);
+    return true;
+  }catch(e){
+    console.error('saveCAF error:',e);
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')||msg.includes('404')){
+      showToast('❌ Tabela "cafs" não existe no Supabase. Veja o console para o SQL de criação.','err');
+      console.error('CRIAR TABELA NO SUPABASE:\n\nCREATE TABLE cafs (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  num_caf text NOT NULL,\n  tipo text,\n  rota text,\n  volume int DEFAULT 0,\n  pallets numeric DEFAULT 0,\n  vencimento date,\n  status text DEFAULT \'aberta\',\n  op_id text,\n  obs text,\n  criado_por text,\n  criado_em timestamptz DEFAULT now()\n);');
+    }else if(msg.includes('JWT')||msg.includes('401')||msg.includes('403')){
+      showToast('❌ Sem permissão no Supabase. Verifique as policies RLS da tabela cafs.','err');
+    }else{
+      showToast('❌ Erro: '+msg.slice(0,80),'err');
+    }
+    return false;
+  }
 }
 async function deleteCAFFromDB(id){
   try{await sbDelete(TABELA_CAF,'id',id);return true;}
@@ -2351,232 +2376,223 @@ function exportCAFs(){
 // EXPORTAR RD (Relatório de Desempenho) — PPTX no estilo Total Express
 // ══════════════════════════════════════════════════════════════════
 async function exportRD(){
-  if(typeof PptxGenJS==='undefined'){showToast('❌ pptxgenjs não carregado','err');return;}
+  // Aguarda carregamento do pptxgenjs com timeout
+  let pptxLib=null;
+  for(let i=0;i<20;i++){
+    if(typeof PptxGenJS!=='undefined'){pptxLib=PptxGenJS;break;}
+    await new Promise(r=>setTimeout(r,200));
+  }
+  if(!pptxLib){showToast('❌ pptxgenjs não carregou. Verifique sua conexão.','err');return;}
+
   showToast('⏳ Gerando apresentação...','info');
+  await new Promise(r=>setTimeout(r,100));
+
   const data=getAnaliseOps();
   const lbl=getAnaliseLabel();
-  const pptx=new PptxGenJS();
-  pptx.layout='LAYOUT_WIDE';
-  pptx.author='TRK PCP 2026';
-  pptx.company='Total Express';
 
-  // Paleta Total Express
-  const RED='CC0000',DARK='0D1117',WHITE='FFFFFF',GRAY='374151',LGRAY='F4F5F7',BLUE='1D4ED8',GREEN='16A34A',YELLOW='B45309';
+  try{
+    const pptx=new pptxLib();
+    pptx.layout='LAYOUT_WIDE';
+    pptx.author='TRK PCP 2026';
+    pptx.company='Total Express';
 
-  // ── helper: slide base ──
-  const addBase=(slide,title,sub)=>{
-    // Header bar
-    slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:0.55,fill:{color:RED}});
-    slide.addText('PCP Transferência · Total Express',{x:0.2,y:0.1,w:6,h:0.35,fontSize:11,color:WHITE,bold:true});
-    slide.addText(lbl,{x:6.5,y:0.1,w:3.3,h:0.35,fontSize:9,color:WHITE,align:'right'});
-    // Title
-    if(title)slide.addText(title,{x:0.3,y:0.65,w:9.4,h:0.45,fontSize:18,color:DARK,bold:true});
-    if(sub)slide.addText(sub,{x:0.3,y:1.05,w:9.4,h:0.3,fontSize:11,color:GRAY});
-    // Footer
-    slide.addShape(pptx.ShapeType.rect,{x:0,y:5.25,w:'100%',h:0.25,fill:{color:LGRAY}});
-    slide.addText('TRK PCP 2026  ·  Gerado em '+new Date().toLocaleString('pt-BR'),{x:0.2,y:5.27,w:9.6,h:0.18,fontSize:7,color:GRAY});
-  };
+    const RED='CC0000',DARK='0D1117',WHITE='FFFFFF',GRAY='374151',LGRAY='F4F5F7',BLUE='1D4ED8',GREEN='16A34A',YELLOW='B45309';
 
-  // ────────────────────────────────────────────
-  // SLIDE 1 — CAPA
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();
-    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
-    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
-    s.addText('PCP',{x:0.5,y:1.6,w:9,h:1.2,fontSize:72,color:WHITE,bold:true});
-    s.addText('Relatório de Desempenho · Transferência',{x:0.5,y:2.85,w:9,h:0.5,fontSize:22,color:'FF8888'});
-    s.addText(lbl,{x:0.5,y:3.4,w:9,h:0.4,fontSize:16,color:'8B949E'});
-    s.addText('Total Express  ·  TRK PCP 2026',{x:0.5,y:4.8,w:9,h:0.3,fontSize:11,color:'484F58'});
-  }
+    // helper: cabeçalho padrão
+    const addBase=(s,title,sub)=>{
+      s.addShape('rect',{x:0,y:0,w:'100%',h:0.55,fill:{color:RED}});
+      s.addText('PCP Transferência · Total Express',{x:0.2,y:0.08,w:6,h:0.38,fontSize:11,color:WHITE,bold:true,fontFace:'Segoe UI'});
+      s.addText(lbl,{x:6.5,y:0.08,w:3.3,h:0.38,fontSize:9,color:WHITE,align:'right',fontFace:'Segoe UI'});
+      if(title)s.addText(title,{x:0.3,y:0.65,w:9.4,h:0.42,fontSize:18,color:DARK,bold:true,fontFace:'Segoe UI'});
+      if(sub)s.addText(sub,{x:0.3,y:1.08,w:9.4,h:0.28,fontSize:10,color:GRAY,fontFace:'Segoe UI'});
+      s.addShape('rect',{x:0,y:5.25,w:'100%',h:0.25,fill:{color:LGRAY}});
+      s.addText('TRK PCP 2026  ·  '+new Date().toLocaleString('pt-BR'),{x:0.2,y:5.27,w:9.6,h:0.2,fontSize:7,color:GRAY,fontFace:'Segoe UI'});
+    };
 
-  // ────────────────────────────────────────────
-  // Cálculos
-  // ────────────────────────────────────────────
-  const total=data.length;
-  const fin=data.filter(o=>o.status==='FIN').length;
-  const canc=data.filter(o=>['CANC','REC'].includes(o.status)).length;
-  const slaOk=data.filter(o=>getSLA(o)==='ok').length;
-  const slaLate=data.filter(o=>getSLA(o)==='late').length;
-  const taxaSLA=total?Math.round(slaOk/total*100):0;
-  const taxaCarrierMiss=total?+(slaLate/total*100).toFixed(1):0;
-  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
-  const avgDC=avg(data.map(o=>dMin(o.planChegFC,o.realChegFC)).filter(v=>v!==null));
-  const avgDoc=avg(data.map(o=>dMin(o.realChegFC,o.realDescarga)).filter(v=>v!==null));
-
-  // SLA por rota
-  const byR={};
-  data.forEach(o=>{if(!o.rota)return;if(!byR[o.rota])byR[o.rota]={t:0,ok:0,late:0};byR[o.rota].t++;if(getSLA(o)==='ok')byR[o.rota].ok++;else if(getSLA(o)==='late')byR[o.rota].late++;});
-  const rotaArr=Object.entries(byR).sort((a,b)=>a[0].localeCompare(b[0]));
-
-  // SLA por transportadora
-  const byT={};
-  data.forEach(o=>{if(!o.transp)return;if(!byT[o.transp])byT[o.transp]={t:0,ok:0};byT[o.transp].t++;if(getSLA(o)==='ok')byT[o.transp].ok++;});
-  const transpArr=Object.entries(byT).sort((a,b)=>b[1].t-a[1].t).slice(0,8);
-
-  // Por semana
-  const bySem={};
-  data.forEach(o=>{const k=isoWeekKey(o.dataOp);if(!k)return;if(!bySem[k])bySem[k]={t:0,ok:0};bySem[k].t++;if(getSLA(o)==='ok')bySem[k].ok++;});
-  const semArr=Object.entries(bySem).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
-
-  // ────────────────────────────────────────────
-  // SLIDE 2 — KPI PERFORMANCE
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();addBase(s,'KPI Performance','Visão consolidada do período');
-    // KPI cards 2x3
-    const kpis=[
-      {l:'Total Operações',v:total.toLocaleString('pt-BR'),c:DARK},
-      {l:'Finalizadas',v:fin.toLocaleString('pt-BR'),c:GREEN},
-      {l:'Taxa SLA',v:taxaSLA+'%',c:taxaSLA>=92?GREEN:taxaSLA>=85?YELLOW:RED},
-      {l:'Carrier Miss',v:taxaCarrierMiss+'%',c:taxaCarrierMiss<=2?GREEN:taxaCarrierMiss<=5?YELLOW:RED},
-      {l:'Δ Médio FC',v:avgDC!==null?(avgDC>0?'+':'')+avgDC+'min':'N/D',c:avgDC===null?GRAY:avgDC>30?RED:avgDC>0?YELLOW:GREEN},
-      {l:'T.Médio Doca',v:avgDoc!==null?avgDoc+'min':'N/D',c:BLUE},
-    ];
-    kpis.forEach((k,i)=>{
-      const col=i%3,row=Math.floor(i/3);
-      const x=0.3+col*3.3,y=1.5+row*1.9;
-      s.addShape(pptx.ShapeType.rect,{x,y,w:3.0,h:1.65,fill:{color:LGRAY},line:{color:'D1D5DB',pt:1}});
-      s.addText(k.v,{x,y:y+0.2,w:3.0,h:0.9,fontSize:32,bold:true,align:'center',color:k.c});
-      s.addText(k.l,{x,y:y+1.1,w:3.0,h:0.45,fontSize:11,align:'center',color:GRAY});
-    });
-  }
-
-  // ────────────────────────────────────────────
-  // SLIDE 3 — SLA POR ROTA
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();addBase(s,'SLA por Rota','Performance de pontualidade por destino');
-    if(rotaArr.length){
-      // Tabela
-      const rows=[['Rota','Total','No Prazo','Atrasado','SLA %','Farol']];
-      rotaArr.forEach(([r,d])=>{
-        const pct=Math.round(d.ok/d.t*100);
-        const farol=pct>=92?'✅':pct>=85?'⚠️':'❌';
-        rows.push([r,d.t,d.ok,d.late,pct+'%',farol]);
+    // helper: tabela com header vermelho
+    const addTable=(s,headers,rows,x,y,w,colW)=>{
+      const tableRows=[];
+      // Header row
+      tableRows.push(headers.map(h=>({text:h,options:{bold:true,color:WHITE,fill:RED,fontSize:10,align:'center',fontFace:'Segoe UI'}})));
+      // Data rows
+      rows.forEach((row,ri)=>{
+        tableRows.push(row.map(cell=>({
+          text:String(cell??''),
+          options:{fontSize:10,align:'center',fill:ri%2===0?'FFFFFF':'F9FAFB',color:DARK,fontFace:'Segoe UI'}
+        })));
       });
-      s.addTable(rows,{
-        x:0.3,y:1.4,w:9.4,
-        colW:[1.8,1.2,1.4,1.4,1.2,1.0],
-        border:{pt:0.5,color:'D1D5DB'},
-        fontSize:11,
-        rowH:0.42,
-        align:'center',
-        fontFace:'Segoe UI',
-        fill:{rows:[{idx:0,color:RED}]},
-        color:{rows:[{idx:0,color:WHITE}]},
-      });
-      // Mini barras
-      const maxT=Math.max(...rotaArr.map(([,d])=>d.t),1);
-      rotaArr.forEach(([r,d],i)=>{
-        const pct=d.ok/d.t;
-        const barW=2.8*(d.t/maxT);
-        const y=1.4+0.42*(i+1)+0.08;
-        const cor=pct>=0.92?GREEN:pct>=0.85?YELLOW:RED;
-        s.addShape(pptx.ShapeType.rect,{x:7.0,y,w:barW,h:0.26,fill:{color:cor}});
-      });
-    }else{
-      s.addText('Sem dados para o período selecionado',{x:1,y:2.5,w:8,h:1,fontSize:16,align:'center',color:GRAY});
+      s.addTable(tableRows,{x,y,w,colW,border:{pt:0.5,color:'D1D5DB'},rowH:0.38,autoPage:false});
+    };
+
+    // ── Cálculos ──
+    const total=data.length;
+    const fin=data.filter(o=>o.status==='FIN').length;
+    const slaOk=data.filter(o=>getSLA(o)==='ok').length;
+    const slaLate=data.filter(o=>getSLA(o)==='late').length;
+    const taxaSLA=total?Math.round(slaOk/total*100):0;
+    const taxaCM=total?+(slaLate/total*100).toFixed(1):0;
+    const avgArr=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+    const avgDC=avgArr(data.map(o=>dMin(o.planChegFC,o.realChegFC)).filter(v=>v!==null));
+    const avgDoc=avgArr(data.map(o=>dMin(o.realChegFC,o.realDescarga)).filter(v=>v!==null));
+    const fv=v=>v===null?'N/D':(v>0?'+':'')+v+'min';
+
+    const byR={};
+    data.forEach(o=>{if(!o.rota)return;if(!byR[o.rota])byR[o.rota]={t:0,ok:0};byR[o.rota].t++;if(getSLA(o)==='ok')byR[o.rota].ok++;});
+    const rotaArr=Object.entries(byR).sort((a,b)=>a[0].localeCompare(b[0]));
+
+    const byT={};
+    data.forEach(o=>{if(!o.transp)return;if(!byT[o.transp])byT[o.transp]={t:0,ok:0};byT[o.transp].t++;if(getSLA(o)==='ok')byT[o.transp].ok++;});
+    const transpArr=Object.entries(byT).sort((a,b)=>b[1].t-a[1].t).slice(0,8);
+
+    const bySem={};
+    data.forEach(o=>{const k=isoWeekKey(o.dataOp);if(!k)return;if(!bySem[k])bySem[k]={t:0,ok:0};bySem[k].t++;if(getSLA(o)==='ok')bySem[k].ok++;});
+    const semArr=Object.entries(bySem).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+
+    // ── SLIDE 1 — CAPA ──
+    {
+      const s=pptx.addSlide();
+      s.addShape('rect',{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
+      s.addShape('rect',{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
+      s.addText('PCP',{x:0.5,y:1.5,w:9,h:1.4,fontSize:80,color:WHITE,bold:true,fontFace:'Segoe UI'});
+      s.addText('Relatório de Desempenho · Transferência',{x:0.5,y:3.0,w:9,h:0.55,fontSize:22,color:'FF8888',fontFace:'Segoe UI'});
+      s.addText(lbl,{x:0.5,y:3.6,w:9,h:0.4,fontSize:16,color:'8B949E',fontFace:'Segoe UI'});
+      s.addText('Total Express  ·  TRK PCP 2026',{x:0.5,y:4.9,w:9,h:0.3,fontSize:11,color:'484F58',fontFace:'Segoe UI'});
     }
-  }
 
-  // ────────────────────────────────────────────
-  // SLIDE 4 — CARRIER MISS / SLA POR TRANSPORTADORA
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();addBase(s,'Carrier Miss · SLA por Transportadora','Análise de performance por carrier');
-    if(transpArr.length){
-      const rows=[['Transportadora','Total','SLA OK','SLA %','Status']];
-      transpArr.forEach(([t,d])=>{
-        const pct=Math.round(d.ok/d.t*100);
-        rows.push([t,d.t,d.ok,pct+'%',pct>=92?'No Goal':pct>=85?'Atenção':'Fora do Goal']);
-      });
-      s.addTable(rows,{
-        x:0.3,y:1.4,w:9.4,
-        colW:[2.8,1.2,1.2,1.2,2.6],
-        border:{pt:0.5,color:'D1D5DB'},
-        fontSize:11,rowH:0.42,align:'center',
-        fontFace:'Segoe UI',
-        fill:{rows:[{idx:0,color:RED}]},
-        color:{rows:[{idx:0,color:WHITE}]},
-      });
-    }
-    // Total Carrier Miss destaque
-    s.addShape(pptx.ShapeType.rect,{x:0.3,y:4.6,w:9.4,h:0.55,fill:{color:taxaCarrierMiss<=2?'DCFCE7':'FFF0F0'},line:{color:taxaCarrierMiss<=2?'86EFAC':'FCA5A5',pt:1}});
-    s.addText(`Carrier Miss do período: ${taxaCarrierMiss}%  —  Meta: ≤ 2,0%  —  ${taxaCarrierMiss<=2?'✅ DENTRO DO GOAL':'❌ FORA DO GOAL'}`,
-      {x:0.3,y:4.6,w:9.4,h:0.55,fontSize:13,bold:true,align:'center',color:taxaCarrierMiss<=2?GREEN:RED});
-  }
-
-  // ────────────────────────────────────────────
-  // SLIDE 5 — EVOLUÇÃO SEMANAL
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();addBase(s,'Evolução Semanal','Volume e SLA por semana ISO');
-    if(semArr.length>1){
-      const chartData=[
-        {name:'Total',labels:semArr.map(([k])=>semanaLabel(k).split('·')[0].trim()),values:semArr.map(([,d])=>d.t)},
-        {name:'SLA OK',labels:semArr.map(([k])=>semanaLabel(k).split('·')[0].trim()),values:semArr.map(([,d])=>d.ok)},
+    // ── SLIDE 2 — KPI PERFORMANCE ──
+    {
+      const s=pptx.addSlide();
+      addBase(s,'KPI Performance','Visão consolidada do período');
+      const kpis=[
+        {l:'Total Operações',v:String(total),c:DARK},
+        {l:'Finalizadas',v:String(fin),c:GREEN},
+        {l:'Taxa SLA',v:taxaSLA+'%',c:taxaSLA>=92?GREEN:taxaSLA>=85?YELLOW:RED},
+        {l:'Carrier Miss',v:taxaCM+'%',c:taxaCM<=2?GREEN:taxaCM<=5?YELLOW:RED},
+        {l:'Δ Médio FC',v:fv(avgDC),c:avgDC===null?GRAY:avgDC>30?RED:avgDC>0?YELLOW:GREEN},
+        {l:'T.Médio Doca',v:fv(avgDoc),c:BLUE},
       ];
-      s.addChart(pptx.ChartType.bar,chartData,{
-        x:0.3,y:1.35,w:9.4,h:3.7,
-        barDir:'col',barGrouping:'clustered',
-        showLegend:true,legendPos:'b',
-        dataLabelFontSize:9,showValue:true,
-        chartColors:[RED,'3B82F6'],
-        valAxisMinVal:0,
-        fontFace:'Segoe UI',fontSize:9,
+      kpis.forEach((k,i)=>{
+        const col=i%3,row=Math.floor(i/3);
+        const x=0.25+col*3.25,y=1.45+row*1.85;
+        s.addShape('rect',{x,y,w:3.0,h:1.65,fill:{color:LGRAY},line:{color:'D1D5DB',pt:1}});
+        s.addText(k.v,{x,y:y+0.18,w:3.0,h:0.9,fontSize:34,bold:true,align:'center',color:k.c,fontFace:'Segoe UI'});
+        s.addText(k.l,{x,y:y+1.1,w:3.0,h:0.42,fontSize:11,align:'center',color:GRAY,fontFace:'Segoe UI'});
       });
-    }else{
-      s.addText('Dados insuficientes para evolução semanal (mínimo 2 semanas)',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY});
     }
-  }
 
-  // ────────────────────────────────────────────
-  // SLIDE 6 — DESCARREGAMENTO (T. Doca por Rota)
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();addBase(s,'Descarregamento · Tempo de Doca','Tempo médio (min) entre chegada ao FC e início da descarga');
-    const docaByR={};
-    data.forEach(o=>{
-      if(!o.rota||!o.realChegFC||!o.realDescarga)return;
-      const d=dMin(o.realChegFC,o.realDescarga);
-      if(d===null||d<0||d>720)return;
-      if(!docaByR[o.rota])docaByR[o.rota]=[];
-      docaByR[o.rota].push(d);
-    });
-    const docaArr=Object.entries(docaByR).map(([r,arr])=>({r,avg:Math.round(arr.reduce((a,b)=>a+b,0)/arr.length)})).sort((a,b)=>a.r.localeCompare(b.r));
-    if(docaArr.length){
-      const cData=[{name:'T.Médio Doca (min)',labels:docaArr.map(d=>d.r),values:docaArr.map(d=>d.avg)}];
-      s.addChart(pptx.ChartType.bar,cData,{
-        x:0.5,y:1.35,w:9,h:3.7,
-        barDir:'col',
-        showValue:true,dataLabelFontSize:11,
-        chartColors:[BLUE],
-        valAxisMinVal:0,
-        fontFace:'Segoe UI',fontSize:10,
-        showLegend:false,
+    // ── SLIDE 3 — SLA POR ROTA ──
+    {
+      const s=pptx.addSlide();
+      addBase(s,'SLA por Rota','Performance de pontualidade por destino');
+      if(rotaArr.length){
+        const headers=['Rota','Total','No Prazo','Atrasado','SLA %','Farol'];
+        const rows=rotaArr.map(([r,d])=>{
+          const p=Math.round(d.ok/d.t*100);
+          return[r,d.t,d.ok,d.t-d.ok,p+'%',p>=92?'✅':p>=85?'⚠️':'❌'];
+        });
+        addTable(s,headers,rows,0.3,1.45,9.4,[1.8,1.2,1.5,1.5,1.2,1.2]);
+      }else{
+        s.addText('Sem dados para o período selecionado.',{x:1,y:2.5,w:8,h:1,fontSize:16,align:'center',color:GRAY,fontFace:'Segoe UI'});
+      }
+      // Destaque SLA geral
+      const slaColor=taxaSLA>=92?'DCFCE7':taxaSLA>=85?'FEF9C3':'FEE2E2';
+      const slaTxt=taxaSLA>=92?'✅ DENTRO DO GOAL':taxaSLA>=85?'⚠️ ATENÇÃO':'❌ FORA DO GOAL';
+      s.addShape('rect',{x:0.3,y:4.72,w:9.4,h:0.45,fill:{color:slaColor},line:{color:'D1D5DB',pt:0.5}});
+      s.addText(`SLA Geral: ${taxaSLA}%  ·  Meta: ≥ 92%  ·  ${slaTxt}`,{x:0.3,y:4.72,w:9.4,h:0.45,fontSize:12,bold:true,align:'center',color:taxaSLA>=92?GREEN:taxaSLA>=85?YELLOW:RED,fontFace:'Segoe UI'});
+    }
+
+    // ── SLIDE 4 — CARRIER MISS ──
+    {
+      const s=pptx.addSlide();
+      addBase(s,'Carrier Miss · SLA por Transportadora','Análise de performance por carrier');
+      if(transpArr.length){
+        const headers=['Transportadora','Total Viagens','SLA OK','SLA %','Status'];
+        const rows=transpArr.map(([t,d])=>{
+          const p=Math.round(d.ok/d.t*100);
+          return[t,d.t,d.ok,p+'%',p>=92?'No Goal':p>=85?'Atenção':'Fora do Goal'];
+        });
+        addTable(s,headers,rows,0.3,1.45,9.4,[3.0,1.5,1.5,1.4,2.0]);
+      }
+      const cmColor=taxaCM<=2?'DCFCE7':taxaCM<=5?'FEF9C3':'FEE2E2';
+      s.addShape('rect',{x:0.3,y:4.72,w:9.4,h:0.45,fill:{color:cmColor},line:{color:'D1D5DB',pt:0.5}});
+      s.addText(`Carrier Miss: ${taxaCM}%  ·  Meta: ≤ 2,0%  ·  ${taxaCM<=2?'✅ No Goal':'❌ Fora do Goal'}`,{x:0.3,y:4.72,w:9.4,h:0.45,fontSize:12,bold:true,align:'center',color:taxaCM<=2?GREEN:RED,fontFace:'Segoe UI'});
+    }
+
+    // ── SLIDE 5 — EVOLUÇÃO SEMANAL ──
+    {
+      const s=pptx.addSlide();
+      addBase(s,'Evolução Semanal','Volume e SLA por semana ISO');
+      if(semArr.length>=2){
+        const labels=semArr.map(([k])=>semanaLabel(k).split('·')[0].trim());
+        const chartData=[
+          {name:'Total Ops',labels,values:semArr.map(([,d])=>d.t)},
+          {name:'SLA OK',labels,values:semArr.map(([,d])=>d.ok)},
+        ];
+        s.addChart('bar',chartData,{
+          x:0.3,y:1.4,w:9.4,h:3.65,
+          barDir:'col',barGrouping:'clustered',
+          showLegend:true,legendPos:'b',
+          showValue:true,dataLabelFontSize:9,
+          chartColors:[RED,BLUE],
+          valAxisMinVal:0,
+          fontFace:'Segoe UI',fontSize:9,
+        });
+      }else{
+        s.addText('Dados insuficientes (mínimo 2 semanas).',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY,fontFace:'Segoe UI'});
+      }
+    }
+
+    // ── SLIDE 6 — DESCARREGAMENTO ──
+    {
+      const s=pptx.addSlide();
+      addBase(s,'Descarregamento · Tempo de Doca','Tempo médio (min) entre chegada ao FC e início da descarga');
+      const docaByR={};
+      data.forEach(o=>{
+        if(!o.rota||!o.realChegFC||!o.realDescarga)return;
+        const d=dMin(o.realChegFC,o.realDescarga);
+        if(d===null||d<0||d>720)return;
+        if(!docaByR[o.rota])docaByR[o.rota]=[];
+        docaByR[o.rota].push(d);
       });
-    }else{
-      s.addText('Sem dados de descarregamento para o período',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY});
+      const docaArr=Object.entries(docaByR).map(([r,arr])=>({r,avg:Math.round(arr.reduce((a,b)=>a+b,0)/arr.length)})).sort((a,b)=>a.r.localeCompare(b.r));
+      if(docaArr.length){
+        const labels=docaArr.map(d=>d.r);
+        const values=docaArr.map(d=>d.avg);
+        s.addChart('bar',[{name:'T.Médio Doca (min)',labels,values}],{
+          x:0.5,y:1.4,w:9,h:3.65,
+          barDir:'col',showValue:true,dataLabelFontSize:11,
+          chartColors:[BLUE],valAxisMinVal:0,
+          fontFace:'Segoe UI',fontSize:10,showLegend:false,
+        });
+        // Tabela resumo
+        if(avgDoc!==null){
+          s.addText(`Média geral de tempo em doca: ${avgDoc} min`,{x:0.3,y:4.78,w:9.4,h:0.35,fontSize:11,align:'center',color:GRAY,fontFace:'Segoe UI'});
+        }
+      }else{
+        s.addText('Sem dados de descarregamento para o período.',{x:1,y:2.5,w:8,h:1,fontSize:14,align:'center',color:GRAY,fontFace:'Segoe UI'});
+      }
     }
-  }
 
-  // ────────────────────────────────────────────
-  // SLIDE 7 — ENCERRAMENTO
-  // ────────────────────────────────────────────
-  {
-    const s=pptx.addSlide();
-    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
-    s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
-    s.addText('Obrigado.',{x:0.5,y:1.8,w:9,h:1,fontSize:52,color:WHITE,bold:true});
-    s.addText('PCP Transferência · Total Express',{x:0.5,y:2.9,w:9,h:0.5,fontSize:18,color:'FF8888'});
-    s.addText(lbl+' · Gerado em '+new Date().toLocaleDateString('pt-BR'),{x:0.5,y:3.5,w:9,h:0.35,fontSize:12,color:'8B949E'});
-  }
+    // ── SLIDE 7 — ENCERRAMENTO ──
+    {
+      const s=pptx.addSlide();
+      s.addShape('rect',{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
+      s.addShape('rect',{x:0,y:0,w:0.18,h:'100%',fill:{color:RED}});
+      s.addText('Obrigado.',{x:0.5,y:1.8,w:9,h:1.0,fontSize:56,color:WHITE,bold:true,fontFace:'Segoe UI'});
+      s.addText('PCP Transferência · Total Express',{x:0.5,y:3.0,w:9,h:0.5,fontSize:18,color:'FF8888',fontFace:'Segoe UI'});
+      s.addText(lbl+'  ·  '+new Date().toLocaleDateString('pt-BR'),{x:0.5,y:3.6,w:9,h:0.35,fontSize:12,color:'8B949E',fontFace:'Segoe UI'});
+    }
 
-  const sem=isoWeekKey(new Date().toISOString().split('T')[0])||'periodo';
-  await pptx.writeFile({fileName:`RD_PCP_${sem.replace('-','_')}.pptx`});
-  showToast('✅ RD exportado com sucesso!','ok');
+    const sem=isoWeekKey(new Date().toISOString().split('T')[0])||'periodo';
+    await pptx.writeFile({fileName:`RD_PCP_${sem.replace('-','_')}.pptx`});
+    showToast('✅ RD exportado!','ok');
+
+  }catch(err){
+    console.error('exportRD error:',err);
+    showToast('❌ Erro ao gerar PPTX: '+err.message,'err');
+  }
 }
+
 
 loadTheme();
 initAuth();
