@@ -1,206 +1,183 @@
+<div align="center">
+
 # 🚛 TRK PCP 2026
-### Sistema Operacional Logístico — Total Express
 
-> Substitui planilhas Excel manuais por uma interface visual interativa para controle de programação e execução de rotas de transferência.
+**Sistema Operacional de Transferência · Total Express**
 
----
+[![Deploy](https://img.shields.io/badge/deploy-GitHub%20Pages-cc0000?style=flat-square&logo=github)](https://hellys-cpu.github.io/App-PCP-TRK)
+[![Status](https://img.shields.io/badge/status-ativo-22c55e?style=flat-square)]()
+[![Versão](https://img.shields.io/badge/versão-v67-3b82f6?style=flat-square)]()
+[![Stack](https://img.shields.io/badge/stack-HTML%20%2B%20Supabase-f59e0b?style=flat-square)]()
 
-## 🌐 Acesso
+[🔗 Acessar o sistema](https://hellys-cpu.github.io/App-PCP-TRK) · [📖 Documentação completa](https://believed-magnesium-adb.notion.site/TRK_PCP_2026_Documentacao-3883f4071d1f80cf80b4fd7cc018b73a)
 
-**URL:** [`https://hellys-cpu.github.io/App-PCP-TRK`](https://hellys-cpu.github.io/App-PCP-TRK)
-
----
-
-## 📋 Funcionalidades
-
-### 📊 Painel de Status
-- Visão em colunas por status operacional (similar ao Kanban)
-- Arraste cards entre colunas para atualizar o status
-- Destaque visual automático para operações atrasadas
-- 9 status: Programado → Ag. Carregamento → Em Carregamento → Em Trânsito → Ag. Descarga → Finalizado → Cancelado → Recusado → Em Pernoite
-
-### ☰ Lista
-- Visão tabular completa de todas as operações
-- Cálculo automático de Δ Saída, Δ Chegada FC e Tempo de Doca
-
-### 📅 Programação D-1
-- Cadastro de operações para o dia seguinte
-- Visão rápida de todas as operações com status PROGRAMADO
-
-### ⚡ Programação em Massa
-- Defina quantas viagens por rota de uma só vez
-- Preencha motorista, placa, SM, TMS e horários em tabela inline
-- Gere todas as operações com um clique
-
-### 📋 FUP FC
-- Painel consolidado para envio ao Centro de Distribuição
-- Horários planejados vs realizados com delta colorido
-- Indicadores de SLA por operação
-- Agrupamento por rota
-- Exportação CSV e impressão
+</div>
 
 ---
 
-## 🗂️ Campos por Operação
+## O que é
 
-| Campo | Descrição |
+O TRK PCP 2026 é um sistema web colaborativo para a equipe de **PCP Transferência** da Total Express. Substitui planilhas Excel manuais por um painel em tempo real acessível de qualquer dispositivo.
+
+Ele acompanha viagens de transferência entre o **hub de origem (TZX)** e os **Fulfillment Centers (FC)**, do momento em que são programadas até a finalização da descarga.
+
+---
+
+## Funcionalidades
+
+| Módulo | Descrição |
 |---|---|
-| ID | Gerado automaticamente (OP-XXXX) |
-| SM | Número da SM |
-| ID TMS | Identificador no sistema TMS |
-| ISA | Código ISA |
-| Rota | TZX_GR8 / TZX_XC9 / TZX_JDU / TZX_GR9 / TZX_GR5 |
-| Tipo de Carga | LTL / FLT / Inbound / Extra |
-| Tipologia | CARRETA / TOCO / TRUCK / VAN / UTILITÁRIO |
-| Transportadora | Lista pré-definida |
-| Motorista | Nome do motorista |
-| Placa | Placa do cavalo (e carreta se CARRETA) |
-| Horários Planejados | Apresentação, Saída, Chegada FC |
-| Horários Reais | Apresentação, Saída, Chegada FC, Descarga |
-| CAFs | Múltiplas CAFs por operação |
-| Observações | Campo livre |
+| 📊 **Painel de Status** | Kanban com 9 colunas e drag-and-drop entre status |
+| ☰ **Lista** | Tabela com todos os campos e filtros avançados |
+| 📅 **D-1** | Grade de operações programadas com alertas de horário |
+| ⚡ **Em Massa** | Criação de múltiplas viagens por rota em dois passos |
+| 📋 **FUP FC** | Follow-up consolidado com foco em SLA de chegada ao FC |
+| 📈 **Análise** | Métricas, gráficos e SLA por semana, dia, rota e transportadora |
+| ⚙️ **Admin** | Usuários, configurações, backup e gestão de rotas/transportadoras |
+
+**Destaques técnicos:**
+- Sincronização em tempo real via WebSocket (Supabase Realtime)
+- Presença de usuários online com indicador de aba atual
+- Dark mode persistente
+- Instalável como PWA (Progressive Web App)
+- Exportação CSV e backup JSON completo
+- Funciona offline com fallback para `localStorage`
 
 ---
 
-## ⚡ Cálculos Automáticos
+## Stack
 
-| Indicador | Fórmula |
-|---|---|
-| Δ Apresentação | Real − Planejado (min) |
-| Δ Saída | Real − Planejado (min) |
-| Δ Chegada FC | Real − Planejado (min) |
-| Tempo de Doca | Descarga Real − Chegada FC Real (min) |
-| SLA | Δ Chegada FC > 0 = Atraso / ≤ 0 = No Prazo |
-
----
-
-## 🎨 Tema Visual
-
-O sistema possui dois temas — clique no botão **🌙 Escuro / ☀️ Claro** no topo para alternar. A preferência é salva automaticamente.
-
----
-
-## 🗄️ Banco de Dados (Supabase)
-
-O sistema utiliza **Supabase** (PostgreSQL na nuvem) para armazenamento compartilhado entre dispositivos.
-
-### Configuração
-
-No arquivo `index.html`, localize e substitua:
-
-```javascript
-const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-const SUPABASE_KEY = 'sua-anon-public-key';
 ```
-
-### Credenciais do Projeto
-
-| Item | Valor |
-|---|---|
-| Projeto | Hellys-CPU's Pcp |
-| URL | `https://xolqsrcqvobfiiqqokkh.supabase.co` |
-| Key | anon public (Legacy API Keys) |
-| Plano | Free (500MB) |
-
-### Tabela Principal: `operacoes`
-
-```sql
-CREATE TABLE operacoes (
-  id text PRIMARY KEY,
-  data_prog date, data_op date,
-  rota text, tipo_carga text, tipologia text,
-  transportadora text, motorista text, placa text, placa_carreta text,
-  sm text, tms text, isa text,
-  plan_apres text, plan_saida text, plan_cheg_fc text,
-  real_apres text, real_saida text, real_cheg_fc text, real_descarga text,
-  status text, obs text,
-  cafs jsonb DEFAULT '[]',
-  hist jsonb DEFAULT '[]',
-  updated_by text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-ALTER TABLE operacoes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "allow_all" ON operacoes FOR ALL USING (true) WITH CHECK (true);
-```
-
-### Sincronização
-- Dados salvos automaticamente no Supabase a cada alteração
-- Sincronização automática a cada 15 segundos entre dispositivos
-- Fallback para localStorage se o banco estiver offline
-
----
-
-## 🔐 Segurança
-
-- Senhas armazenadas como **SHA-256 hash** — nunca em texto puro
-- Sessão expira automaticamente em **8 horas**
-- Chave utilizada: **anon public** (segura para frontend)
-- Nunca utilize a `service_role` (secret) no código do site
-
-### Para adicionar novo usuário
-
-1. Gere o hash da senha em: [emn178.github.io/online-tools/sha256.html](https://emn178.github.io/online-tools/sha256.html)
-2. Adicione no array `USERS` no `index.html`:
-```javascript
-{user:'novo.usuario', nome:'Nome Completo', av:'NC', cor:'#1d4ed8', perfil:'OPERADOR', pw:'senha@2026'}
+Frontend    → HTML + CSS + JavaScript vanilla (single-file, sem frameworks)
+Backend     → Supabase (PostgreSQL + PostgREST + Realtime WebSocket)
+Hosting     → GitHub Pages
+Auth        → SHA-256 hash verificado contra tabela usuarios no Supabase
 ```
 
 ---
 
-## 🚀 Deploy e Atualização
+## Estrutura do Repositório
 
-### Hospedagem
-- **Plataforma:** GitHub Pages (gratuito)
-- **URL:** `https://hellys-cpu.github.io/App-PCP-TRK`
-- **Repositório:** `github.com/Hellys-CPU/App-PCP-TRK`
+```
+App-PCP-TRK/
+├── index.html              ← aplicação completa (único arquivo)
+├── README.md               ← este arquivo
+└── TRK_PCP_2026_Documentacao.md  ← documentação técnica detalhada
+```
 
-### Como atualizar o sistema
-
-1. Baixe o `index.html` atualizado
-2. Acesse o repositório no GitHub
-3. Clique no arquivo `index.html`
-4. Clique no ícone de lápis ✏️ (editar)
-5. Selecione tudo e cole o novo código
-6. Clique em **Commit changes**
-7. Aguarde ~2 minutos e a URL já estará atualizada
+> Toda a aplicação vive em um único `index.html`. CSS, JavaScript e HTML estão inline — sem dependências externas, sem build step, sem `node_modules`.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## Banco de Dados (Supabase)
 
-| Tecnologia | Uso |
+Três tabelas no projeto Supabase:
+
+| Tabela | Finalidade |
 |---|---|
-| HTML5 + CSS3 | Estrutura e estilização |
-| JavaScript (ES2020) | Lógica e interatividade |
-| Supabase (PostgreSQL) | Banco de dados compartilhado |
-| GitHub Pages | Hospedagem gratuita |
-| Web Crypto API | Hash seguro de senhas (SHA-256) |
-
-> Sistema desenvolvido como MVP operacional — arquivo único sem dependências de servidor ou build.
+| `operacoes` | Dados de todas as viagens de transferência |
+| `usuarios` | Autenticação e perfis de acesso |
+| `sessoes` | Presença online dos usuários ativos |
 
 ---
 
-## 📈 Roadmap — Próximos Passos
+## Acesso e Perfis
 
-- [ ] Integração com Azure Active Directory (SSO corporativo)
-- [ ] API de integração com TMS
-- [ ] Alertas automáticos via Microsoft Teams / WhatsApp
-- [ ] Dashboard Power BI conectado ao Supabase
-- [ ] Migração para Next.js + PostgreSQL corporativo
-- [ ] Perfis de acesso com permissões por tela (Admin / Operador / Visualizador)
-- [ ] Exportação automática do FUP por e-mail para o FC
-
----
-
-## 📞 Contato e Suporte
-
-| Item | Detalhe |
+| Perfil | Permissões |
 |---|---|
-| Desenvolvido por | Hellys — PCP Transferência |
-| Versão | MVP v1.0 |
-| Data | Junho/2026 |
+| **ADMIN** | Acesso total incluindo gestão de usuários e configurações |
+| **OPERADOR** | Criar, editar, mover e deletar operações |
+| **VISUALIZADOR** | Somente leitura |
+
+> Credenciais de acesso são gerenciadas pelo Admin diretamente no sistema (aba ⚙️ Admin → Gestão de Usuários).
 
 ---
 
-*TRK PCP 2026 — Sistema Operacional Logístico · Total Express*
+## Segurança
+
+| Item | Status |
+|---|---|
+| Senhas nunca armazenadas em texto puro | ✅ |
+| Hash SHA-256 via `crypto.subtle` (API nativa) | ✅ |
+| Senhas não trafegam pela rede | ✅ |
+| Sessão expira em 8 horas | ✅ |
+| Token aleatório anti-spoofing na sessão | ✅ |
+| Rate limiting: bloqueio de 60s após 5 tentativas falhas | ✅ |
+| HTTPS obrigatório (GitHub Pages) | ✅ |
+
+**Pendente para produção corporativa:**
+- Configurar RLS (Row Level Security) no Supabase para restringir acesso direto à API
+- Migrar para autenticação via Azure AD
+
+---
+
+## Deploy
+
+O sistema é estático — basta colocar o `index.html` em qualquer servidor web.
+
+### GitHub Pages (atual)
+
+```bash
+# 1. Fazer push do index.html na branch main
+git add index.html
+git commit -m "update: v67"
+git push origin main
+
+# 2. Configurar em Settings → Pages → Source: main / root
+# 3. Acessar: https://hellys-cpu.github.io/App-PCP-TRK
+```
+
+### Outros ambientes
+
+```bash
+# Servidor local simples
+python3 -m http.server 8080
+# Acessar: http://localhost:8080
+
+# IIS / Apache / Nginx
+# Copiar index.html para a pasta raiz do site — nenhuma configuração adicional necessária
+```
+
+---
+
+## Atalhos de Teclado
+
+| Tecla | Ação |
+|---|---|
+| `1` – `5` | Navegar entre abas |
+| `N` | Nova operação |
+| `/` | Focar na busca |
+| `T` | Alternar dark/light mode |
+| `Esc` | Fechar modal |
+
+---
+
+## Roadmap
+
+- [ ] Autenticação via Azure AD (SSO corporativo)
+- [ ] Integração com TMS (importação automática de SM e dados de viagem)
+- [ ] Service Worker + manifest.json estático (PWA offline completo)
+- [ ] Dashboards Power BI conectados ao Supabase
+- [ ] RLS policies no Supabase
+
+---
+
+## Documentação
+
+A documentação técnica completa está em [`TRK_PCP_2026_Documentacao.md`](./TRK_PCP_2026_Documentacao.md) e cobre:
+
+- Arquitetura e stack
+- Estrutura de dados e campos
+- Todos os módulos detalhados
+- Referência de funções JavaScript
+- Schema SQL completo (SQL Server + PostgreSQL)
+- Guia de integração corporativa com ETL e views analíticas
+
+---
+
+<div align="center">
+
+**TRK PCP 2026 · Total Express · PCP Transferência**  
+*Desenvolvido e mantido pela equipe de PCP*
+
+</div>
