@@ -543,9 +543,19 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- ANÁLISE -->
 <div class="view" id="view-analise">
-  <div class="analise-grid" id="analiseGrid">
-    <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t2)">Carregando análise...</div>
+  <div class="toolbar">
+    <select id="aFiltro" onchange="renderAnalise()">
+      <option value="all">Todas as operações</option>
+      <option value="today">Hoje</option>
+      <option value="week" selected>Esta semana</option>
+      <option value="month">Este mês</option>
+    </select>
+    <input type="date" id="aData" onchange="document.getElementById('aFiltro').value='day';renderAnalise()" title="Filtrar por dia específico"/>
+    <select id="aSemana" onchange="document.getElementById('aFiltro').value='isoweek';renderAnalise()" title="Filtrar por semana ISO"></select>
+    <div class="sp"></div>
+    <span id="aTotal" style="font-size:.72rem;color:var(--t2)"></span>
   </div>
+  <div class="analise-grid" id="analiseGrid"></div>
 </div>
 
 <!-- ADMIN -->
@@ -1629,8 +1639,9 @@ function setView(name){
   document.querySelectorAll('.tab,.mnav-btn').forEach(b=>b.classList.remove('active'));
   const v=document.getElementById('view-'+name),nb=document.getElementById('tb-'+name),mn=document.getElementById('mn-'+name);
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
-  if(name==='massa')initMassa();if(name==='fup')renderFUP();
-  if(name==='analise')renderAnalise();
+  if(name==='massa')initMassa();
+  if(name==='fup')renderFUP();
+  if(name==='analise'){setTimeout(renderAnalise,50);}
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
   curPage=name;pingOnlineDB();renderOnlineFromDB();
 }
