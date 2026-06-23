@@ -958,58 +958,41 @@ const DEFAULT_USERS=[
 async function h256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 async function loadUsers(){
+  // 1. Tenta carregar do Supabase (fonte de verdade)
   if(supabaseOK){
     try{
       const data=await sbFetch(`${TABELA_USR}?ativo=eq.true&order=criado_em.asc`);
       if(data&&data.length){
         USERS=data.map(r=>({user:r.usuario,nome:r.nome,av:r.avatar||'??',cor:r.cor||'#cc0000',perfil:r.perfil,pw:null}));
-        let hasHashes=false;
-        data.forEach(r=>{if(r.senha_hash){HASHES[r.usuario]=r.senha_hash;hasHashes=true;}});
-        if(hasHashes){saveUsersLocal();return;}
-        // Banco tem usuários mas sem hashes — provavelmente primeira carga
-        // Não retorna, continua para tentar localStorage ou rebuild
+        data.forEach(r=>{if(r.senha_hash)HASHES[r.usuario]=r.senha_hash;});
+        // Se carregou pelo menos 1 hash — considera válido
+        if(Object.keys(HASHES).length>0){
+          saveUsersLocal();
+          try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
+          return;
+        }
       }
-    }catch(e){console.error('loadUsers error:',e);}
+    }catch(e){console.error('loadUsers Supabase error:',e);}
   }
-  // Tenta localStorage
+  // 2. Tenta localStorage (cache offline)
   try{
-    const saved=localStorage.getItem('trk_users');
-    if(saved){
-      const p=JSON.parse(saved);
-      if(p&&p.length){
-        USERS=p;
-        // Tenta carregar hashes salvos separadamente
-        try{
-          const savedH=localStorage.getItem('trk_hashes');
-          if(savedH){const h=JSON.parse(savedH);Object.assign(HASHES,h);}
-        }catch(e){}
-        if(Object.keys(HASHES).length>0)return; // tem hashes — ok
-        await buildHashesLocal(); // tenta rebuildar se tiver pw
-        if(Object.keys(HASHES).length>0)return;
-      }
+    const savedU=localStorage.getItem('trk_users');
+    const savedH=localStorage.getItem('trk_hashes');
+    if(savedU&&savedH){
+      const pu=JSON.parse(savedU),ph=JSON.parse(savedH);
+      if(pu.length&&Object.keys(ph).length){USERS=pu;Object.assign(HASHES,ph);return;}
     }
   }catch(e){}
-  // Fallback final: usuários padrão com hashes hardcoded (SHA-256 das senhas padrão)
-  // Esses hashes são calculados uma vez e servem só como fallback de emergência
+  // 3. Fallback de emergência — senhas padrão hardcoded (só alcançado se banco inacessível e sem cache)
   USERS=[...DEFAULT_USERS];
-  await buildHashesFromDefaults();
-  await syncUsersToSupabase();
-}
-
-// Hashes das senhas padrão — calculados em runtime na primeira vez, salvos no localStorage
-async function buildHashesFromDefaults(){
   const defaults=[
-    {user:'hellys',        pw:'pcp@2026'},
-    {user:'bianca.xavier', pw:'bianca@2026'},
-    {user:'pedro.arthur',  pw:'pedro@2026'},
-    {user:'vitor.vitorio', pw:'vitor@2026'},
-    {user:'admin',         pw:'admin@2026'},
+    {user:'hellys',pw:'pcp@2026'},{user:'bianca.xavier',pw:'bianca@2026'},
+    {user:'pedro.arthur',pw:'pedro@2026'},{user:'vitor.vitorio',pw:'vitor@2026'},
+    {user:'admin',pw:'admin@2026'},
   ];
-  for(const u of defaults){
-    if(!HASHES[u.user])HASHES[u.user]=await h256(u.pw);
-  }
-  // Salva hashes no localStorage para uso offline futuro
+  for(const u of defaults){if(!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}
   try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
+  await syncUsersToSupabase();
 }
 
 async function buildHashesLocal(){for(const u of USERS){if(u.pw&&!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}}
