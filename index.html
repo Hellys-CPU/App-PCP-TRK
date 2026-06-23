@@ -1426,6 +1426,12 @@ function renderKPIs(){
   ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
 }
 
+function _cafAlertBadge(op){
+  if(op.status!=='TRAN'||!op.cafs.length)return'';
+  const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
+  const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
+  return semProcesso.length?'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>':'';
+}
 function cardHTML(op){
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
   const lim=CFG.limiteAtraso||30;
@@ -1435,12 +1441,7 @@ function cardHTML(op){
     <div class="card-badges">
       <span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span>
       ${op.cafs.length?`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd)">${op.cafs.length} CAF${op.cafs.length>1?'s':''}</span>`:''}
-      ${(()=>{
-        if(op.status!=='TRAN'||!op.cafs.length)return'';
-        const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-        const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
-        return semProcesso.length?`<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>`:'';
-      })()}
+      ${_cafAlertBadge(op)}
     </div>
     <div class="ci">
       <div class="row"><span class="lbl">Transp.</span><span class="val">${op.transp||'—'}</span></div>
@@ -1450,9 +1451,9 @@ function cardHTML(op){
     </div>
     <div class="ct">
       <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}</div></div>
-      <div class="tb"><div class="tl">Saída Real</div><div class="tv ${tvCls(dS)}">${op.realSaida||'—'}</div></div>
+      <div class="tb"><div class="tl">Saída Real</div><div class="tv ${tvCls(dS)}">${toTime(op.realSaida)||'—'}</div></div>
       <div class="tb"><div class="tl">FC Plan.</div><div class="tv tv-p">${op.planChegFC||'—'}</div></div>
-      <div class="tb"><div class="tl">FC Real</div><div class="tv ${tvCls(dC)}">${op.realChegFC||'—'}</div></div>
+      <div class="tb"><div class="tl">FC Real</div><div class="tv ${tvCls(dC)}">${toTime(op.realChegFC)||'—'}</div></div>
     </div>
     ${liveTimer(op)}
     ${countdown(op)}
@@ -1488,8 +1489,8 @@ function renderList(){
       <td><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span></td>
       <td>${op.transp}</td><td>${op.mot}</td><td><strong>${op.placa}</strong></td>
       <td style="color:var(--t2)">${op.sm||'—'}</td><td style="color:var(--t2)">${op.tms||'—'}</td>
-      <td>${op.planSaida||'—'}</td><td style="color:${dc(dS)}">${op.realSaida||'—'}</td>
-      <td>${op.planChegFC||'—'}</td><td style="color:${dc(dC)}">${op.realChegFC||'—'}</td>
+      <td>${op.planSaida||'—'}</td><td style="color:${dc(dS)}">${toTime(op.realSaida)||'—'}</td>
+      <td>${op.planChegFC||'—'}</td><td style="color:${dc(dC)}">${toTime(op.realChegFC)||'—'}</td>
       <td style="color:${dc(dS)};font-weight:600">${fDiff(dS)}</td>
       <td style="color:${dc(dC)};font-weight:600">${fDiff(dC)}</td>
       <td style="color:var(--purple);font-weight:600">${fDiff(dDoc)}</td>
@@ -1556,7 +1557,7 @@ function fupRow(op){
     <td class="center">${tpFUP(op.planSaida,op.realSaida,op.dataOp)}</td>
     <td class="center">${tpFUP(op.planChegFC,op.realChegFC,op.dataOp)}</td>
     <td class="center">${dC!==null?`<span class="dp dp-${dCls(dC)}">${fDiff(dC)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-    <td class="center" style="color:${op.realDescarga?'var(--green)':'var(--t3)'};font-weight:${op.realDescarga?700:400}">${op.realDescarga||'—'}</td>
+    <td class="center" style="color:${op.realDescarga?'var(--green)':'var(--t3)'};font-weight:${op.realDescarga?700:400}">${toTime(op.realDescarga)||'—'}</td>
     <td class="center"><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
     <td class="center">${slaCell}</td>
   </tr>`;
@@ -1666,9 +1667,9 @@ function imprimirCard(){
   </table>
   <table><tr><th>Horário</th><th>Planejado</th><th>Realizado</th><th>Δ</th></tr>
   <tr><td>Apresentação</td><td>${op.planApres||'—'}</td><td>${op.realApres||'—'}</td><td class="${dMin(op.planApres,op.realApres)>0?'late':dMin(op.planApres,op.realApres)<0?'ok':'nd'}">${fDiff(dMin(op.planApres,op.realApres))}</td></tr>
-  <tr><td>Saída TZX</td><td>${op.planSaida||'—'}</td><td>${op.realSaida||'—'}</td><td class="${dS>0?'late':dS<0?'ok':'nd'}">${fDiff(dS)}</td></tr>
+  <tr><td>Saída TZX</td><td>${op.planSaida||'—'}</td><td>${toTime(op.realSaida)||'—'}</td><td class="${dS>0?'late':dS<0?'ok':'nd'}">${fDiff(dS)}</td></tr>
   <tr><td>Chegada FC</td><td>${op.planChegFC||'—'}</td><td>${op.realChegFC||'—'}</td><td class="${dC>0?'late':dC<0?'ok':'nd'}">${fDiff(dC)}</td></tr>
-  <tr><td>Descarga</td><td>—</td><td>${op.realDescarga||'—'}</td><td class="nd">${dDoc!==null?'⏱ '+fDiff(dDoc):'—'}</td></tr>
+  <tr><td>Descarga</td><td>—</td><td>${toTime(op.realDescarga)||'—'}</td><td class="nd">${dDoc!==null?'⏱ '+fDiff(dDoc):'—'}</td></tr>
   </table>
   <table><tr><th colspan="2">Status</th></tr>
   <tr><td>Status Atual</td><td>${stObj(op.status).lb}</td></tr>
