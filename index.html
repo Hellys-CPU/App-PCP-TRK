@@ -595,6 +595,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <option value="">Todos os Status</option>
       <option value="aberta">Abertas</option>
       <option value="vinculada">Vinculadas</option>
+      <option value="processo">Proc. Entrega</option>
+      <option value="entregue">Entrega Realizada</option>
       <option value="fechada">Fechadas</option>
     </select>
     <input id="cafBusca" placeholder="🔍 Nº CAF, destino..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:160px;"/>
@@ -774,6 +776,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nº da CAF</label><input id="cafNum" placeholder="Ex: 23081234" style="font-weight:700;font-size:1rem"></div>
         <div class="fg"><label>Tipo de Carga</label>
           <select id="cafTipo"><option>LTL</option><option>Inbound</option><option>FLT</option><option>Extra</option></select>
+        </div>
+        <div class="fg"><label>Status da CAF</label>
+          <select id="cafStatus">
+            <option value="aberta">Aberta</option>
+            <option value="vinculada">Vinculada</option>
+            <option value="processo">Proc. de Entrega</option>
+            <option value="entregue">Entrega Realizada</option>
+            <option value="fechada">Fechada</option>
+          </select>
         </div>
         <div class="fg"><label>Destino (Rota)</label>
           <select id="cafRota"><option value="">Selecione a rota</option></select>
@@ -1578,14 +1589,19 @@ async function onDrop(e,sid){
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
     const prevStatus=op.status;
+    // Alerta se vai para TRAN com CAFs sem processo
+    if(sid==='TRAN'&&!alertaCAFsTransito(op)){dragged=null;return;}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
     op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
     addActivityLog(`${op.id}: ${p} → ${stObj(sid).lb}`);
     render();renderFUP();
-    try{await saveOp(op);}
+    try{
+      await saveOp(op);
+      // Sincroniza status das CAFs vinculadas automaticamente
+      await syncCAFsStatus(op,sid,prevStatus);
+    }
     catch(err){
-      // Rollback visual se falhar
       op.status=prevStatus;op.hist.pop();
       render();renderFUP();
       showToast('❌ Erro ao mover card — alteração revertida','err');
@@ -1724,9 +1740,24 @@ function buildForm(op){
   <div class="fg"><label>Status Atual</label><select id="fStatus">${slO(STS,o.status)}</select></div>
   <div class="fg"><label>Responsável</label><input id="fResp" value="${currentUser?currentUser.nome:o.updatedBy||''}" placeholder="Seu nome"></div>
 </div>
-<div class="sec">📦 CAFs</div>
-<div id="cafList" style="display:flex;flex-direction:column;gap:7px;margin-bottom:9px">${o.cafs.map((c,i)=>cafR(c,i)).join('')}</div>
-<button class="btn btn-g" style="font-size:.71rem" type="button" onclick="addCaf()">+ Adicionar CAF</button>
+<div class="sec">📦 CAFs Vinculadas</div>
+<div id="cafList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:9px">${o.cafs.map((c,i)=>cafR(c,i)).join('')}</div>
+<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:10px;margin-bottom:6px">
+  <div style="font-size:.7rem;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">
+    📦 Vincular CAF do Banco — Rota <strong style="color:var(--red)">${o.rota||'(selecione a rota)'}</strong>
+  </div>
+  <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
+    <div class="fg" style="flex:1;min-width:160px">
+      <label>CAF disponível</label>
+      <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
+        <option value="">— selecione uma CAF —</option>
+        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&!['processo','entregue','fechada'].includes(c.status)&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${c.num}|${c.tipo}|${c.vol}">${c.num} · ${c.tipo} · ${c.vol} un · ${c.rota}</option>`).join('')}
+      </select>
+    </div>
+    <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
+    <button class="btn btn-g" style="font-size:.72rem;flex-shrink:0" onclick="addCaf()">+ Manual</button>
+  </div>
+</div>
 <div class="sec">📝 Observações</div>
 <div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="3">${o.obs||''}</textarea></div></div>
 ${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${h.txt}</div>`).join('')}</div>`:''}`;}
@@ -1758,10 +1789,16 @@ async function saveCard(){
     upd('placaCarreta',g('fPlacaC'));upd('sm',g('fSM'));upd('tms',g('fTMS'));upd('isa',g('fISA'));
     upd('planApres',g('fPA'));upd('planSaida',g('fPS'));upd('planChegFC',g('fPC'));
     upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
+    const statusAntes=op.status;
     upd('status',g('fStatus'));upd('obs',g('fObs'));
     op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
     if(ch.length){op.hist.push({t:ts(),txt:`[${who}] `+ch.join('; ')});addActivityLog(`${op.id} editado por ${who}`);}
+    // Alerta se mudando para TRAN com CAFs sem processo (via modal)
+    if(op.status==='TRAN'&&statusAntes!=='TRAN'&&!alertaCAFsTransito(op)){
+      op.status=statusAntes;loading(false);return;
+    }
     await saveOp(op);
+    if(op.status!==statusAntes) await syncCAFsStatus(op,op.status,statusAntes);
   }else{
     const id=g('fId')||genId();
     const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),cafs,hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
@@ -2263,8 +2300,8 @@ function renderCAFs(){
   }
 
   // Table
-  const stCls={aberta:'b-ltl',vinculada:'b-inb',fechada:'b-ext'};
-  const stLbl={aberta:'Aberta',vinculada:'Vinculada',fechada:'Fechada'};
+  const stCls={aberta:'b-ltl',vinculada:'b-inb',processo:'b-flt',entregue:'b-inb',fechada:'b-ext'};
+  const stLbl={aberta:'Aberta',vinculada:'Vinculada',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Fechada'};
   const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -2295,6 +2332,7 @@ function openNewCAF(){
   ['cafNum','cafVol','cafPal','cafObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cafVenc').value='';
   document.getElementById('cafTipo').value='LTL';
+  const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='aberta';
   document.getElementById('cafRota').value='';
   document.getElementById('overlayCAF').classList.add('open');
 }
@@ -2312,6 +2350,7 @@ function openEditCAF(id){
   document.getElementById('cafVol').value=c.vol||'';
   document.getElementById('cafPal').value=c.pallets||'';
   document.getElementById('cafObs').value=c.obs||'';
+  const cafSt=document.getElementById('cafStatus');if(cafSt)cafSt.value=c.status||'aberta';
   const vincEl=document.getElementById('cafOpVinc');
   if(c.opId){
     const op=ops.find(o=>o.id===c.opId);
@@ -2339,7 +2378,7 @@ async function saveCAF(){
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
     pallets:parseFloat(document.getElementById('cafPal')?.value||0)||0,
     venc:document.getElementById('cafVenc')?.value||'',
-    status:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.status||'aberta'):'aberta',
+    status:document.getElementById('cafStatus')?.value||'aberta',
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
     criadoPor:who,
@@ -2648,6 +2687,79 @@ async function exportRD(){
   }
 }
 
+
+
+// ─── Adiciona CAF do banco ao modal da operação ───
+function adicionarCAFdoBanco(){
+  const sel=document.getElementById('fCafSelect');
+  if(!sel||!sel.value){showToast('Selecione uma CAF','err');return;}
+  const[num,tipo,qtd]=sel.value.split('|');
+  // Verifica se já não está na lista
+  const existing=[...document.querySelectorAll('#cafList .caf-row')].map(r=>r.querySelector('.cn')?.value||'');
+  if(existing.includes(num)){showToast(`CAF ${num} já adicionada`,'err');return;}
+  const d=document.createElement('div');
+  d.innerHTML=cafR({num,tipo,qtd},++cafIdx);
+  document.getElementById('cafList').appendChild(d.firstChild);
+  sel.value=''; // reseta select
+  showToast(`✅ CAF ${num} adicionada à viagem`,'ok');
+}
+
+// ─── Lógica automática de status das CAFs vinculadas ───
+// Chamada sempre que a operação muda de status
+async function syncCAFsStatus(op, novoStatus, prevStatus){
+  if(!supabaseOK||!cafsDB.length)return;
+  // Encontra CAFs vinculadas a esta operação (pelo opId ou pelo num na lista da op)
+  const cafsDaOp=cafsDB.filter(c=>
+    c.opId===op.id ||
+    op.cafs.some(x=>x.num===c.num)
+  );
+  if(!cafsDaOp.length)return;
+
+  let novoStatusCAF=null;
+  // Operação → TRAN: CAFs vão para "Processo de Entrega"
+  if(novoStatus==='TRAN') novoStatusCAF='processo';
+  // Operação → FIN: CAFs vão para "Entrega Realizada" (baixa)
+  if(novoStatus==='FIN')  novoStatusCAF='entregue';
+  // Operação → CANC/REC: CAFs voltam para "aberta" (disponível)
+  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='aberta';
+
+  if(!novoStatusCAF)return;
+
+  // Alerta se vai para TRAN e tem CAF sem "Processo de Entrega"
+  if(novoStatus==='TRAN'){
+    const cafsSemProcesso=cafsDaOp.filter(c=>c.status!=='processo');
+    if(cafsSemProcesso.length){
+      showToast(`⚠️ ${cafsSemProcesso.length} CAF(s) sem "Proc. Entrega" — atualizando automaticamente...`,'info');
+    }
+  }
+
+  // Atualiza todas as CAFs da operação
+  for(const c of cafsDaOp){
+    if(c.status===novoStatusCAF)continue; // já está no status correto
+    c.status=novoStatusCAF;
+    // Se voltando para aberta (cancelamento), remove vínculo
+    if(novoStatusCAF==='aberta'){c.opId='';}
+    await saveCAFToDB(c);
+  }
+  await loadCAFs();
+  if(curPage==='caf')renderCAFs();
+}
+
+// ─── Alerta ANTES de mover para TRAN se CAFs sem processo ───
+function alertaCAFsTransito(op){
+  if(!cafsDB.length||!op.cafs.length)return true; // sem CAFs = ok
+  const cafsDaOp=cafsDB.filter(c=>
+    c.opId===op.id || op.cafs.some(x=>x.num===c.num)
+  );
+  if(!cafsDaOp.length)return true;
+  const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
+  if(semProcesso.length){
+    const nums=semProcesso.map(c=>c.num).join(', ');
+    const ok=confirm(`⚠️ ATENÇÃO — CAFs sem "Proc. de Entrega":\n${nums}\n\nDeseja colocar em trânsito mesmo assim?\n(As CAFs serão atualizadas automaticamente)`);
+    return ok;
+  }
+  return true;
+}
 
 loadTheme();
 initAuth();
