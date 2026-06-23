@@ -404,9 +404,9 @@ body.dark .an-card h3{color:var(--gray2);}
 /* MOBILE BOTTOM NAV */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);z-index:150;padding:4px 0 max(4px,env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.1);}
 .mobile-nav-inner{display:flex;justify-content:space-around;}
-.mnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--t2);padding:5px 8px;cursor:pointer;font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.3px;flex:1;transition:.15s;}
+.mnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--t2);padding:5px 4px;cursor:pointer;font-size:.54rem;font-weight:600;text-transform:uppercase;letter-spacing:.2px;flex:1;transition:.15s;min-width:0;}
 .mnav-btn.active{color:var(--red);}
-.mnav-btn .mni{font-size:1.1rem;line-height:1;}
+.mnav-btn .mni{font-size:1.05rem;line-height:1;}
 body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 @media(max-width:768px){
@@ -544,7 +544,18 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <div id="massaStep2" style="display:none;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
       <div class="sec" style="margin-top:0">✏️ Passo 2 <span id="mCnt" style="color:var(--red);font-size:.76rem;text-transform:none;font-weight:600;letter-spacing:0"></span></div>
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table id="massaTable"><thead><tr><th>#</th><th>Rota</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th><th>Pl.Apres</th><th>Pl.Saída</th><th>Pl.FC</th><th>Tipo</th><th></th></tr></thead><tbody id="massaBody"></tbody></table></div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table id="massaTable"><thead><tr><th>#</th><th>Rota</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>Carreta</th><th>SM</th><th>TMS</th><th>Pl.Apres</th><th>Pl.Saída</th><th>Pl.FC</th><th>Tipo</th><th></th></tr></thead><tbody id="massaBody"></tbody></table></div>
+    </div>
+    <!-- BARRA DE APLICAÇÃO RÁPIDA DE HORÁRIOS -->
+    <div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-top:10px;box-shadow:var(--sh)">
+      <div class="sec" style="margin-top:0">⚡ Aplicar horários em todas as linhas</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fg"><label>Apres.</label><input type="time" id="mhApres" class="mi" style="width:90px"></div>
+        <div class="fg"><label>Saída</label><input type="time" id="mhSaida" class="mi" style="width:90px"></div>
+        <div class="fg"><label>Cheg. FC</label><input type="time" id="mhFC" class="mi" style="width:90px"></div>
+        <button class="btn btn-p" style="font-size:.73rem" onclick="aplicarHorariosMassa()">▶ Aplicar em todas</button>
+        <span style="font-size:.68rem;color:var(--t2)">Preenche todas as linhas com os mesmos horários planejados</span>
+      </div>
     </div>
   </div>
 </div>
@@ -714,6 +725,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 // ══════════════════════════════════════════════════════════════════
 // SUPABASE
 // ══════════════════════════════════════════════════════════════════
+const APP_VERSION='v67';
+console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios';
@@ -742,7 +755,10 @@ function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.g
 async function loadFromSupabase(){
   if(!supabaseOK)return false;
   try{
-    const data=await sbFetch(`${TABELA}?order=created_at.asc&limit=5000`);
+    // Carrega últimos 90 dias por padrão — evita carregar histórico infinito
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+    const since=cutoff.toISOString().split('T')[0];
+    const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
     if(Array.isArray(data)){
       ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
@@ -769,11 +785,13 @@ async function saveOp(op){
 }
 
 // REALTIME
+let _rtAttempts=0;
 function initRealtime(){
   if(!supabaseOK)return;
   try{
     const ws=new WebSocket(`${SUPABASE_URL.replace('https://','wss://')}/realtime/v1/websocket?vsn=1.0.0&apikey=${SUPABASE_KEY}`);
     ws.onopen=()=>{
+      _rtAttempts=0;
       ws.send(JSON.stringify({topic:'realtime:public:operacoes',event:'phx_join',payload:{},ref:'1'}));
       ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
       document.getElementById('rtIndicator').style.display='flex';
@@ -789,7 +807,13 @@ function initRealtime(){
         if(msg.topic&&msg.topic.includes('sessoes'))renderOnlineFromDB();
       }catch(err){}
     };
-    ws.onclose=()=>{document.getElementById('rtIndicator').style.display='none';setTimeout(initRealtime,5000);};
+    ws.onclose=()=>{
+      document.getElementById('rtIndicator').style.display='none';
+      _rtAttempts++;
+      // Backoff exponencial: 5s, 10s, 20s, 40s, máximo 60s
+      const delay=Math.min(5000*Math.pow(2,_rtAttempts-1),60000);
+      setTimeout(initRealtime,delay);
+    };
     ws.onerror=()=>ws.close();
     realtimeWS=ws;
     setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));},25000);
@@ -849,11 +873,11 @@ const HASHES={};
 let currentUser=null,selectedColor='#cc0000';
 
 const DEFAULT_USERS=[
-  {user:'hellys',        nome:'Hellys',        av:'HE',cor:'#cc0000',perfil:'ADMIN',   pw:'pcp@2026'},
-  {user:'bianca.xavier', nome:'Bianca Xavier', av:'BX',cor:'#7c3aed',perfil:'OPERADOR',pw:'bianca@2026'},
-  {user:'pedro.arthur',  nome:'Pedro Arthur',  av:'PA',cor:'#16a34a',perfil:'OPERADOR',pw:'pedro@2026'},
-  {user:'vitor.vitorio', nome:'Vitor Vitório', av:'VV',cor:'#c2410c',perfil:'OPERADOR',pw:'vitor@2026'},
-  {user:'admin',         nome:'Admin',         av:'AD',cor:'#374151',perfil:'ADMIN',   pw:'admin@2026'},
+  {user:'hellys',        nome:'Hellys',        av:'HE',cor:'#cc0000',perfil:'ADMIN',   pw:null},
+  {user:'bianca.xavier', nome:'Bianca Xavier', av:'BX',cor:'#7c3aed',perfil:'OPERADOR',pw:null},
+  {user:'pedro.arthur',  nome:'Pedro Arthur',  av:'PA',cor:'#16a34a',perfil:'OPERADOR',pw:null},
+  {user:'vitor.vitorio', nome:'Vitor Vitório', av:'VV',cor:'#c2410c',perfil:'OPERADOR',pw:null},
+  {user:'admin',         nome:'Admin',         av:'AD',cor:'#374151',perfil:'ADMIN',   pw:null},
 ];
 
 async function h256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -880,10 +904,18 @@ function saveUsersLocal(){try{localStorage.setItem('trk_users',JSON.stringify(US
 function saveUsers(){saveUsersLocal();}
 
 async function syncUsersToSupabase(){
+  // Só sincroniza usuários que ainda não existem no banco
+  // NUNCA sobrescreve hashes de quem já tem senha configurada
   if(!supabaseOK)return;
-  for(const u of DEFAULT_USERS){
-    try{const hash=await h256(u.pw);await sbUpsert(TABELA_USR,{usuario:u.user,nome:u.nome,avatar:u.av,cor:u.cor,perfil:u.perfil,senha_hash:hash,ativo:true,criado_por:'Sistema'});HASHES[u.user]=hash;}catch(e){}
-  }
+  try{
+    const existing=await sbFetch(`${TABELA_USR}?select=usuario`);
+    const existingIds=new Set((existing||[]).map(r=>r.usuario));
+    for(const u of DEFAULT_USERS){
+      if(existingIds.has(u.user))continue; // já existe — não mexe
+      if(!u.pw)continue;                   // sem senha padrão — não cria
+      try{const hash=await h256(u.pw);await sbUpsert(TABELA_USR,{usuario:u.user,nome:u.nome,avatar:u.av,cor:u.cor,perfil:u.perfil,senha_hash:hash,ativo:true,criado_por:'Sistema'});HASHES[u.user]=hash;}catch(e){}
+    }
+  }catch(e){console.error('syncUsers error:',e);}
 }
 
 async function initAuth(){
@@ -891,7 +923,12 @@ async function initAuth(){
   await loadUsers();
   try{
     const raw=localStorage.getItem('trk_sess');
-    if(raw){const s=JSON.parse(raw);if(Date.now()-s.ts<8*3600*1000){const u=USERS.find(x=>x.user===s.user);if(u){currentUser=u;await bootApp();return;}}localStorage.removeItem('trk_sess');}
+    if(raw){
+      const s=JSON.parse(raw);
+      const valid=s.user&&s.ts&&s.token&&(Date.now()-s.ts<8*3600*1000);
+      if(valid){const u=USERS.find(x=>x.user===s.user);if(u){currentUser=u;await bootApp();return;}}
+      localStorage.removeItem('trk_sess');
+    }
   }catch(e){}
   const el=document.getElementById('lConn');
   el.textContent=supabaseOK?'✓ Banco compartilhado conectado':'⚠ Modo offline (dados locais)';
@@ -899,7 +936,16 @@ async function initAuth(){
   document.getElementById('loginScreen').classList.add('show');
 }
 
+let _loginAttempts=0,_loginBlock=0;
 async function doLogin(){
+  const now=Date.now();
+  if(_loginBlock>now){
+    const s=Math.ceil((_loginBlock-now)/1000);
+    const err=document.getElementById('lErr');
+    err.textContent=`Muitas tentativas. Aguarde ${s}s para tentar novamente.`;
+    err.style.display='block';
+    return;
+  }
   const user=(document.getElementById('lUser').value||'').trim().toLowerCase();
   const pass=document.getElementById('lPass').value;
   const err=document.getElementById('lErr');
@@ -907,8 +953,24 @@ async function doLogin(){
   if(!user||!pass){err.textContent='Preencha usuário e senha.';err.style.display='block';return;}
   const hash=await h256(pass);
   const found=USERS.find(u=>u.user===user&&HASHES[u.user]===hash);
-  if(found){currentUser=found;localStorage.setItem('trk_sess',JSON.stringify({user:found.user,ts:Date.now()}));await bootApp();}
-  else{err.textContent='Usuário ou senha incorretos.';err.style.display='block';document.getElementById('lPass').value='';}
+  if(found){
+    _loginAttempts=0;_loginBlock=0;
+    currentUser=found;
+    const _st=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
+    localStorage.setItem('trk_sess',JSON.stringify({user:found.user,ts:Date.now(),token:_st}));
+    await bootApp();
+  } else {
+    _loginAttempts++;
+    if(_loginAttempts>=5){
+      _loginBlock=Date.now()+60000;
+      _loginAttempts=0;
+      err.textContent='5 tentativas incorretas. Login bloqueado por 60 segundos.';
+    } else {
+      err.textContent=`Usuário ou senha incorretos. (${_loginAttempts}/5 tentativas)`;
+    }
+    err.style.display='block';
+    document.getElementById('lPass').value='';
+  }
 }
 
 async function bootApp(){
@@ -986,7 +1048,9 @@ async function saveUser(){
 
 function deleteUser(username){
   if(username===currentUser?.user){showToast('Você não pode deletar sua própria conta','err');return;}
-  if(!confirm(`Deletar @${username}?`))return;
+  const opCount=ops.filter(o=>o.updatedBy===USERS.find(u=>u.user===username)?.nome).length;
+  const warn=opCount>0?`\n⚠ Este usuário tem ${opCount} operação(ões) no histórico.`:'';
+  if(!confirm(`Deletar @${username}?${warn}`))return;
   USERS=USERS.filter(u=>u.user!==username);delete HASHES[username];saveUsersLocal();
   if(supabaseOK)sbDelete(TABELA_USR,'usuario',username).then(()=>showToast('Usuário removido do banco','ok')).catch(()=>showToast('Usuário removido','ok'));
   else showToast('Usuário removido','ok');
@@ -1016,8 +1080,21 @@ const ts=()=>new Date().toLocaleString('pt-BR');
 const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'';
 const stObj=id=>STS.find(s=>s.id===id)||STS[0];
 const tCls=t=>({LTL:'b-ltl',FLT:'b-flt',Inbound:'b-inb',Extra:'b-ext'}[t]||'b-ltl');
-const pMin=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};
-const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);return(pa!=null&&pb!=null)?pb-pa:null;};
+const pMin=t=>{if(!t)return null;const part=t.includes('T')?t.split('T')[1]:t;const[h,m]=part.split(':').map(Number);return h*60+m;};
+// Extrai só HH:MM de um valor que pode ser datetime-local ou time
+const toTime=v=>v?(v.includes('T')?v.split('T')[1].substring(0,5):v.substring(0,5)):'';
+// Extrai só YYYY-MM-DD
+const toDate=v=>v?(v.includes('T')?v.split('T')[0]:null):null;
+// Formata datetime-local para exibição: mostra data se diferente de dataOp
+const fmtRT=(v,dataOp)=>{
+  if(!v)return'—';
+  const t=toTime(v);
+  const d=toDate(v);
+  if(d&&dataOp&&d!==dataOp)return`<span style="font-size:.58rem;color:var(--orange)">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span> ${t}`;
+  return t;
+};
+
+const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);if(pa==null||pb==null)return null;let d=pb-pa;if(d<-720)d+=1440;if(d>720)d-=1440;return d;};
 const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
 const dCls=d=>d===null?'':d>(CFG.limiteAtraso||30)?'late':d>0?'warn':'ok';
 const tvCls=d=>d===null?'tv-nd':d>(CFG.limiteAtraso||30)?'tv-l':d>0?'tv-w':'tv-ok';
@@ -1027,17 +1104,21 @@ function showToast(msg,type='ok'){const el=document.getElementById('toast');if(!
 
 function liveTimer(op){
   if(!CFG.timer||op.status!=='TRAN'||!op.realSaida)return'';
-  const hoje=new Date();const[h,m]=op.realSaida.split(':').map(Number);
-  const saida=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate(),h,m);
+  const tStr=toTime(op.realSaida);if(!tStr)return'';
+  const hoje=new Date();const[h,m]=tStr.split(':').map(Number);
+  // Usa a data real da saída se disponível
+  const rDate=toDate(op.realSaida);
+  const saida=rDate?new Date(rDate+'T'+tStr):new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate(),h,m);
   const diff=Math.floor((hoje-saida)/60000);
-  if(diff<0||diff>1440)return'';
+  if(diff<0||diff>2880)return''; // até 48h
   const hh=Math.floor(diff/60),mm=diff%60;
   return `<div class="live-timer">🕐 ${hh}h${mm.toString().padStart(2,'0')}min em trânsito</div>`;
 }
 
 function countdown(op){
   if(!CFG.countdown||!['PROG','AGUCARR'].includes(op.status)||!op.planSaida)return'';
-  const hoje=new Date();const[h,m]=op.planSaida.split(':').map(Number);
+  const tStr=toTime(op.planSaida)||op.planSaida;
+  const hoje=new Date();const[h,m]=tStr.split(':').map(Number);
   const saida=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate(),h,m);
   const diff=Math.floor((saida-hoje)/60000);
   if(diff<0||diff>480)return'';
@@ -1083,9 +1164,11 @@ function renderStats(){
 }
 
 const activityLogs=[];
+try{const saved=localStorage.getItem('trk_logs');if(saved)activityLogs.push(...JSON.parse(saved).slice(0,100));}catch(e){}
 function addActivityLog(msg){
   activityLogs.unshift({t:ts(),msg,user:currentUser?.nome||'Sistema'});
   if(activityLogs.length>100)activityLogs.pop();
+  try{localStorage.setItem('trk_logs',JSON.stringify(activityLogs.slice(0,50)));}catch(e){}
   const el=document.getElementById('activityLog');
   if(el)el.innerHTML=activityLogs.slice(0,20).map(l=>`<div class="log-item"><div class="lt">${l.t} · ${l.user}</div>${l.msg}</div>`).join('');
 }
@@ -1125,7 +1208,7 @@ function clrF(){['fRo','fSt','fTr','fTp','fData'].forEach(i=>{const e=document.g
 // ══════════════════════════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════════════════════════
-function render(){buildSels();renderKPIs();renderPainel();renderList();renderProg();renderDayBanner();}
+function render(){buildSels();renderKPIs();renderPainel();renderList();renderProg();renderDayBanner();if(curPage==='analise')renderAnalise();}
 
 function renderDayBanner(){
   const el=document.getElementById('dayBanner');if(!el)return;
@@ -1260,7 +1343,14 @@ function getFUPFilt(){
   const q=(document.getElementById('ffBusca')?.value||'').toLowerCase();
   return ops.filter(o=>{if(fR&&o.rota!==fR)return false;if(fS&&o.status!==fS)return false;if(fSLA&&getSLA(o)!==fSLA)return false;if(fD&&o.dataOp!==fD)return false;if(q&&![o.id,o.placa,o.mot,o.sm||''].join('|').toLowerCase().includes(q))return false;return true;});
 }
-function tpFUP(plan,real){const d=dMin(plan,real),rc=d===null?'trl-nd':d>30?'trl-l':d>0?'trl-w':'trl-ok';const pill=real&&d!==null&&d!==0?`<span class="dp dp-${dCls(d)}">${fDiff(d)}</span>`:'';return `<div class="tp"><div class="tpl">${plan||'—'}</div><div class="trl ${rc}">${real||'—'}</div>${pill}</div>`;}
+function tpFUP(plan,real,dataOp){
+  const d=dMin(plan,real),rc=d===null?'trl-nd':d>30?'trl-l':d>0?'trl-w':'trl-ok';
+  const pill=real&&d!==null&&d!==0?`<span class="dp dp-${dCls(d)}">${fDiff(d)}</span>`:'';
+  const rDate=toDate(real);
+  const dateBadge=(rDate&&dataOp&&rDate!==dataOp)?`<span style="font-size:.56rem;color:var(--orange);font-weight:700">${new Date(rDate+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span> `:'';
+  const rDisplay=real?dateBadge+toTime(real):'—';
+  return `<div class="tp"><div class="tpl">${plan||'—'}</div><div class="trl ${rc}">${rDisplay}</div>${pill}</div>`;
+}
 function fupRowCls(op){const s=getSLA(op);if(op.status==='CANC')return'fr-canc';if(s==='ok')return'fr-ok';if(s==='late')return'fr-late';if(['TRAN','EMCARR','AGUCARR'].includes(op.status))return'fr-w';return'fr-nd';}
 function fupRow(op){
   const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC);
@@ -1270,9 +1360,9 @@ function fupRow(op){
     <td><span class="rota-cell">${op.rota}</span></td>
     <td>${op.transp}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${op.mot}</td>
     <td><strong>${op.placa}</strong></td>
-    <td class="center">${tpFUP(op.planApres,op.realApres)}</td>
-    <td class="center">${tpFUP(op.planSaida,op.realSaida)}</td>
-    <td class="center">${tpFUP(op.planChegFC,op.realChegFC)}</td>
+    <td class="center">${tpFUP(op.planApres,op.realApres,op.dataOp)}</td>
+    <td class="center">${tpFUP(op.planSaida,op.realSaida,op.dataOp)}</td>
+    <td class="center">${tpFUP(op.planChegFC,op.realChegFC,op.dataOp)}</td>
     <td class="center">${dC!==null?`<span class="dp dp-${dCls(dC)}">${fDiff(dC)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
     <td class="center" style="color:${op.realDescarga?'var(--green)':'var(--t3)'};font-weight:${op.realDescarga?700:400}">${op.realDescarga||'—'}</td>
     <td class="center"><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
@@ -1315,11 +1405,19 @@ async function onDrop(e,sid){
   if(!dragged)return;
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
+    const prevStatus=op.status;
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
     op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
     addActivityLog(`${op.id}: ${p} → ${stObj(sid).lb}`);
-    render();renderFUP();await saveOp(op);
+    render();renderFUP();
+    try{await saveOp(op);}
+    catch(err){
+      // Rollback visual se falhar
+      op.status=prevStatus;op.hist.pop();
+      render();renderFUP();
+      showToast('❌ Erro ao mover card — alteração revertida','err');
+    }
   }
   dragged=null;
 }
@@ -1329,7 +1427,7 @@ async function onDrop(e,sid){
 // ══════════════════════════════════════════════════════════════════
 function openNew(){editId=null;document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
 function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;document.getElementById('mTitle').textContent='Editar — '+id;document.getElementById('btnDeletar').style.display='';document.getElementById('btnDuplicar').style.display='';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
-function closeModal(){document.getElementById('overlay').classList.remove('open');}
+function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
   if(!editId)return;
@@ -1395,6 +1493,11 @@ const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selecte
 
 function buildForm(op){
   const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[],updatedBy:''};
+  // Data base para os campos reais: usa dataOp da operação ou hoje
+  const _baseDate=o.dataOp||new Date().toISOString().split('T')[0];
+  // Prefixa datetime-local se valor existente for só HH:MM (migração de dados antigos)
+  const _rt=v=>!v?'':v.includes('T')?v:`${_baseDate}T${v}`;
+  const _rDef=''; // campos vazios = usuário preenche quando o evento ocorre
   const dS=dMin(o.planSaida,o.realSaida),dC=dMin(o.planChegFC,o.realChegFC),dA=dMin(o.planApres,o.realApres),dDoc=dMin(o.realChegFC,o.realDescarga);
   document.getElementById('mBody').innerHTML=`
 <div class="sec" style="margin-top:0">📋 Identificação</div>
@@ -1428,11 +1531,14 @@ function buildForm(op){
   <div class="fg"><label>Cheg. FC Plan.</label><input id="fPC" type="time" value="${o.planChegFC}"></div>
 </div>
 <div class="sec">🕐 Horários Reais</div>
+<div style="background:var(--blue2);border:1px solid #93c5fd;border-radius:var(--rs);padding:7px 10px;margin-bottom:8px;font-size:.7rem;color:var(--blue)">
+  📅 Data padrão: <strong>${_baseDate}</strong>. Para viagens que cruzam o dia (pernoite/2 dias), altere a data no campo.
+</div>
 <div class="fgrid c3">
-  <div class="fg"><label>Apres. Real</label><input id="fRA" type="time" value="${o.realApres}" oninput="calcD()"></div>
-  <div class="fg"><label>Saída Real</label><input id="fRS" type="time" value="${o.realSaida}" oninput="calcD()"></div>
-  <div class="fg"><label>Cheg. FC Real</label><input id="fRC" type="time" value="${o.realChegFC}" oninput="calcD()"></div>
-  <div class="fg"><label>Descarga Real</label><input id="fRD" type="time" value="${o.realDescarga}" oninput="calcD()"></div>
+  <div class="fg"><label>Apres. Real</label><input id="fRA" type="datetime-local" value="${_rt(o.realApres)}" oninput="calcD()"></div>
+  <div class="fg"><label>Saída Real</label><input id="fRS" type="datetime-local" value="${_rt(o.realSaida)}" oninput="calcD()"></div>
+  <div class="fg"><label>Cheg. FC Real</label><input id="fRC" type="datetime-local" value="${_rt(o.realChegFC)}" oninput="calcD()"></div>
+  <div class="fg"><label>Descarga Real</label><input id="fRD" type="datetime-local" value="${_rt(o.realDescarga)}" oninput="calcD()"></div>
 </div>
 <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px">
   <div id="ddA" class="db ${dA!==null?'db-'+dCls(dA):''}" style="${dA===null?'display:none':''}">${dA!==null?'Δ Apres: '+fDiff(dA):''}</div>
@@ -1465,6 +1571,9 @@ function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:''
 
 async function saveCard(){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  // Validação de campos obrigatórios
+  if(!g('fRota')){showToast('⚠ Selecione a Rota','err');return;}
+  if(!g('fDO')){showToast('⚠ Informe a Data da Operação','err');return;}
   const cafs=[...document.querySelectorAll('#cafList .caf-row')].map(row=>({num:row.querySelector('.cn')?.value||'',tipo:row.querySelector('.ct2')?.value||'LTL',qtd:row.querySelector('.cq')?.value||''})).filter(c=>c.num.trim());
   const who=currentUser?currentUser.nome:g('fResp')||'Usuário';
   loading(true);
@@ -1528,6 +1637,9 @@ function importBackup(event){
       if(!data.ops){showToast('Arquivo inválido','err');return;}
       if(!confirm(`Importar backup de ${data.exportedAt}? Isso substituirá todos os dados atuais.`))return;
       loading(true);ops=data.ops;
+      // Restaura seq para evitar IDs duplicados
+      const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},1000);
+      if(mx>seq)seq=mx;
       if(data.rotas)ROTAS=data.rotas;
       if(data.transps)TRANSPS=data.transps;
       if(supabaseOK){for(const op of ops)await saveToSupabase(op);}else saveLocalOps();
@@ -1566,7 +1678,9 @@ function dlCSV(rows,name){
 // MASSA
 // ══════════════════════════════════════════════════════════════════
 function initMassa(){
-  const tp=document.getElementById('mTranspP');if(tp&&tp.options.length<=1)TRANSPS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tp.appendChild(o);});
+  // Reconstrói select de transportadora sempre (pode ter mudado no Admin)
+  const tp=document.getElementById('mTranspP');
+  if(tp){tp.innerHTML='<option value="">— definir depois —</option>';TRANSPS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tp.appendChild(o);});}
   const tt=document.getElementById('mTipoP');if(tt&&!tt.options.length)TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tt.appendChild(o);});
   const tl=document.getElementById('mTipolP');if(tl&&!tl.options.length)TIPOLS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tl.appendChild(o);});
   const md=document.getElementById('mData');if(md&&!md.value){const d=new Date();d.setDate(d.getDate()+1);md.value=d.toISOString().split('T')[0];}
@@ -1576,7 +1690,7 @@ function initMassa(){
 function gerarMassa(){
   mRows=[];
   const tp=document.getElementById('mTranspP')?.value||'',tipo=document.getElementById('mTipoP')?.value||'LTL',tipol=document.getElementById('mTipolP')?.value||'CARRETA';
-  ROTAS.forEach(r=>{const q=parseInt(document.getElementById('mq-'+r)?.value||0);for(let i=0;i<q;i++)mRows.push({rota:r,transp:tp,mot:'',placa:'',sm:'',tms:'',planApres:'',planSaida:'',planChegFC:'',tipoCarga:tipo,tipologia:tipol});});
+  ROTAS.forEach(r=>{const q=parseInt(document.getElementById('mq-'+r)?.value||0);for(let i=0;i<q;i++)mRows.push({rota:r,transp:tp,mot:'',placa:'',placaCarreta:'',sm:'',tms:'',planApres:'',planSaida:'',planChegFC:'',tipoCarga:tipo,tipologia:tipol});});
   if(!mRows.length){showToast('Defina pelo menos 1 viagem','err');return;}
   renderMassa();document.getElementById('massaStep2').style.display='';document.getElementById('mCnt').textContent=`— ${mRows.length} viagem(s)`;
 }
@@ -1587,7 +1701,8 @@ function renderMassa(){
       <td style="padding:3px 4px"><strong style="color:var(--red)">${r.rota}</strong></td>
       <td style="padding:3px 4px"><select class="mi" style="width:135px" onchange="mRows[${i}].transp=this.value"><option value="">Selecione...</option>${TRANSPS.map(t=>`<option${r.transp===t?' selected':''}>${t}</option>`).join('')}</select></td>
       <td style="padding:3px 4px"><input class="mi" style="width:128px" placeholder="Motorista" value="${r.mot}" oninput="mRows[${i}].mot=this.value"></td>
-      <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="Placa" value="${r.placa}" oninput="mRows[${i}].placa=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="Placa trator" value="${r.placa}" oninput="mRows[${i}].placa=this.value"></td>
+      <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=this.value">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
       <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" oninput="mRows[${i}].sm=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" oninput="mRows[${i}].tms=this.value"></td>
       <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value"></td>
@@ -1597,6 +1712,15 @@ function renderMassa(){
       <td style="padding:3px 4px"><button onclick="mRows.splice(${i},1);renderMassa();document.getElementById('mCnt').textContent='— '+mRows.length+' viagem(s)'" style="background:var(--red4);border:1.5px solid #fca5a5;color:var(--red);padding:3px 7px;border-radius:4px;cursor:pointer;font-size:.68rem;font-weight:700">✕</button></td>
     </tr>`).join('');
 }
+function aplicarHorariosMassa(){
+  const a=document.getElementById('mhApres')?.value||'';
+  const s=document.getElementById('mhSaida')?.value||'';
+  const f=document.getElementById('mhFC')?.value||'';
+  if(!a&&!s&&!f){showToast('Preencha ao menos um horário','err');return;}
+  mRows.forEach(r=>{if(a)r.planApres=a;if(s)r.planSaida=s;if(f)r.planChegFC=f;});
+  renderMassa();
+  showToast(`✅ Horários aplicados em ${mRows.length} viagem(s)`,'ok');
+}
 async function confirmarMassa(){
   if(!mRows.length){showToast('Nenhuma viagem para gerar','err');return;}
   const dataOp=document.getElementById('mData')?.value||new Date().toISOString().split('T')[0];
@@ -1605,9 +1729,9 @@ async function confirmarMassa(){
   loading(true);
   for(const r of mRows){
     const op={id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Prog. em Massa`}],updatedAt:ts(),updatedBy:who};
-    ops.push(op);await saveToSupabase(op);
+    ops.push(op);if(supabaseOK){await saveToSupabase(op);}else{saveLocalOps();}
   }
-  await loadFromSupabase();
+  if(supabaseOK)await loadFromSupabase();
   const n=mRows.length;mRows=[];ROTAS.forEach(r=>{const el=document.getElementById('mq-'+r);if(el)el.value=0;});
   document.getElementById('massaStep2').style.display='none';
   addActivityLog(`${n} operações criadas em massa por ${who}`);
@@ -1621,10 +1745,11 @@ function toggleTheme(){
   const dark=document.body.classList.toggle('dark');
   localStorage.setItem('trk_theme',dark?'dark':'light');
   const btn=document.getElementById('themeBtn');if(btn)btn.textContent=dark?'☀️':'🌙';
+  const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=dark?'#0d1117':'#cc0000';
 }
 function loadTheme(){
   const t=localStorage.getItem('trk_theme')||'light';
-  if(t==='dark'){document.body.classList.add('dark');const btn=document.getElementById('themeBtn');if(btn)btn.textContent='☀️';}
+  if(t==='dark'){document.body.classList.add('dark');const btn=document.getElementById('themeBtn');if(btn)btn.textContent='☀️';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content='#0d1117';}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1809,7 +1934,13 @@ function renderAnalise(){
 document.getElementById('lUser').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('lBtn').addEventListener('click',doLogin);
-document.getElementById('sQ').addEventListener('input',render);
+window.addEventListener('beforeunload',e=>{
+  if(document.getElementById('overlay').classList.contains('open')){
+    e.preventDefault();e.returnValue='';
+  }
+});
+let _sQTimer=null;
+document.getElementById('sQ').addEventListener('input',()=>{clearTimeout(_sQTimer);_sQTimer=setTimeout(render,180);});
 loadTheme();
 initAuth();
 </script>
