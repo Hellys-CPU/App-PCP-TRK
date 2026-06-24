@@ -972,16 +972,22 @@ async function _checkDeletions(){
 
 async function saveToSupabase(op){
   if(!supabaseOK)return;
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,ocorr:op.ocorr||[],cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null};
-  try{await sbUpsert(TABELA,row);showToast('✅ Salvo!','ok');}
-  catch(e){showToast('❌ Erro ao salvar','err');console.error(e);}
+  const now=new Date().toISOString();
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,ocorr:op.ocorr||[],cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
+  try{await sbUpsert(TABELA,row);op.updatedAt=now;showToast('✅ Salvo!','ok');}
+  catch(e){showToast('❌ Erro ao salvar: '+((e.message||'').slice(0,60)),'err');console.error('saveToSupabase:',e);throw e;}
 }
 
 async function deleteFromSupabase(id){if(!supabaseOK)return;try{await sbDelete(TABELA,'id',id);}catch(e){console.error(e);}}
 
 async function saveOp(op){
-  if(supabaseOK){await saveToSupabase(op);await loadFromSupabase();}
-  else{saveLocalOps();}
+  if(supabaseOK){
+    await saveToSupabase(op);
+    // Reset _lastSyncAt para garantir que o próximo delta sync capture o registro salvo
+    // mesmo se houver diferença de clock entre browser e servidor
+    _lastSyncAt=null;
+    await loadFromSupabase(true);
+  }else{saveLocalOps();}
   render();renderFUP();
 }
 
