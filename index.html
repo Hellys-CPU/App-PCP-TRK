@@ -454,6 +454,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 .pwa-install-bar.show{display:flex;}
 
 @media print{.topbar,.tabs,.toolbar,.btn,.ls,.mobile-nav,.pwa-install-bar{display:none!important;}body{background:#fff;}}
+.quick-btns{display:none;margin-top:5px;gap:4px;flex-wrap:wrap;}
+.card:hover .quick-btns{display:flex;}
+.quick-btn{background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:.6rem;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;}
+.quick-btn:hover{background:var(--red2);}
+@media print{body.printing-fup .topbar,.printing-fup .tabs,.printing-fup .toolbar,.printing-fup .mobile-nav,.printing-fup .kpi-bar,.printing-fup .day-banner{display:none!important;}.printing-fup #view-fup{display:block!important;}}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px;}
@@ -612,6 +617,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-g" onclick="fupGrouped=!fupGrouped;renderFUP()">⊞</button>
     <button class="btn btn-g" onclick="exportFUP()">📥 CSV</button>
     <button class="btn btn-g" onclick="exportHistorico()">📋 Histórico</button>
+    <button class="btn btn-g" onclick="exportFUPPDF()" style="font-size:.72rem">📄 PDF</button>
     <button class="btn btn-p" onclick="window.print()">🖨</button>
   </div>
   <div style="padding:10px 16px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch"><div id="fupWrap"></div></div>
@@ -702,7 +708,14 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div class="config-row"><div><div class="config-label">Contador Regressivo</div><div class="config-desc">Tempo até saída planejada</div></div><label class="toggle-sw"><input type="checkbox" id="cfgCountdown" checked onchange="saveConfig()"><span class="slider"></span></label></div>
       <div class="config-row"><div><div class="config-label">Sincronização Auto</div><div class="config-desc">Atualizar a cada 10s</div></div><label class="toggle-sw"><input type="checkbox" id="cfgSync" checked onchange="saveConfig()"><span class="slider"></span></label></div>
       <div class="config-row"><div><div class="config-label">Banner Resumo do Dia</div><div class="config-desc">Mostrar status geral no topo</div></div><label class="toggle-sw"><input type="checkbox" id="cfgBanner" checked onchange="saveConfig()"><span class="slider"></span></label></div>
-      <div style="margin-top:12px"><div class="fg"><label>Limite de Atraso (min)</label><input type="number" id="cfgLimiteAtraso" value="30" min="5" max="120" onchange="saveConfig()" style="width:110px"></div></div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div class="fg"><label>Limite de Atraso (min)</label><input type="number" id="cfgLimiteAtraso" value="30" min="5" max="120" onchange="saveConfig()" style="width:100%"></div>
+  <div class="fg"><label>Meta SLA padrão (%)</label><input type="number" id="cfgSlaMeta" value="92" min="50" max="100" onchange="saveConfig()" style="width:100%"></div>
+</div>
+<div style="margin-top:10px">
+  <div class="sec" style="margin-top:0">🎯 Meta SLA por Rota (opcional)</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px" id="slaMetaGrid"></div>
+</div>
     </div>
     <div class="admin-card">
       <h3>💾 Backup & Dados</h3>
@@ -908,7 +921,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
+      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -929,7 +942,7 @@ async function loadFromSupabase(forceFullLoad=false){
     const since=cutoff.toISOString().split('T')[0];
     const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
+      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -959,7 +972,7 @@ async function _checkDeletions(){
 
 async function saveToSupabase(op){
   if(!supabaseOK)return;
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,ocorr:op.ocorr||[],cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null};
   try{await sbUpsert(TABELA,row);showToast('✅ Salvo!','ok');}
   catch(e){showToast('❌ Erro ao salvar','err');console.error(e);}
 }
@@ -1363,12 +1376,15 @@ function countdown(op){
 // ══════════════════════════════════════════════════════════════════
 function loadConfig(){
   try{const c=localStorage.getItem('trk_cfg');if(c)CFG={...CFG,...JSON.parse(c)};}catch(e){}
+  loadSLAMetas();
   try{const r=localStorage.getItem('trk_rotas');if(r)JSON.parse(r).forEach(x=>{if(!ROTAS.includes(x))ROTAS.push(x);});}catch(e){}
   try{const t=localStorage.getItem('trk_transps');if(t)JSON.parse(t).forEach(x=>{if(!TRANSPS.includes(x))TRANSPS.push(x);});}catch(e){}
   applyConfig();
 }
 function saveConfig(){
-  CFG={alertas:document.getElementById('cfgAlertas')?.checked??true,timer:document.getElementById('cfgTimer')?.checked??true,countdown:document.getElementById('cfgCountdown')?.checked??true,sync:document.getElementById('cfgSync')?.checked??true,banner:document.getElementById('cfgBanner')?.checked??true,limiteAtraso:parseInt(document.getElementById('cfgLimiteAtraso')?.value||30)};
+  CFG={alertas:document.getElementById('cfgAlertas')?.checked??true,timer:document.getElementById('cfgTimer')?.checked??true,countdown:document.getElementById('cfgCountdown')?.checked??true,sync:document.getElementById('cfgSync')?.checked??true,banner:document.getElementById('cfgBanner')?.checked??true,limiteAtraso:parseInt(document.getElementById('cfgLimiteAtraso')?.value||30),slaMeta:parseInt(document.getElementById('cfgSlaMeta')?.value||92)};
+  // Salva metas por rota
+  ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else delete SLA_METAS[r];});saveSLAMetas();
   localStorage.setItem('trk_cfg',JSON.stringify(CFG));
   localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));
   localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));
@@ -1378,6 +1394,8 @@ function applyConfig(){
   const ids={cfgAlertas:'alertas',cfgTimer:'timer',cfgCountdown:'countdown',cfgSync:'sync',cfgBanner:'banner'};
   Object.entries(ids).forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.checked=CFG[k];});
   const cl=document.getElementById('cfgLimiteAtraso');if(cl)cl.value=CFG.limiteAtraso;
+  const sm=document.getElementById('cfgSlaMeta');if(sm)sm.value=CFG.slaMeta||92;
+  _renderSLAMetaGrid();
   const banner=document.getElementById('dayBanner');if(banner)banner.style.display=CFG.banner?'':'none';
 }
 
@@ -1474,6 +1492,15 @@ function renderKPIs(){
   ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
 }
 
+function _quickStatusBtns(op){
+  const next={'PROG':[{s:'AGUCARR',l:'→ Ag. Carr.'}],'AGUCARR':[{s:'EMCARR',l:'→ Carreg.'}],'EMCARR':[{s:'TRAN',l:'→ Trânsito'}],'TRAN':[{s:'AGUDESC',l:'→ Ag. Desc.'}],'AGUDESC':[{s:'FIN',l:'✅ Fin.'}]};
+  const btns=next[op.status];
+  if(!btns||currentUser?.perfil==='VISUALIZADOR')return'';
+  const id=op.id;
+  let html='<div class="quick-btns">';
+  btns.forEach(b=>{html+='<button class="quick-btn" onclick="quickStatus(this.dataset.id,this.dataset.s,event)" data-id="'+id+'" data-s="'+b.s+'">'+b.l+'</button>';});
+  return html+'</div>';
+}
 function _cafAlertBadge(op){
   if(!op.cafs.length)return'';
   const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
@@ -1517,6 +1544,8 @@ function cardHTML(op){
     ${countdown(op)}
     ${CFG.alertas&&dS!==null&&dS>0?`<span class="ab">⚠ Saída ${fDiff(dS)}</span>`:''}
     ${CFG.alertas&&dC!==null&&dC>0?`<span class="ab">⚠ FC ${fDiff(dC)}</span>`:''}
+    ${tempoNoStatus(op)}
+    ${_quickStatusBtns(op)}
   </div>`;
 }
 
@@ -1714,8 +1743,8 @@ async function onDrop(e,sid){
 // ══════════════════════════════════════════════════════════════════
 // MODAL OPERAÇÃO
 // ══════════════════════════════════════════════════════════════════
-function openNew(){editId=null;document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;document.getElementById('mTitle').textContent='Editar — '+id;document.getElementById('btnDeletar').style.display='';document.getElementById('btnDuplicar').style.display='';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+function openNew(){editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
+function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;document.getElementById('btnDeletar').style.display='';document.getElementById('btnDuplicar').style.display='';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
@@ -1782,7 +1811,7 @@ const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
 
 function buildForm(op){
-  const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[],updatedBy:''};
+  const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
   // Data base para os campos reais: usa dataOp da operação ou hoje
   const _baseDate=o.dataOp||new Date().toISOString().split('T')[0];
   // Prefixa datetime-local se valor existente for só HH:MM (migração de dados antigos)
@@ -1860,7 +1889,35 @@ function buildForm(op){
   </div>
 </div>
 <div class="sec">📝 Observações</div>
-<div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="3">${o.obs||''}</textarea></div></div>
+<div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="2">${o.obs||''}</textarea></div></div>
+<div class="sec">⚠️ Ocorrências</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="fOcorrList">
+  ${(o.ocorr||[]).map((oc,i)=>`<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:5px 9px;font-size:.7rem;display:flex;align-items:center;gap:6px">
+    <span style="color:var(--red)">⚠</span>
+    <span style="font-weight:600;color:var(--gray2)">${oc.tipo}</span>
+    <span style="color:var(--t2)">${oc.desc||''}</span>
+    <span style="color:var(--t3);font-size:.6rem">${oc.ts||''}</span>
+    <button onclick="removerOcorr(${i})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:.75rem">✕</button>
+  </div>`).join('')}
+</div>
+<div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
+  <div class="fg"><label>Tipo</label>
+    <select id="fOcorrTipo" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:5px 8px;font-size:.75rem;outline:none;width:180px">
+      <option>Atraso no trânsito</option>
+      <option>Avaria na carga</option>
+      <option>Recusa no FC</option>
+      <option>Motorista substituído</option>
+      <option>Problema mecânico</option>
+      <option>Acidente</option>
+      <option>Greve / bloqueio</option>
+      <option>Documentação irregular</option>
+      <option>CAF divergente</option>
+      <option>Outro</option>
+    </select>
+  </div>
+  <div class="fg" style="flex:1;min-width:120px"><label>Descrição</label><input id="fOcorrDesc" placeholder="Detalhe da ocorrência"></div>
+  <button class="btn btn-g" style="font-size:.72rem" type="button" onclick="addOcorr()">+ Registrar</button>
+</div>
 ${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${h.txt}</div>`).join('')}</div>`:''}`;}
 
 function tgPlaca(){const v=document.getElementById('fTipol').value,w=document.getElementById('wCarreta');if(w)w.style.display=v==='CARRETA'?'':'none';}
@@ -1903,7 +1960,7 @@ async function saveCard(){
     }
   }else{
     const id=g('fId')||genId();
-    const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),cafs,hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
+    const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
@@ -2273,7 +2330,7 @@ function renderAnalise(){
       const late=d.t-d.ok-((d.nd)||0);
       const bg=p>=92?'var(--green2)':p>=85?'var(--yellow2)':'var(--red4)';
       const cor=p>=92?'var(--green3)':p>=85?'var(--yellow3)':'var(--red)';
-      const farol=p>=92?'✅':p>=85?'⚠️':'❌';
+      const meta=getSLAMeta(r||'');const farol=p>=meta?'✅':p>=(meta-7)?'⚠️':'❌';
       return `<tr style="border-bottom:1px solid var(--bg4)">
         <td style="padding:5px 6px;font-weight:700;color:var(--red)">${r}</td>
         <td style="padding:5px 6px;text-align:center">${d.t}</td>
@@ -2292,6 +2349,10 @@ function renderAnalise(){
     <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(stArr,total)}</svg>
     <div style="flex:1;min-width:120px">${stArr.map(s=>`<div class="pizza-row"><div class="pizza-dot" style="background:${s.cor}"></div><span class="pizza-lbl">${s.lb.replace('AGUARD. ','Ag.')}</span><span class="pizza-pct">${s.v}<span style="color:var(--t2);font-size:.6rem"> (${Math.round(s.v/total*100)}%)</span></span></div>`).join('')}</div>
   </div>
+</div>
+<div class="an-card">
+  <h3>📅 Comparativo Semanal</h3>
+  ${_renderComparativoSemanas()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
   <h3>📅 Últimos 7 dias</h3>
@@ -3459,6 +3520,172 @@ function _addCAFHist(caf,msg){
   const entry='['+new Date().toLocaleString('pt-BR')+'] '+(currentUser?.nome||'Sistema')+': '+msg;
   caf.obs=(caf.obs?caf.obs+'\n':'')+entry;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: OCORRÊNCIAS ESTRUTURADAS
+// ══════════════════════════════════════════════════════════════════
+let _ocorrBuf=[];
+
+function _initOcorrBuf(op){
+  _ocorrBuf=(op?.ocorr||[]).map(o=>({...o}));
+}
+
+function addOcorr(){
+  const tipo=document.getElementById('fOcorrTipo')?.value||'';
+  const desc=(document.getElementById('fOcorrDesc')?.value||'').trim();
+  if(!tipo)return;
+  _ocorrBuf.push({tipo,desc,ts:new Date().toLocaleString('pt-BR'),user:currentUser?.nome||'Sistema'});
+  document.getElementById('fOcorrDesc').value='';
+  _renderOcorrList();
+}
+
+function removerOcorr(idx){
+  _ocorrBuf.splice(idx,1);
+  _renderOcorrList();
+}
+
+function _renderOcorrList(){
+  const el=document.getElementById('fOcorrList');if(!el)return;
+  el.innerHTML=_ocorrBuf.map((oc,i)=>`<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:5px 9px;font-size:.7rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <span style="color:var(--red)">⚠</span>
+    <span style="font-weight:600;color:var(--gray2)">${oc.tipo}</span>
+    ${oc.desc?`<span style="color:var(--t2)">${oc.desc}</span>`:''}
+    <span style="color:var(--t3);font-size:.6rem">${oc.ts||''}</span>
+    <button onclick="removerOcorr(${i})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:.8rem;line-height:1">✕</button>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: MAPA DE ROTAS NO DASHBOARD TV
+// ══════════════════════════════════════════════════════════════════
+// (já integrado no renderTV via rotaEstrada)
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: COMPARATIVO SEMANA A SEMANA NA ANÁLISE
+// ══════════════════════════════════════════════════════════════════
+function _renderComparativoSemanas(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const semAtual=isoWeekKey(hoje);
+  if(!semAtual)return'<p style="color:var(--t3);text-align:center;padding:12px">Sem dados</p>';
+  const[yr,wp]=semAtual.split('-W');
+  const wNum=parseInt(wp);
+  const semAnt=wNum>1?(yr+'-W'+String(wNum-1).padStart(2,'0')):(String(parseInt(yr)-1)+'-W52');
+  const opsAtual=ops.filter(o=>isoWeekKey(o.dataOp)===semAtual);
+  const opsAnt=ops.filter(o=>isoWeekKey(o.dataOp)===semAnt);
+  if(!opsAtual.length&&!opsAnt.length)return'<p style="color:var(--t3);text-align:center;padding:12px">Dados insuficientes (mínimo 2 semanas)</p>';
+  const calc=arr=>({
+    total:arr.length,
+    taxa:arr.length?Math.round(arr.filter(o=>getSLA(o)==='ok').length/arr.length*100):0,
+    fin:arr.filter(o=>o.status==='FIN').length,
+    late:arr.filter(o=>getSLA(o)==='late').length,
+  });
+  const a=calc(opsAtual),b=calc(opsAnt);
+  const varCell=(va,vb,inv)=>{
+    const d=va-vb;
+    if(d===0)return'<span style="color:var(--t2)">—</span>';
+    const good=inv?d<0:d>0;
+    const cor=good?'var(--green)':'var(--red)';
+    return'<span style="color:'+cor+';font-weight:700">'+(d>0?'+':'')+d+(inv&&va<10?'':'')+' '+(good?'✅':'❌')+'</span>';
+  };
+  const rows=[
+    {l:'Total ops',va:a.total,vb:b.total,inv:false},
+    {l:'Finalizadas',va:a.fin,vb:b.fin,inv:false},
+    {l:'Taxa SLA %',va:a.taxa+'%',vb:b.taxa+'%',dv:a.taxa-b.taxa,inv:false},
+    {l:'Atrasadas',va:a.late,vb:b.late,inv:true},
+  ];
+  let html='<table style="width:100%;border-collapse:collapse;font-size:.72rem">';
+  html+='<thead><tr style="border-bottom:2px solid var(--red3)">';
+  html+='<th style="text-align:left;padding:5px 6px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Métrica</th>';
+  html+='<th style="text-align:center;padding:5px 6px;color:var(--t2);font-size:.6rem">Sem. Anterior<br><span style="color:var(--t3)">'+semanaLabel(semAnt)+'</span></th>';
+  html+='<th style="text-align:center;padding:5px 6px;color:var(--red);font-size:.6rem">Semana Atual<br><span style="color:var(--red)">'+semanaLabel(semAtual)+'</span></th>';
+  html+='<th style="text-align:center;padding:5px 6px;color:var(--t2);font-size:.6rem">Variação</th>';
+  html+='</tr></thead><tbody>';
+  rows.forEach(row=>{
+    const dv=row.dv!==undefined?row.dv:(typeof row.va==='number'?row.va-row.vb:0);
+    html+='<tr style="border-bottom:1px solid var(--bg4)">';
+    html+='<td style="padding:5px 6px;font-weight:600;color:var(--gray2)">'+row.l+'</td>';
+    html+='<td style="padding:5px 6px;text-align:center">'+row.vb+'</td>';
+    html+='<td style="padding:5px 6px;text-align:center;font-weight:700;color:var(--text)">'+row.va+'</td>';
+    html+='<td style="padding:5px 6px;text-align:center">'+varCell(typeof row.va==='number'?row.va:dv+row.vb,typeof row.vb==='number'?row.vb:0,row.inv)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  return html;
+}
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: META DE SLA POR ROTA
+// ══════════════════════════════════════════════════════════════════
+let SLA_METAS={};// ex: {TZX_GR8:95, TZX_XC9:90}
+
+function getSLAMeta(rota){
+  return SLA_METAS[rota]||CFG.slaMeta||92;
+}
+
+function loadSLAMetas(){
+  try{const s=localStorage.getItem('trk_sla_metas');if(s)SLA_METAS=JSON.parse(s);}catch(e){}
+}
+
+function saveSLAMetas(){
+  try{localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));}catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: ATALHO RÁPIDO DE STATUS NO CARD (hover)
+// ══════════════════════════════════════════════════════════════════
+function quickStatus(opId, newStatus, event){
+  event.stopPropagation();
+  const op=ops.find(o=>o.id===opId);if(!op)return;
+  const prev=op.status;
+  const who=currentUser?.nome||'Sistema';
+  op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
+  op.hist.push({t:ts(),txt:`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`});
+  if(newStatus==='TRAN')alertaCAFsTransito(op);
+  render();renderFUP();
+  saveOp(op).then(()=>syncCAFsStatus(op,newStatus,prev));
+  addActivityLog(`${opId}: ${stObj(prev).lb} → ${stObj(newStatus).lb}`);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: CONTADOR DE TEMPO NO STATUS ATUAL
+// ══════════════════════════════════════════════════════════════════
+function tempoNoStatus(op){
+  if(!op.updatedAt)return'';
+  const agora=new Date();
+  const desde=new Date(op.updatedAt);
+  const diffMin=Math.floor((agora-desde)/60000);
+  if(diffMin<1)return'';
+  const h=Math.floor(diffMin/60),m=diffMin%60;
+  const txt=h?`${h}h${m.toString().padStart(2,'0')}min`:`${m}min`;
+  // Alerta vermelho se em TRAN ou AGUDESC há muito tempo
+  const alerta=(['TRAN','AGUDESC'].includes(op.status)&&diffMin>180)||
+               (['AGUCARR','EMCARR'].includes(op.status)&&diffMin>60);
+  return`<div style="font-size:.6rem;color:${alerta?'var(--red)':'var(--t3)'};margin-top:2px;display:flex;align-items:center;gap:3px">
+    <span>🕐</span><span>${txt} neste status${alerta?' ⚠':''}</span>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: EXPORTAR FUP COMO PDF (via print CSS)
+// ══════════════════════════════════════════════════════════════════
+function exportFUPPDF(){
+  // Adiciona classe ao body para o @media print capturar só o FUP
+  document.body.classList.add('printing-fup');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('printing-fup'),1000);
+}
+
+
+function _renderSLAMetaGrid(){
+  const el=document.getElementById('slaMetaGrid');if(!el)return;
+  el.innerHTML=ROTAS.map(r=>`<div class="fg">
+    <label style="color:var(--red)">${r}</label>
+    <input type="number" id="slaMeta_${r}" min="50" max="100"
+      value="${SLA_METAS[r]||''}" placeholder="${CFG.slaMeta||92}%"
+      style="width:100%;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:5px 8px;font-size:.8rem;outline:none"
+      onchange="SLA_METAS['${r}']=this.value?parseInt(this.value):undefined;saveSLAMetas()">
+  </div>`).join('');
+}
+
 loadTheme();
 initAuth();
 </script>
