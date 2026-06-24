@@ -2119,7 +2119,10 @@ function setView(name){
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
     else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
   }
-  if(name!=='tv'&&_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
+  if(name!=='tv'){
+    if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
+    if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
+  }
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
   curPage=name;pingOnlineDB();renderOnlineFromDB();
 }
@@ -3087,45 +3090,136 @@ function renderTV(){
   const atrasadas=opsHoje.filter(o=>getSLA(o)==='late').length;
   const slaOk=opsHoje.filter(o=>getSLA(o)==='ok').length;
   const taxaSLA=total?Math.round(slaOk/total*100):0;
-  const agora=new Date().toLocaleTimeString('pt-BR');
   const dataFmt=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
 
-  // Por rota
+  // Por rota — detalhes por operação para a estrada
   const byRota={};
+  ROTAS.forEach(r=>byRota[r]={ops:[],total:0,fin:0,tran:0,late:0,prog:0,agudesc:0});
   opsHoje.forEach(o=>{
-    if(!byRota[o.rota])byRota[o.rota]={total:0,fin:0,tran:0,late:0,prog:0};
-    byRota[o.rota].total++;
-    if(o.status==='FIN')byRota[o.rota].fin++;
-    else if(o.status==='TRAN')byRota[o.rota].tran++;
-    else if(['PROG','AGUCARR','EMCARR'].includes(o.status))byRota[o.rota].prog++;
-    if(getSLA(o)==='late')byRota[o.rota].late++;
+    if(!byRota[o.rota])byRota[o.rota]={ops:[],total:0,fin:0,tran:0,late:0,prog:0,agudesc:0};
+    const d=byRota[o.rota];
+    d.ops.push(o);d.total++;
+    if(o.status==='FIN')d.fin++;
+    else if(o.status==='TRAN')d.tran++;
+    else if(o.status==='AGUDESC')d.agudesc++;
+    else if(['PROG','AGUCARR','EMCARR'].includes(o.status))d.prog++;
+    if(getSLA(o)==='late')d.late++;
   });
 
-  // CAFs com alerta
   const cafAlert=cafsDB.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     return op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
   }).length;
 
+  // Mapa de status para posição na estrada (0=início, 4=fim)
+  const statusPos={'PROG':0,'AGUCARR':0,'EMCARR':1,'TRAN':2,'AGUDESC':3,'FIN':4,'PERN':2,'CANC':null,'REC':null};
+  const statusCor={'PROG':'#6b7280','AGUCARR':'#f59e0b','EMCARR':'#f97316','TRAN':'#3b82f6','AGUDESC':'#8b5cf6','FIN':'#22c55e','PERN':'#f59e0b','CANC':'#374151','REC':'#374151'};
+  const statusIcon={'PROG':'📋','AGUCARR':'⏳','EMCARR':'📦','TRAN':'🚛','AGUDESC':'🏭','FIN':'✅','PERN':'🌙','CANC':'❌','REC':'🚫'};
+
+  // Gera a estrada SVG para uma rota
+  function rotaEstrada(rota, d){
+    if(!d.total)return'';
+    const pct=Math.round(d.fin/d.total*100);
+    const corBorda=d.late>0?'#ff4444':d.tran>0?'#3b82f6':'#22c55e';
+
+    // Estágios da estrada
+    const estagios=[
+      {id:'prog',  icon:'🏢', label:'TZX', desc:'Hub Origem'},
+      {id:'emcarr',icon:'📦', label:'Carregando', desc:'Em Carregamento'},
+      {id:'tran',  icon:'🛣️', label:'Rota', desc:'Em Trânsito'},
+      {id:'agudesc',icon:'🏭',label:'FC', desc:'Aguard. Descarga'},
+      {id:'fin',   icon:'🎯', label:'Entregue', desc:'Finalizado'},
+    ];
+
+    // Agrupa ops por posição na estrada
+    const porPosicao={0:[],1:[],2:[],3:[],4:[]};
+    d.ops.forEach(o=>{
+      const pos=statusPos[o.status];
+      if(pos!==null&&pos!==undefined)porPosicao[pos].push(o);
+    });
+
+    // Renderiza caminhões em cada posição
+    function renderCaminhoes(posOps, posIdx){
+      if(!posOps.length)return'';
+      return posOps.map(o=>{
+        const cor=statusCor[o.status]||'#6b7280';
+        const icon=statusIcon[o.status]||'🚛';
+        const atrasado=getSLA(o)==='late';
+        const semBaixa=o.status==='FIN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['entregue','fechada'].includes(c.status));
+        const semProc=o.status==='TRAN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['processo','entregue'].includes(c.status));
+        return`<div title="${o.id} · ${o.transp||'—'} · ${toTime(o.planChegFC)||'—'}"
+          style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px;cursor:default">
+          <div style="font-size:1.1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
+          <div style="font-size:.45rem;color:${cor};font-weight:700;max-width:30px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.id.replace('OP-','')}</div>
+          ${atrasado?'<div style="font-size:.5rem;color:#ff4444">⚠</div>':''}
+          ${semProc?'<div style="font-size:.5rem;color:#f59e0b">📦</div>':''}
+          ${semBaixa?'<div style="font-size:.5rem;color:#ff4444">🔴</div>':''}
+        </div>`;
+      }).join('');
+    }
+
+    return`<div style="background:#0d1117;border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
+      <!-- Rota header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:1rem;font-weight:800;color:#e6edf3">${rota}</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="font-size:.65rem;color:#8b949e">${d.total} viagem${d.total>1?'s':''}</span>
+          ${d.late?`<span style="font-size:.65rem;color:#ff4444;font-weight:700">⚠ ${d.late} atrasada${d.late>1?'s':''}</span>`:''}
+          <span style="font-size:.7rem;font-weight:700;color:${pct===100?'#56d364':pct>=50?'#e3b341':'#8b949e'}">${pct}%</span>
+        </div>
+      </div>
+
+      <!-- Estrada com caminhões -->
+      <div style="position:relative;padding:8px 0">
+        <!-- Trilho da estrada -->
+        <div style="position:absolute;top:50%;left:2%;right:2%;height:4px;background:#21262d;border-radius:2px;transform:translateY(-50%);z-index:0">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${corBorda}88,${corBorda});border-radius:2px;transition:width 1s"></div>
+        </div>
+
+        <!-- Estágios -->
+        <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1">
+          ${estagios.map((e,i)=>{
+            const posOps=porPosicao[i]||[];
+            const ativo=posOps.length>0;
+            const concluido=i<4&&(porPosicao[i+1]||[]).length>0||i===4&&posOps.length>0;
+            const cor=i===4?'#22c55e':i===3?'#8b5cf6':i===2?'#3b82f6':i===1?'#f97316':'#6b7280';
+            return`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;flex:1">
+              <!-- Ícone do estágio -->
+              <div style="background:${ativo?cor+'22':'#161b22'};border:2px solid ${ativo?cor:'#30363d'};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;transition:all .3s">${e.icon}</div>
+              <!-- Caminhões nesta posição -->
+              <div style="min-height:36px;display:flex;flex-wrap:wrap;justify-content:center;max-width:80px">
+                ${renderCaminhoes(posOps, i)}
+              </div>
+              <!-- Label do estágio -->
+              <div style="font-size:.5rem;color:${ativo?cor:'#484f58'};font-weight:${ativo?700:400};text-align:center;white-space:nowrap">${e.label}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
   el.innerHTML=`
 <div style="background:#0d1117;min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;color:#e6edf3">
-  <!-- Header -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:3px solid #cc0000;padding-bottom:12px">
+  <!-- Header com relógio que atualiza via JS, não por re-render -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:3px solid #cc0000;padding-bottom:10px">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="background:#cc0000;border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">🚛</div>
+      <div style="background:#cc0000;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🚛</div>
       <div>
-        <div style="font-size:1.1rem;font-weight:800;color:#e6edf3">TRK PCP 2026 <span style="font-size:.7rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
-        <div style="font-size:.75rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
+        <div style="font-size:1rem;font-weight:800;color:#e6edf3">TRK PCP 2026 <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
+        <div style="font-size:.7rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
       </div>
     </div>
     <div style="text-align:right">
-      <div style="font-size:2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums">${agora}</div>
-      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.7rem;margin-top:4px">✕ Sair</button>
+      <div id="tv-clock" style="font-size:2.2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums;letter-spacing:2px">
+        ${new Date().toLocaleTimeString('pt-BR')}
+      </div>
+      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.68rem;margin-top:3px">✕ Sair</button>
     </div>
   </div>
 
-  <!-- KPIs principais -->
-  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px">
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px">
     ${[
       {v:total,l:'Total',c:'#e6edf3'},
       {v:prog,l:'Aguardando',c:'#9ca3af'},
@@ -3133,55 +3227,61 @@ function renderTV(){
       {v:aguDesc,l:'Ag. Descarga',c:'#bc8cff'},
       {v:fin,l:'Finalizadas',c:'#56d364'},
       {v:atrasadas,l:'⚠ Atrasadas',c:'#ff4444'},
-    ].map(k=>`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center">
-      <div style="font-size:2.2rem;font-weight:800;color:${k.c};line-height:1">${k.v}</div>
-      <div style="font-size:.65rem;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px">${k.l}</div>
+    ].map(k=>`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:${k.c};line-height:1">${k.v}</div>
+      <div style="font-size:.58rem;color:#8b949e;margin-top:3px;text-transform:uppercase;letter-spacing:.4px">${k.l}</div>
     </div>`).join('')}
   </div>
 
-  <!-- SLA barra + CAF alerta -->
-  <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px;align-items:center">
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:.8rem;color:#8b949e;font-weight:600">SLA DO DIA</span>
-        <span style="font-size:1.5rem;font-weight:800;color:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'}">${taxaSLA}%</span>
+  <!-- SLA + CAF alert -->
+  <div style="display:grid;grid-template-columns:1fr ${cafAlert?'auto':'0px'};gap:${cafAlert?'10px':'0'};margin-bottom:12px;align-items:center">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:.75rem;color:#8b949e;font-weight:600">SLA DO DIA</span>
+        <span style="font-size:1.4rem;font-weight:800;color:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'}">${taxaSLA}%</span>
       </div>
-      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+      <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
         <div style="height:100%;width:${taxaSLA}%;background:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'};border-radius:4px;transition:width .5s"></div>
       </div>
-      <div style="font-size:.65rem;color:#8b949e;margin-top:5px">Meta: ≥ 92% · ${slaOk} no prazo de ${total} total</div>
+      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Meta: ≥ 92% · ${slaOk} no prazo · ${total} total</div>
     </div>
-    ${cafAlert?`<div style="background:#2b1800;border:2px solid #f0883e;border-radius:10px;padding:12px 16px;text-align:center;animation:pulse 2s infinite">
-      <div style="font-size:1.8rem;font-weight:800;color:#f0883e">${cafAlert}</div>
-      <div style="font-size:.65rem;color:#f0883e;margin-top:4px">CAF sem<br>Proc. Entrega</div>
+    ${cafAlert?`<div style="background:#2b1800;border:2px solid #f0883e;border-radius:10px;padding:10px 14px;text-align:center">
+      <div style="font-size:1.6rem;font-weight:800;color:#f0883e">${cafAlert}</div>
+      <div style="font-size:.58rem;color:#f0883e;margin-top:2px">CAF sem<br>Proc. Entrega</div>
     </div>`:''}
   </div>
 
-  <!-- Por rota -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
-    ${ROTAS.map(rota=>{
-      const d=byRota[rota]||{total:0,fin:0,tran:0,prog:0,late:0};
-      if(!d.total)return'';
-      const pct=Math.round(d.fin/d.total*100);
-      const cor=d.late>0?'#ff4444':d.tran>0?'#58a6ff':'#56d364';
-      return`<div style="background:#161b22;border:1px solid ${cor}33;border-left:4px solid ${cor};border-radius:10px;padding:12px">
-        <div style="font-size:1rem;font-weight:800;color:#e6edf3;margin-bottom:8px">${rota}</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;margin-bottom:8px">
-          <div><div style="font-size:1.1rem;font-weight:700;color:#e6edf3">${d.total}</div><div style="font-size:.55rem;color:#8b949e">Total</div></div>
-          <div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff">${d.tran}</div><div style="font-size:.55rem;color:#8b949e">Trânsito</div></div>
-          <div><div style="font-size:1.1rem;font-weight:700;color:#56d364">${d.fin}</div><div style="font-size:.55rem;color:#8b949e">Fin.</div></div>
-          <div><div style="font-size:1.1rem;font-weight:700;color:#ff4444">${d.late}</div><div style="font-size:.55rem;color:#8b949e">Atraso</div></div>
-        </div>
-        <div style="background:#21262d;border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:3px"></div></div>
-        <div style="font-size:.6rem;color:#8b949e;margin-top:4px">${pct}% concluído</div>
-      </div>`;
-    }).join('')}
+  <!-- ESTRADAS POR ROTA -->
+  <div style="margin-top:4px">
+    <div style="font-size:.65rem;color:#484f58;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <span>📍 Posição das viagens por rota</span>
+      <span style="color:#30363d">·</span>
+      <span>🚛 Em trânsito</span>
+      <span>⚠ Atrasado</span>
+      <span>📦 CAF s/ processo</span>
+      <span>🔴 CAF s/ baixa</span>
+    </div>
+    ${ROTAS.map(r=>rotaEstrada(r,byRota[r]||{ops:[],total:0,fin:0,tran:0,late:0,prog:0,agudesc:0})).join('')}
   </div>
 </div>`;
+
+  // Inicia clock independente (não re-renderiza tudo)
+  _startTVClock();
+}
+
+let _tvClockInterval=null;
+function _startTVClock(){
+  if(_tvClockInterval)clearInterval(_tvClockInterval);
+  _tvClockInterval=setInterval(()=>{
+    const el=document.getElementById('tv-clock');
+    if(!el){clearInterval(_tvClockInterval);_tvClockInterval=null;return;}
+    el.textContent=new Date().toLocaleTimeString('pt-BR');
+  },1000);
 }
 
 function exitTV(){
   if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
+  if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
   setView('painel');
 }
