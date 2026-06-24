@@ -10,7 +10,26 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="description" content="TRK PCP 2026 — Sistema Operacional Logístico Total Express"/>
 <title>TRK PCP 2026</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+// Carrega pptxgenjs com múltiplos CDNs de fallback
+(function(){
+  const cdns=[
+    'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+    'https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js',
+  ];
+  let idx=0;
+  function tryLoad(){
+    if(idx>=cdns.length)return;
+    const s=document.createElement('script');
+    s.src=cdns[idx];
+    s.onerror=()=>{idx++;tryLoad();};
+    document.head.appendChild(s);
+    idx++;
+  }
+  tryLoad();
+})();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -467,7 +486,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v67</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -476,6 +495,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
+    <button class="tab" id="tb-tv" onclick="setView('tv')" style="color:#0891b2;display:none" title="Modo TV - tela cheia para telão">📺 TV</button>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
   <div class="topbar-r">
@@ -485,6 +505,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <span class="clock" id="clock"></span>
     <div class="uchip" onclick="doLogout()"><div class="uav" id="uAv">?</div><span class="uname" id="uName">...</span><span class="uout">sair</span></div>
     <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    <button class="btn btn-g" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)" style="font-size:.85rem">🔍</button>
     <button class="btn btn-p" onclick="openNew()" id="newOpBtn">+</button>
   </div>
 </div>
@@ -510,6 +531,17 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- LISTA -->
 <div class="view" id="view-lista">
+  <div class="toolbar">
+    <input id="lQ" placeholder="🔍 ID, placa, motorista, SM..." oninput="renderList()" style="width:190px"/>
+    <select id="lFRo" onchange="renderList()"><option value="">Todas as Rotas</option></select>
+    <select id="lFSt" onchange="renderList()"><option value="">Todos os Status</option></select>
+    <select id="lFTr" onchange="renderList()"><option value="">Todas as Transportadoras</option></select>
+    <select id="lFTp" onchange="renderList()"><option value="">Todos os Tipos</option></select>
+    <input type="date" id="lFData" onchange="renderList()" title="Filtrar por data"/>
+    <div class="sp"></div>
+    <span id="listCnt" style="font-size:.68rem;color:var(--t2)"></span>
+    <button class="btn btn-g" onclick="clrFList()" style="font-size:.7rem">✕</button>
+  </div>
   <div class="lt-wrap">
     <table>
       <thead><tr><th>ID</th><th>Data</th><th>Rota</th><th>Tipo</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th><th>Pl.Saída</th><th>Rl.Saída</th><th>Pl.FC</th><th>Rl.FC</th><th>Δ Saída</th><th>Δ FC</th><th>T.Doca</th><th>Status</th></tr></thead>
@@ -523,6 +555,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div style="padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h2 style="font-size:.9rem;font-weight:700;color:var(--gray3)">📅 Programação D-1</h2>
+      <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
       <button class="btn btn-p" onclick="openNew()">+ Programar</button>
     </div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
@@ -616,6 +649,12 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 
+<!-- TV MODE -->
+<div class="view" id="view-tv">
+  <div id="tv-wrap" style="background:var(--bg);min-height:100vh;padding:0"></div>
+</div>
+
+
 <!-- ANÁLISE -->
 <div class="view" id="view-analise">
   <div style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -633,6 +672,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <div class="sp"></div>
     <span id="aFiltroLabel" style="font-size:.72rem;color:var(--t2);font-weight:600"></span>
+    <select id="aFiltroTransp" onchange="renderAnalise()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.76rem;outline:none;">
+      <option value="">Todas as Transportadoras</option>
+    </select>
     <button class="btn btn-g" onclick="resetAnaliseFiltro()" style="font-size:.7rem">✕ Limpar</button>
     <button class="btn btn-p" onclick="exportRD()" style="font-size:.72rem;background:var(--blue)">📊 Exportar RD</button>
   </div>
@@ -1153,7 +1195,7 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
-  if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';}
+  if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';}
   loading(true);
   if(supabaseOK){await loadFromSupabase(true);initRealtime();}else{loadLocalOps();}
   loading(false);
@@ -1169,7 +1211,13 @@ async function bootApp(){
     const hadChanges=await loadFromSupabase(); // delta automático
     if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
   },30000);
-  window._timerTick=setInterval(()=>{if(CFG.timer||CFG.countdown)renderPainel();},30000);
+  window._timerTick=setInterval(()=>{
+    if(CFG.timer||CFG.countdown)renderPainel();
+    checkAlertas();
+    checkCAFsSemBaixa();
+  },60000);
+  // Check CAFs vencendo e sem baixa ao boot (1x)
+  setTimeout(()=>{if(cafsDB.length){checkCAFsVencendo();checkCAFsSemBaixa();}},5000);
   render();
 }
 
@@ -1427,10 +1475,20 @@ function renderKPIs(){
 }
 
 function _cafAlertBadge(op){
-  if(op.status!=='TRAN'||!op.cafs.length)return'';
+  if(!op.cafs.length)return'';
   const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-  const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
-  return semProcesso.length?'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>':'';
+  if(!cafsDaOp.length)return'';
+  // Em trânsito: alerta CAF sem processo de entrega
+  if(op.status==='TRAN'){
+    const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
+    if(semProcesso.length)return'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>';
+  }
+  // Finalizado: alerta CAF sem baixa (entrega realizada)
+  if(op.status==='FIN'){
+    const semBaixa=cafsDaOp.filter(c=>!['entregue','fechada'].includes(c.status));
+    if(semBaixa.length)return'<span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;animation:pulse 1.5s infinite">⚠️ CAF s/ baixa</span>';
+  }
+  return'';
 }
 function cardHTML(op){
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
@@ -1478,8 +1536,42 @@ function renderPainel(){
   }).join('');
 }
 
+function getListFilt(){
+  const q=(document.getElementById('lQ')?.value||'').toLowerCase();
+  const fR=document.getElementById('lFRo')?.value||'';
+  const fS=document.getElementById('lFSt')?.value||'';
+  const fT=document.getElementById('lFTr')?.value||'';
+  const fTp=document.getElementById('lFTp')?.value||'';
+  const fD=document.getElementById('lFData')?.value||'';
+  return ops.filter(o=>{
+    if(fR&&o.rota!==fR)return false;
+    if(fS&&o.status!==fS)return false;
+    if(fT&&o.transp!==fT)return false;
+    if(fTp&&o.tipoCarga!==fTp)return false;
+    if(fD&&o.dataOp!==fD)return false;
+    if(q){const h=[o.id,o.placa,o.mot,o.sm,o.tms,o.rota,o.transp].join('|').toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+}
+function clrFList(){
+  ['lQ','lFData'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['lFRo','lFSt','lFTr','lFTp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  renderList();
+}
+function buildListSels(){
+  const rSel=document.getElementById('lFRo');
+  if(rSel){const cur=rSel.value;rSel.innerHTML='<option value="">Todas as Rotas</option>'+ROTAS.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');rSel.value=cur;}
+  const tSel=document.getElementById('lFTr');
+  if(tSel){const cur=tSel.value;tSel.innerHTML='<option value="">Todas as Transportadoras</option>'+TRANSPS.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');tSel.value=cur;}
+  const sSel=document.getElementById('lFSt');
+  if(sSel&&sSel.options.length<=1){sSel.innerHTML='<option value="">Todos os Status</option>'+STS.map(s=>`<option value="${s.id}">${s.lb}</option>`).join('');}
+  const tpSel=document.getElementById('lFTp');
+  if(tpSel&&tpSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tpSel.appendChild(o);});}
+}
 function renderList(){
-  const data=getFilt();
+  buildListSels();
+  const data=getListFilt();
+  const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=data.length+' op.';
   document.getElementById('listBody').innerHTML=data.map(op=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
     const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
@@ -1599,6 +1691,7 @@ async function onDrop(e,sid){
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
     const prevStatus=op.status;
+    if(sid==='TRAN')alertaCAFsTransito(op); // toast se CAF sem processo
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
     op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
@@ -1804,7 +1897,10 @@ async function saveCard(){
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
     await autoVincularCAFs(op);
-    if(op.status!==statusAntes) await syncCAFsStatus(op,op.status,statusAntes);
+    if(op.status!==statusAntes){
+      await syncCAFsStatus(op,op.status,statusAntes);
+      if(op.status==='FIN')setTimeout(checkCAFsSemBaixa,1000);
+    }
   }else{
     const id=g('fId')||genId();
     const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),cafs,hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
@@ -1995,6 +2091,7 @@ function loadTheme(){
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
   if(e.key==='Escape'){closeModal();closeUserModal();}
+  if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();openGlobalSearch();return;}
   if(e.key==='n'||e.key==='N'){if(!document.getElementById('overlay').classList.contains('open'))openNew();}
   if(e.key==='/'){const el=document.getElementById('sQ');if(el){el.focus();e.preventDefault();}}
   if(e.key==='1')setView('painel');if(e.key==='2')setView('lista');if(e.key==='3')setView('prog');
@@ -2013,6 +2110,16 @@ function setView(name){
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
   if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
+  if(name==='tv'){
+    renderTV();
+    if(_tvInterval)clearInterval(_tvInterval);
+    _tvInterval=setInterval(()=>{if(curPage==='tv')renderTV();},30000);
+    // Fullscreen
+    const el=document.documentElement;
+    if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+    else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  }
+  if(name!=='tv'&&_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
   curPage=name;pingOnlineDB();renderOnlineFromDB();
 }
@@ -2059,15 +2166,19 @@ function toggleAnalyseFiltro(){
 }
 function resetAnaliseFiltro(){
   const sel=document.getElementById('aFiltroTipo');if(sel)sel.value='tudo';
+  const tr=document.getElementById('aFiltroTransp');if(tr)tr.value='';
   const sw=document.getElementById('aFiltroSemana'),sd=document.getElementById('aFiltroDia');
   if(sw)sw.style.display='none';if(sd)sd.style.display='none';
   renderAnalise();
 }
 function getAnaliseOps(){
   const tipo=document.getElementById('aFiltroTipo')?.value||'tudo';
-  if(tipo==='semana'){const k=document.getElementById('aSemanaSel')?.value||'';return k?ops.filter(o=>isoWeekKey(o.dataOp)===k):ops;}
-  if(tipo==='dia'){const d=document.getElementById('aDiaSel')?.value||'';return d?ops.filter(o=>o.dataOp===d):ops;}
-  return ops;
+  const transp=document.getElementById('aFiltroTransp')?.value||'';
+  let base=ops;
+  if(tipo==='semana'){const k=document.getElementById('aSemanaSel')?.value||'';if(k)base=ops.filter(o=>isoWeekKey(o.dataOp)===k);}
+  if(tipo==='dia'){const d=document.getElementById('aDiaSel')?.value||'';if(d)base=ops.filter(o=>o.dataOp===d);}
+  if(transp)base=base.filter(o=>o.transp===transp);
+  return base;
 }
 function getAnaliseLabel(){
   const tipo=document.getElementById('aFiltroTipo')?.value||'tudo';
@@ -2092,6 +2203,9 @@ const ST_COR={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',A
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
   const lbl=document.getElementById('aFiltroLabel');if(lbl)lbl.textContent=getAnaliseLabel();
+  // Popula select de transportadora com as disponíveis
+  const tSel=document.getElementById('aFiltroTransp');
+  if(tSel){const cur=tSel.value;tSel.innerHTML='<option value="">Todas as Transportadoras</option>'+TRANSPS.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');tSel.value=cur;}
   const data=getAnaliseOps();
   if(!data.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--t3);font-size:.85rem">📭 Nenhuma operação encontrada para o período.</div>';return;}
   const total=data.length;
@@ -2693,7 +2807,31 @@ async function exportRD(){
       }
     }
 
-    // ── SLIDE 7 — ENCERRAMENTO ──
+    // ── SLIDE 7 — CAFs ──
+    {
+      const s=pptx.addSlide();addBase(s,'CAFs — Painel de Status','Volume e status das CAFs do período');
+      const abertas=cafsDB.filter(c=>c.status==='aberta').length;
+      const vinc=cafsDB.filter(c=>c.status==='vinculada').length;
+      const proc=cafsDB.filter(c=>c.status==='processo').length;
+      const entr=cafsDB.filter(c=>c.status==='entregue').length;
+      const hoje2=new Date().toISOString().split('T')[0];
+      const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&c.status!=='entregue').length;
+      const volTotal=cafsDB.reduce((sv,c)=>sv+(c.vol||0),0);
+      const cafKpis=[
+        {l:'Abertas',v:abertas,c:BLUE},{l:'Vinculadas',v:vinc,c:'7C3AED'},
+        {l:'Em Entrega',v:proc,c:YELLOW},{l:'Entregues',v:entr,c:GREEN},
+        {l:'Vencidas',v:venc2,c:RED},{l:'Vol. Total',v:volTotal.toLocaleString('pt-BR'),c:DARK},
+      ];
+      cafKpis.forEach((k,i)=>{
+        const col=i%3,row=Math.floor(i/3);
+        const x=0.3+col*3.3,y=1.5+row*1.9;
+        s.addShape('rect',{x,y,w:3.0,h:1.65,fill:{color:LGRAY},line:{color:'D1D5DB',pt:1}});
+        s.addText(String(k.v),{x,y:y+0.2,w:3.0,h:0.9,fontSize:32,bold:true,align:'center',color:k.c});
+        s.addText(k.l,{x,y:y+1.1,w:3.0,h:0.45,fontSize:11,align:'center',color:GRAY});
+      });
+    }
+
+  // ── SLIDE 8 — ENCERRAMENTO ──
     {
       const s=pptx.addSlide();
       s.addShape('rect',{x:0,y:0,w:'100%',h:'100%',fill:{color:DARK}});
@@ -2734,7 +2872,6 @@ function adicionarCAFdoBanco(){
 // Chamada sempre que a operação muda de status
 async function syncCAFsStatus(op, novoStatus, prevStatus){
   if(!supabaseOK||!cafsDB.length)return;
-  // Encontra CAFs vinculadas a esta operação (pelo opId ou pelo num na lista da op)
   const cafsDaOp=cafsDB.filter(c=>
     c.opId===op.id ||
     op.cafs.some(x=>x.num===c.num)
@@ -2742,28 +2879,16 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
   if(!cafsDaOp.length)return;
 
   let novoStatusCAF=null;
-  // Operação → TRAN: CAFs vão para "Processo de Entrega"
-  if(novoStatus==='TRAN') novoStatusCAF='processo';
-  // Operação → FIN: CAFs vão para "Entrega Realizada" (baixa)
-  if(novoStatus==='FIN')  novoStatusCAF='entregue';
-  // Operação → CANC/REC: CAFs voltam para "aberta" (disponível)
+  // TRAN: NÃO muda — alerta visual no card até mudança manual
+  // FIN: NÃO muda — Entrega Realizada deve ser dado manualmente na aba CAF
+  // CANC/REC: CAFs voltam para "aberta" automaticamente (libera para outra viagem)
   if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='aberta';
 
   if(!novoStatusCAF)return;
 
-  // Alerta se vai para TRAN e tem CAF sem "Processo de Entrega"
-  if(novoStatus==='TRAN'){
-    const cafsSemProcesso=cafsDaOp.filter(c=>c.status!=='processo');
-    if(cafsSemProcesso.length){
-      showToast(`⚠️ ${cafsSemProcesso.length} CAF(s) sem "Proc. Entrega" — atualizando automaticamente...`,'info');
-    }
-  }
-
-  // Atualiza todas as CAFs da operação
   for(const c of cafsDaOp){
-    if(c.status===novoStatusCAF)continue; // já está no status correto
+    if(c.status===novoStatusCAF)continue;
     c.status=novoStatusCAF;
-    // Se voltando para aberta (cancelamento), remove vínculo
     if(novoStatusCAF==='aberta'){c.opId='';}
     await saveCAFToDB(c);
   }
@@ -2771,20 +2896,15 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
   if(curPage==='caf')renderCAFs();
 }
 
-// ─── Alerta ANTES de mover para TRAN se CAFs sem processo ───
+// Alerta visual — não bloqueia, não muda status da CAF
 function alertaCAFsTransito(op){
-  if(!cafsDB.length||!op.cafs.length)return true; // sem CAFs = ok
-  const cafsDaOp=cafsDB.filter(c=>
-    c.opId===op.id || op.cafs.some(x=>x.num===c.num)
-  );
-  if(!cafsDaOp.length)return true;
+  if(!cafsDB.length||!op.cafs.length)return;
+  const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
   const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
   if(semProcesso.length){
     const nums=semProcesso.map(c=>c.num).join(', ');
-    const ok=confirm(`⚠️ ATENÇÃO — CAFs sem "Proc. de Entrega":\n${nums}\n\nDeseja colocar em trânsito mesmo assim?\n(As CAFs serão atualizadas automaticamente)`);
-    return ok;
+    showToast(`⚠️ CAF(s) sem Proc. Entrega: ${nums}`, 'err');
   }
-  return true;
 }
 
 
@@ -2910,6 +3030,335 @@ function _renderTopAtraso(data){
   return hdr+rows+'</tbody></table>';
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: ALERTA SONORO
+// ══════════════════════════════════════════════════════════════════
+let _audioCtx=null;
+function playBeep(freq=520,dur=0.18,vol=0.3){
+  try{
+    if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=_audioCtx.createOscillator(),g=_audioCtx.createGain();
+    o.connect(g);g.connect(_audioCtx.destination);
+    o.frequency.value=freq;g.gain.value=vol;
+    o.start();g.gain.exponentialRampToValueAtTime(0.001,_audioCtx.currentTime+dur);
+    o.stop(_audioCtx.currentTime+dur);
+  }catch(e){}
+}
+// Verifica operações em atraso a cada 60s e emite beep
+let _lastAlertTs={};
+function checkAlertas(){
+  if(!CFG.alertas)return;
+  const lim=CFG.limiteAtraso||30;
+  const agora=new Date();
+  const hojeStr=agora.toISOString().split('T')[0];
+  ops.filter(o=>o.dataOp===hojeStr&&['PROG','AGUCARR','EMCARR'].includes(o.status)&&o.planSaida).forEach(op=>{
+    const [h,m]=(op.planSaida||'').split(':').map(Number);
+    if(isNaN(h))return;
+    const plan=new Date(agora.getFullYear(),agora.getMonth(),agora.getDate(),h,m);
+    const diff=Math.floor((agora-plan)/60000);
+    if(diff>0&&diff<=120&&!_lastAlertTs[op.id]){
+      _lastAlertTs[op.id]=Date.now();
+      playBeep(440,0.15,0.2);
+      setTimeout(()=>playBeep(520,0.15,0.2),200);
+      showToast('⚠️ '+op.id+' ('+op.rota+') passou o horário de saída!','err');
+    }
+  });
+  // Limpa alertas de ops que já saíram
+  Object.keys(_lastAlertTs).forEach(id=>{
+    const op=ops.find(o=>o.id===id);
+    if(!op||['TRAN','AGUDESC','FIN','CANC'].includes(op.status))delete _lastAlertTs[id];
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: DASHBOARD TV
+// ══════════════════════════════════════════════════════════════════
+let _tvInterval=null;
+function renderTV(){
+  const el=document.getElementById('tv-wrap');if(!el)return;
+  const hoje=new Date().toISOString().split('T')[0];
+  const opsHoje=ops.filter(o=>o.dataOp===hoje);
+  const total=opsHoje.length;
+  const fin=opsHoje.filter(o=>o.status==='FIN').length;
+  const tran=opsHoje.filter(o=>o.status==='TRAN').length;
+  const aguDesc=opsHoje.filter(o=>o.status==='AGUDESC').length;
+  const prog=opsHoje.filter(o=>['PROG','AGUCARR','EMCARR'].includes(o.status)).length;
+  const atrasadas=opsHoje.filter(o=>getSLA(o)==='late').length;
+  const slaOk=opsHoje.filter(o=>getSLA(o)==='ok').length;
+  const taxaSLA=total?Math.round(slaOk/total*100):0;
+  const agora=new Date().toLocaleTimeString('pt-BR');
+  const dataFmt=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+
+  // Por rota
+  const byRota={};
+  opsHoje.forEach(o=>{
+    if(!byRota[o.rota])byRota[o.rota]={total:0,fin:0,tran:0,late:0,prog:0};
+    byRota[o.rota].total++;
+    if(o.status==='FIN')byRota[o.rota].fin++;
+    else if(o.status==='TRAN')byRota[o.rota].tran++;
+    else if(['PROG','AGUCARR','EMCARR'].includes(o.status))byRota[o.rota].prog++;
+    if(getSLA(o)==='late')byRota[o.rota].late++;
+  });
+
+  // CAFs com alerta
+  const cafAlert=cafsDB.filter(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
+  }).length;
+
+  el.innerHTML=`
+<div style="background:#0d1117;min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;color:#e6edf3">
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:3px solid #cc0000;padding-bottom:12px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="background:#cc0000;border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">🚛</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:800;color:#e6edf3">TRK PCP 2026 <span style="font-size:.7rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
+        <div style="font-size:.75rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums">${agora}</div>
+      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.7rem;margin-top:4px">✕ Sair</button>
+    </div>
+  </div>
+
+  <!-- KPIs principais -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px">
+    ${[
+      {v:total,l:'Total',c:'#e6edf3'},
+      {v:prog,l:'Aguardando',c:'#9ca3af'},
+      {v:tran,l:'Em Trânsito',c:'#58a6ff'},
+      {v:aguDesc,l:'Ag. Descarga',c:'#bc8cff'},
+      {v:fin,l:'Finalizadas',c:'#56d364'},
+      {v:atrasadas,l:'⚠ Atrasadas',c:'#ff4444'},
+    ].map(k=>`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:2.2rem;font-weight:800;color:${k.c};line-height:1">${k.v}</div>
+      <div style="font-size:.65rem;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px">${k.l}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- SLA barra + CAF alerta -->
+  <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px;align-items:center">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:.8rem;color:#8b949e;font-weight:600">SLA DO DIA</span>
+        <span style="font-size:1.5rem;font-weight:800;color:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'}">${taxaSLA}%</span>
+      </div>
+      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+        <div style="height:100%;width:${taxaSLA}%;background:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'};border-radius:4px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:.65rem;color:#8b949e;margin-top:5px">Meta: ≥ 92% · ${slaOk} no prazo de ${total} total</div>
+    </div>
+    ${cafAlert?`<div style="background:#2b1800;border:2px solid #f0883e;border-radius:10px;padding:12px 16px;text-align:center;animation:pulse 2s infinite">
+      <div style="font-size:1.8rem;font-weight:800;color:#f0883e">${cafAlert}</div>
+      <div style="font-size:.65rem;color:#f0883e;margin-top:4px">CAF sem<br>Proc. Entrega</div>
+    </div>`:''}
+  </div>
+
+  <!-- Por rota -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+    ${ROTAS.map(rota=>{
+      const d=byRota[rota]||{total:0,fin:0,tran:0,prog:0,late:0};
+      if(!d.total)return'';
+      const pct=Math.round(d.fin/d.total*100);
+      const cor=d.late>0?'#ff4444':d.tran>0?'#58a6ff':'#56d364';
+      return`<div style="background:#161b22;border:1px solid ${cor}33;border-left:4px solid ${cor};border-radius:10px;padding:12px">
+        <div style="font-size:1rem;font-weight:800;color:#e6edf3;margin-bottom:8px">${rota}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;margin-bottom:8px">
+          <div><div style="font-size:1.1rem;font-weight:700;color:#e6edf3">${d.total}</div><div style="font-size:.55rem;color:#8b949e">Total</div></div>
+          <div><div style="font-size:1.1rem;font-weight:700;color:#58a6ff">${d.tran}</div><div style="font-size:.55rem;color:#8b949e">Trânsito</div></div>
+          <div><div style="font-size:1.1rem;font-weight:700;color:#56d364">${d.fin}</div><div style="font-size:.55rem;color:#8b949e">Fin.</div></div>
+          <div><div style="font-size:1.1rem;font-weight:700;color:#ff4444">${d.late}</div><div style="font-size:.55rem;color:#8b949e">Atraso</div></div>
+        </div>
+        <div style="background:#21262d;border-radius:3px;height:6px"><div style="height:100%;width:${pct}%;background:${cor};border-radius:3px"></div></div>
+        <div style="font-size:.6rem;color:#8b949e;margin-top:4px">${pct}% concluído</div>
+      </div>`;
+    }).join('')}
+  </div>
+</div>`;
+}
+
+function exitTV(){
+  if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  setView('painel');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: BUSCA GLOBAL Ctrl+K
+// ══════════════════════════════════════════════════════════════════
+function openGlobalSearch(){
+  const existing=document.getElementById('_globalSearch');
+  if(existing){existing.remove();return;}
+  const div=document.createElement('div');
+  div.id='_globalSearch';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;display:flex;align-items:flex-start;justify-content:center;padding-top:80px';
+  div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);width:100%;max-width:520px;box-shadow:var(--sh3)">
+    <div style="display:flex;align-items:center;padding:12px 14px;gap:10px;border-bottom:1px solid var(--bd)">
+      <span style="font-size:1.1rem">🔍</span>
+      <input id="_gSearchInput" placeholder="ID da operação, placa, motorista, SM..." autofocus
+        style="flex:1;background:none;border:none;outline:none;font-size:.95rem;color:var(--text);font-family:inherit"
+        oninput="_gSearchFilter(this.value)"/>
+      <kbd style="font-size:.65rem;color:var(--t2);border:1px solid var(--bd);border-radius:4px;padding:2px 5px">Esc</kbd>
+    </div>
+    <div id="_gSearchResults" style="max-height:360px;overflow-y:auto;padding:6px"></div>
+    <div style="padding:8px 14px;font-size:.65rem;color:var(--t2);border-top:1px solid var(--bd)">
+      Enter para abrir · Esc para fechar · <strong>${ops.length}</strong> operações indexadas
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+  document.getElementById('_gSearchInput').addEventListener('keydown',e=>{
+    if(e.key==='Escape'){div.remove();}
+    if(e.key==='Enter'){
+      const first=document.querySelector('._gResult');
+      if(first){const id=first.dataset.id;div.remove();openEdit(id);setView('painel');}
+    }
+    if(e.key==='ArrowDown'){
+      const items=[...document.querySelectorAll('._gResult')];
+      const focused=document.activeElement;
+      const idx=items.indexOf(focused);
+      if(idx<items.length-1)items[idx+1].focus();
+    }
+    if(e.key==='ArrowUp'){
+      const items=[...document.querySelectorAll('._gResult')];
+      const focused=document.activeElement;
+      const idx=items.indexOf(focused);
+      if(idx>0)items[idx-1].focus();
+    }
+  });
+  _gSearchFilter('');
+}
+
+function _gSearchFilter(q){
+  const el=document.getElementById('_gSearchResults');if(!el)return;
+  const ql=q.toLowerCase().trim();
+  const results=ql?ops.filter(o=>[o.id,o.placa,o.mot,o.sm,o.tms,o.rota,o.transp].join('|').toLowerCase().includes(ql)).slice(0,10):ops.slice(0,8);
+  if(!results.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Nenhuma operação encontrada</div>';return;}
+  el.innerHTML=results.map(o=>{
+    const sla=getSLA(o);
+    const sc=sla==='ok'?'var(--green)':sla==='late'?'var(--red)':'var(--t3)';
+    return`<div class="_gResult" data-id="${o.id}" tabindex="0"
+      style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;border-radius:6px;outline:none"
+      onclick="document.getElementById('_globalSearch').remove();openEdit('${o.id}');setView('painel')"
+      onkeydown="if(event.key==='Enter'){document.getElementById('_globalSearch').remove();openEdit('${o.id}');setView('painel')}"
+      onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+      <div style="width:8px;height:8px;border-radius:50%;background:${sc};flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-size:.82rem;font-weight:700;color:var(--red)">${o.id} <span style="color:var(--t2);font-weight:400">·</span> <span style="color:var(--gray2)">${o.rota}</span></div>
+        <div style="font-size:.68rem;color:var(--t2)">${o.transp||'—'} · ${o.mot||'—'} · ${o.placa||'—'} · ${fmtD(o.dataOp)}</div>
+      </div>
+      <span class="sb sb-${o.status}" style="font-size:.55rem">${stObj(o.status).lb}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: DUPLICAR PROGRAMAÇÃO (dia para dia)
+// ══════════════════════════════════════════════════════════════════
+function openDuplicarDia(){
+  const existing=document.getElementById('_dupDiaModal');
+  if(existing){existing.remove();return;}
+  const hoje=new Date().toISOString().split('T')[0];
+  const amanha=new Date();amanha.setDate(amanha.getDate()+1);
+  const amanhaStr=amanha.toISOString().split('T')[0];
+  const div=document.createElement('div');
+  div.id='_dupDiaModal';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px';
+  div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);width:100%;max-width:460px;box-shadow:var(--sh3)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--bd);font-size:.9rem;font-weight:700;color:var(--text)">📅 Duplicar Programação</div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div class="fg"><label>Data de origem (copiar de)</label><input type="date" id="_dupOrigem" value="${hoje}"></div>
+      <div class="fg"><label>Data de destino (colar para)</label><input type="date" id="_dupDestino" value="${amanhaStr}"></div>
+      <div class="fg"><label>Copiar apenas status</label>
+        <select id="_dupStatus">
+          <option value="PROG">Apenas PROGRAMADO</option>
+          <option value="todos">Todos os status</option>
+        </select>
+      </div>
+      <div style="background:var(--blue2);border:1px solid #93c5fd;border-radius:var(--rs);padding:8px 10px;font-size:.72rem;color:var(--blue)">
+        ℹ️ As cópias serão criadas com status PROG e sem horários reais. ID e histórico novos.
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-g" onclick="document.getElementById('_dupDiaModal').remove()">Cancelar</button>
+      <button class="btn btn-p" onclick="confirmarDuplicarDia()">📋 Duplicar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+}
+
+async function confirmarDuplicarDia(){
+  const origem=document.getElementById('_dupOrigem')?.value;
+  const destino=document.getElementById('_dupDestino')?.value;
+  const filtroStatus=document.getElementById('_dupStatus')?.value;
+  if(!origem||!destino){showToast('Preencha as datas','err');return;}
+  if(origem===destino){showToast('Origem e destino não podem ser iguais','err');return;}
+  const fonte=ops.filter(o=>o.dataOp===origem&&(filtroStatus==='todos'||o.status===filtroStatus));
+  if(!fonte.length){showToast(`Nenhuma operação encontrada em ${fmtD(origem)}`,'err');return;}
+  if(!confirm(`Duplicar ${fonte.length} operação(ões) de ${fmtD(origem)} para ${fmtD(destino)}?`))return;
+  document.getElementById('_dupDiaModal').remove();
+  loading(true);
+  const who=currentUser?.nome||'Sistema';
+  for(const op of fonte){
+    const novo={...JSON.parse(JSON.stringify(op)),
+      id:genId(),dataOp:destino,dataProg:new Date().toISOString().split('T')[0],
+      status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',
+      cafs:[],hist:[{t:ts(),txt:`[${who}] Duplicado de ${op.id} (${fmtD(origem)})`}],
+      updatedAt:new Date().toISOString(),updatedBy:who
+    };
+    ops.push(novo);
+    if(supabaseOK)await saveToSupabase(novo);
+  }
+  if(!supabaseOK)saveLocalOps();
+  loading(false);
+  render();
+  showToast(`✅ ${fonte.length} operação(ões) duplicadas para ${fmtD(destino)}`,'ok');
+  addActivityLog(`${fonte.length} ops duplicadas de ${fmtD(origem)} → ${fmtD(destino)}`);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: ALERTA CAFs VENCENDO EM 3 DIAS
+// ══════════════════════════════════════════════════════════════════
+function checkCAFsSemBaixa(){
+  // Alerta para CAFs em "Processo de Entrega" há mais de X tempo sem dar baixa
+  // E CAFs vinculadas a ops FINALIZADAS sem "Entrega Realizada"
+  if(!cafsDB.length)return;
+  // Ops finalizadas com CAFs ainda sem entregue
+  const cafsPendentes=cafsDB.filter(c=>{
+    if(['entregue','fechada','aberta'].includes(c.status))return false;
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return op&&op.status==='FIN';
+  });
+  if(cafsPendentes.length){
+    const nums=cafsPendentes.map(c=>c.num).join(', ');
+    showToast('📦 '+cafsPendentes.length+' CAF(s) sem baixa em ops finalizadas: '+nums,'err');
+  }
+}
+function checkCAFsVencendo(){
+  if(!cafsDB.length)return;
+  const hoje=new Date();
+  const em3dias=new Date(hoje.getTime()+3*86400000).toISOString().split('T')[0];
+  const hojeStr=hoje.toISOString().split('T')[0];
+  const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['entregue','fechada'].includes(c.status));
+  if(vencendo.length&&curPage!=='caf'){
+    showToast(`📦 ${vencendo.length} CAF(s) vencendo nos próximos 3 dias!`,'info');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: HISTÓRICO DE ALTERAÇÕES DA CAF
+// ══════════════════════════════════════════════════════════════════
+// Já salvo em openEditCAF e saveCAF usando hist_caf na tabela
+// Implementação via campo obs enriquecido + log visual
+
+function _addCAFHist(caf,msg){
+  const entry='['+new Date().toLocaleString('pt-BR')+'] '+(currentUser?.nome||'Sistema')+': '+msg;
+  caf.obs=(caf.obs?caf.obs+'\n':'')+entry;
+}
 loadTheme();
 initAuth();
 </script>
