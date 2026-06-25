@@ -245,6 +245,7 @@ body.dark .card-rota-badge{color:#e6edf3;}
 .b-flt{background:var(--yellow2);color:var(--yellow3);}
 .b-inb{background:var(--green2);color:var(--green3);}
 .b-ext{background:var(--purple2);color:var(--purple);}
+.b-prod{background:rgba(249,115,22,.12);color:#ea580c;border:1px solid rgba(249,115,22,.3);}
 .ci{font-size:.69rem;color:var(--t2);display:flex;flex-direction:column;gap:2px;}
 .ci .row{display:flex;justify-content:space-between;}
 .ci .lbl{color:var(--t3);font-size:.65rem;}
@@ -454,6 +455,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 .pwa-install-bar.show{display:flex;}
 
 @media print{.topbar,.tabs,.toolbar,.btn,.ls,.mobile-nav,.pwa-install-bar{display:none!important;}body{background:#fff;}}
+.yard-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:13px;cursor:pointer;transition:.15s;box-shadow:var(--sh);}
+.yard-card:hover{border-color:var(--red);box-shadow:var(--sh2);transform:translateY(-1px);}
+#progGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px;}
 .quick-btns{display:none;margin-top:5px;gap:4px;flex-wrap:wrap;}
 .card:hover .quick-btns{display:flex;}
 .quick-btn{background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:.6rem;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;}
@@ -500,6 +504,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
+    <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard')" style="color:#22c55e;display:none" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
     <button class="tab" id="tb-tv" onclick="setView('tv')" style="color:#0891b2;display:none" title="Modo TV - tela cheia para telão">📺 TV</button>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
@@ -557,11 +562,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- D-1 -->
 <div class="view" id="view-prog">
-  <div style="padding:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <h2 style="font-size:.9rem;font-weight:700;color:var(--gray3)">📅 Programação D-1</h2>
-      <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
-      <button class="btn btn-p" onclick="openNew()">+ Programar</button>
+  <div class="toolbar" style="flex-wrap:wrap;gap:8px">
+    <span style="font-size:.8rem;font-weight:700;color:var(--red)">🏭 YARD — Pátio de Carregamento</span>
+    <input type="date" id="yardData" onchange="renderProg()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.76rem;outline:none"/>
+    <button class="btn btn-g" onclick="document.getElementById('yardData').value='';renderProg()" style="font-size:.7rem">Hoje</button>
+    <div class="sp"></div>
+    <div id="yardPisoBar" style="display:flex;align-items:center;gap:8px"></div>
+    <div class="sp"></div>
+    <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
+    <button class="btn btn-p" onclick="openNew()">+ Programar</button>
     </div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
   </div>
@@ -632,11 +641,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <select id="cafFTipo" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todos os Tipos</option></select>
     <select id="cafFStatus" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;">
       <option value="">Todos os Status</option>
-      <option value="aberta">Abertas</option>
-      <option value="vinculada">Vinculadas</option>
+      <option value="aberta">Em Produção</option>
+      <option value="vinculada">Disponível p/ Embarque</option>
+      <option value="fechada">Vinculada a Veículo</option>
       <option value="processo">Proc. Entrega</option>
       <option value="entregue">Entrega Realizada</option>
-      <option value="fechada">Fechadas</option>
     </select>
     <input id="cafBusca" placeholder="🔍 Nº CAF, destino..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:160px;"/>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
@@ -654,6 +663,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
 
+
+<!-- TV YARD MODE -->
+<div class="view" id="view-tv-yard">
+  <div id="tv-yard-wrap" style="background:#0d1117;min-height:100vh"></div>
+</div>
 
 <!-- TV MODE -->
 <div class="view" id="view-tv">
@@ -715,6 +729,57 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div style="margin-top:10px">
   <div class="sec" style="margin-top:0">🎯 Meta SLA por Rota (opcional)</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px" id="slaMetaGrid"></div>
+</div>
+<div style="margin-top:14px">
+  <div class="sec" style="margin-top:0">🏭 Capacidade de Piso (Yard)</div>
+  <div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:12px">
+    <div style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Define o limite de ocupação do pátio. Alertas aparecem no YARD, TV Yard e TV operacional quando a ocupação ultrapassar 70% e 90%.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg">
+        <label>Máx. CAFs no Piso</label>
+        <input type="number" id="cfgPisoCAF" min="1" max="200" value="21"
+          onchange="savePisoConfig()"
+          style="width:100%">
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Padrão: 21 CAFs</div>
+      </div>
+      <div class="fg">
+        <label>Máx. Pallets no Piso</label>
+        <input type="number" id="cfgPisoPallets" min="1" max="500" value="30"
+          onchange="savePisoConfig()"
+          style="width:100%">
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Padrão: 30 pallets</div>
+      </div>
+    </div>
+    <div id="pisoPreview" style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:.7rem">
+      <span style="color:var(--t2)">Nível de alerta:</span>
+      <span style="color:var(--yellow)">⚠️ 70%</span>
+      <span style="color:var(--red)">🔴 90%</span>
+    </div>
+  </div>
+</div>
+<div style="margin-top:14px">
+  <div class="sec" style="margin-top:0">🚪 Mapa de Doca</div>
+  <div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:12px">
+    <div style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Configura as docas de descarga exibidas no Mapa de Doca (aba Análise).</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="fg">
+        <label>Quantidade de Docas</label>
+        <input type="number" id="cfgDocasTotal" min="1" max="50" value="8"
+          oninput="previewDocas()" style="width:100%">
+      </div>
+      <div class="fg">
+        <label>Prefixo</label>
+        <input type="text" id="cfgDocasPrefix" maxlength="5" value="D"
+          placeholder="D, Doca, Bay..." oninput="previewDocas()" style="width:100%">
+      </div>
+    </div>
+    <div style="font-size:.7rem;color:var(--t2);margin-bottom:6px;font-weight:600">Nomes personalizados por doca (opcional):</div>
+    <div id="docasNomesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-s" onclick="saveDocasConfig()" style="font-size:.72rem">💾 Salvar</button>
+      <span id="docasPreviewLabel" style="font-size:.68rem;color:var(--t2)"></span>
+    </div>
+  </div>
 </div>
     </div>
     <div class="admin-card">
@@ -834,11 +899,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </div>
         <div class="fg"><label>Status da CAF</label>
           <select id="cafStatus">
-            <option value="aberta">Aberta</option>
-            <option value="vinculada">Vinculada</option>
+            <option value="aberta">Em Produção</option>
+            <option value="vinculada">Disponível p/ Embarque</option>
+            <option value="fechada">Vinculada a Veículo</option>
             <option value="processo">Proc. de Entrega</option>
             <option value="entregue">Entrega Realizada</option>
-            <option value="fechada">Fechada</option>
           </select>
         </div>
         <div class="fg"><label>Destino (Rota)</label>
@@ -907,6 +972,8 @@ function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.g
 
 // Timestamp da última sincronização com o banco
 let _lastSyncAt=null;
+// Flag: coluna ocorr existe no banco? Detectada automaticamente
+let _hasOcorrCol=(()=>{try{return localStorage.getItem('trk_has_ocorr')!=='0';}catch(e){return true;}})();
 
 async function loadFromSupabase(forceFullLoad=false){
   if(!supabaseOK)return false;
@@ -973,9 +1040,30 @@ async function _checkDeletions(){
 async function saveToSupabase(op){
   if(!supabaseOK)return;
   const now=new Date().toISOString();
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,ocorr:op.ocorr||[],cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
-  try{await sbUpsert(TABELA,row);op.updatedAt=now;showToast('✅ Salvo!','ok');}
-  catch(e){showToast('❌ Erro ao salvar: '+((e.message||'').slice(0,60)),'err');console.error('saveToSupabase:',e);throw e;}
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
+  // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
+  if(_hasOcorrCol)row.ocorr=op.ocorr||[];
+  try{
+    await sbUpsert(TABELA,row);
+    op.updatedAt=now;
+    if(_hasOcorrCol){localStorage.setItem('trk_has_ocorr','1');}
+    showToast('✅ Salvo!','ok');
+  }catch(e){
+    const msg=e.message||'';
+    // Se o erro for coluna ausente, marca flag e tenta sem ocorr
+    if(msg.includes('ocorr')&&msg.includes('schema cache')){
+      _hasOcorrCol=false;
+      localStorage.setItem('trk_has_ocorr','0');
+      delete row.ocorr;
+      await sbUpsert(TABELA,row);
+      op.updatedAt=now;
+      showToast('✅ Salvo! (ocorr pendente — execute o SQL no Supabase)','ok');
+      return;
+    }
+    showToast('❌ Erro ao salvar: '+(msg.slice(0,60)),'err');
+    console.error('saveToSupabase:',e);
+    throw e;
+  }
 }
 
 async function deleteFromSupabase(id){if(!supabaseOK)return;try{await sbDelete(TABELA,'id',id);}catch(e){console.error(e);}}
@@ -1001,12 +1089,21 @@ function initRealtime(){
       _rtAttempts=0;
       ws.send(JSON.stringify({topic:'realtime:public:operacoes',event:'phx_join',payload:{},ref:'1'}));
       ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
+      ws.send(JSON.stringify({topic:'realtime:public:configuracoes',event:'phx_join',payload:{},ref:'3'}));
+      ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
       document.getElementById('rtIndicator').style.display='flex';
     };
     ws.onmessage=async(e)=>{
       try{
         const msg=JSON.parse(e.data);
         if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
+          // Configurações mudaram — recarrega para todos instantaneamente
+          if(msg.topic&&msg.topic.includes('configuracoes')){
+            await loadConfig();
+            render();
+            showToast('⚙️ Configurações atualizadas por outro usuário','info');
+            return;
+          }
           const hadChanges=await loadFromSupabase();
           if(hadChanges||msg.event==='DELETE'){render();renderFUP();if(curPage==='analise')renderAnalise();}
           if(msg.event==='INSERT')addActivityLog('Nova operação via outro dispositivo');
@@ -1214,11 +1311,11 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
-  if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';}
+  if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';document.getElementById('tb-tv-yard').style.display='';}
   loading(true);
   if(supabaseOK){await loadFromSupabase(true);initRealtime();}else{loadLocalOps();}
   loading(false);
-  loadConfig();
+  await loadConfig();
   await pingOnlineDB();await renderOnlineFromDB();
   window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
   // OTIMIZADO: só re-renderiza se dados mudaram
@@ -1318,7 +1415,7 @@ const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','PE
 const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f59e0b'};
 
 let ops=[],editId=null,seq=1000,mRows=[],fupGrouped=false,curPage='painel';
-let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30};
+let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:21,pisoPallets:30};
 
 // ══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -1380,28 +1477,71 @@ function countdown(op){
 // ══════════════════════════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════════════════════════
-function loadConfig(){
+// ── Salva configuração no Supabase + localStorage (fallback) ──
+async function saveConfig(){
+  CFG={
+    alertas:document.getElementById('cfgAlertas')?.checked??true,
+    timer:document.getElementById('cfgTimer')?.checked??true,
+    countdown:document.getElementById('cfgCountdown')?.checked??true,
+    sync:document.getElementById('cfgSync')?.checked??true,
+    banner:document.getElementById('cfgBanner')?.checked??true,
+    limiteAtraso:parseInt(document.getElementById('cfgLimiteAtraso')?.value||30),
+    slaMeta:parseInt(document.getElementById('cfgSlaMeta')?.value||92),
+    pisoCAF:parseInt(document.getElementById('cfgPisoCAF')?.value||21),
+    pisoPallets:parseInt(document.getElementById('cfgPisoPallets')?.value||30),
+  };
+  ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else delete SLA_METAS[r];});
+  await _saveCfgSupabase('cfg_sistema',CFG);
+  await _saveCfgSupabase('sla_metas',SLA_METAS);
+  await _saveCfgSupabase('rotas',ROTAS);
+  await _saveCfgSupabase('transportadoras',TRANSPS);
+  try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));}catch(e){}
+  applyConfig();showToast('⚙️ Configurações salvas e sincronizadas','ok');
+}
+
+// ── Carrega configurações do Supabase (boot) ──
+async function loadConfig(){
+  if(supabaseOK){
+    try{
+      const rows=await sbFetch('configuracoes?select=chave,valor');
+      if(Array.isArray(rows)&&rows.length){
+        rows.forEach(r=>{
+          if(r.chave==='cfg_sistema')CFG={...CFG,...r.valor};
+          if(r.chave==='sla_metas'){SLA_METAS={};Object.assign(SLA_METAS,r.valor||{});}
+          if(r.chave==='rotas'&&Array.isArray(r.valor)){ROTAS=[...new Set([...ROTAS,...r.valor])];}
+          if(r.chave==='transportadoras'&&Array.isArray(r.valor)){TRANSPS=[...new Set([...TRANSPS,...r.valor])];}
+          if(r.chave==='docas')DOCAS_CONFIG={...DOCAS_CONFIG,...(r.valor||{})};
+        });
+        try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));localStorage.setItem('trk_docas',JSON.stringify(DOCAS_CONFIG));}catch(e){}
+        applyConfig();return;
+      }
+    }catch(e){console.warn('loadConfig Supabase:',e);}
+  }
+  // Fallback offline
   try{const c=localStorage.getItem('trk_cfg');if(c)CFG={...CFG,...JSON.parse(c)};}catch(e){}
-  loadSLAMetas();
+  try{const s=localStorage.getItem('trk_sla_metas');if(s)Object.assign(SLA_METAS,JSON.parse(s));}catch(e){}
   try{const r=localStorage.getItem('trk_rotas');if(r)JSON.parse(r).forEach(x=>{if(!ROTAS.includes(x))ROTAS.push(x);});}catch(e){}
   try{const t=localStorage.getItem('trk_transps');if(t)JSON.parse(t).forEach(x=>{if(!TRANSPS.includes(x))TRANSPS.push(x);});}catch(e){}
+  try{const d=localStorage.getItem('trk_docas');if(d)DOCAS_CONFIG={...DOCAS_CONFIG,...JSON.parse(d)};}catch(e){}
   applyConfig();
 }
-function saveConfig(){
-  CFG={alertas:document.getElementById('cfgAlertas')?.checked??true,timer:document.getElementById('cfgTimer')?.checked??true,countdown:document.getElementById('cfgCountdown')?.checked??true,sync:document.getElementById('cfgSync')?.checked??true,banner:document.getElementById('cfgBanner')?.checked??true,limiteAtraso:parseInt(document.getElementById('cfgLimiteAtraso')?.value||30),slaMeta:parseInt(document.getElementById('cfgSlaMeta')?.value||92)};
-  // Salva metas por rota
-  ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else delete SLA_METAS[r];});saveSLAMetas();
-  localStorage.setItem('trk_cfg',JSON.stringify(CFG));
-  localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));
-  localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));
-  applyConfig();showToast('⚙️ Configurações salvas','ok');
+
+// ── Helper: upsert configuração no Supabase ──
+async function _saveCfgSupabase(chave,valor){
+  if(!supabaseOK)return;
+  try{await sbUpsert('configuracoes',{chave,valor,updated_by:currentUser?.nome||'Sistema',updated_at:new Date().toISOString()});}
+  catch(e){console.error('_saveCfgSupabase:',chave,e);}
 }
+
+
 function applyConfig(){
   const ids={cfgAlertas:'alertas',cfgTimer:'timer',cfgCountdown:'countdown',cfgSync:'sync',cfgBanner:'banner'};
   Object.entries(ids).forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.checked=CFG[k];});
   const cl=document.getElementById('cfgLimiteAtraso');if(cl)cl.value=CFG.limiteAtraso;
   const sm=document.getElementById('cfgSlaMeta');if(sm)sm.value=CFG.slaMeta||92;
   _renderSLAMetaGrid();
+  loadPisoConfig();
+  applyDocasAdmin();
   const banner=document.getElementById('dayBanner');if(banner)banner.style.display=CFG.banner?'':'none';
 }
 
@@ -1627,31 +1767,133 @@ function renderList(){
 }
 
 function renderProg(){
-  const data=ops.filter(o=>o.status==='PROG');
-  const hoje=new Date();
-  document.getElementById('progGrid').innerHTML=data.length
-    ?data.map(op=>{
-      let atrasoD1='';
+  // Filtro de dia — padrão = hoje
+  const hoje=new Date().toISOString().split('T')[0];
+  const yardDt=document.getElementById('yardData')?.value||hoje;
+  // YARD mostra todos os status que ainda estão no pátio (não saíram)
+  const data=ops.filter(o=>o.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(o.status));
+  const dataOrd=[...data].sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
+
+  // ── Ocupação de piso ──
+  const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+  // CAFs abertas/vinculadas neste dia (aguardando carregamento)
+  const cafsDia=cafsDB.filter(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return op&&op.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['vinculada','fechada'].includes(c.status);
+  });
+  const cafCount=cafsDia.length;
+  const palCount=cafsDia.reduce((s,c)=>s+(c.pallets||0),0);
+  const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
+  const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
+  const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
+  const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
+
+  // Atualiza barra de piso no toolbar
+  const pisoEl=document.getElementById('yardPisoBar');
+  if(pisoEl){
+    pisoEl.innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:.68rem">
+          <span style="color:var(--t2);font-weight:600;min-width:32px">CAFs</span>
+          <div style="background:var(--bg4);border-radius:4px;height:8px;width:100px;overflow:hidden">
+            <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .4s"></div>
+          </div>
+          <span style="font-weight:700;color:${cafCor}">${cafCount}/${CAF_MAX}</span>
+          ${cafPct>=90?'<span style="font-size:.7rem">🔴</span>':cafPct>=70?'<span style="font-size:.7rem">⚠️</span>':''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.68rem">
+          <span style="color:var(--t2);font-weight:600;min-width:32px">Pallets</span>
+          <div style="background:var(--bg4);border-radius:4px;height:8px;width:100px;overflow:hidden">
+            <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .4s"></div>
+          </div>
+          <span style="font-weight:700;color:${palCor}">${palCount}/${PAL_MAX}</span>
+          ${palPct>=90?'<span style="font-size:.7rem">🔴</span>':palPct>=70?'<span style="font-size:.7rem">⚠️</span>':''}
+        </div>
+      </div>`;
+  }
+
+  const agora=new Date();
+  document.getElementById('progGrid').innerHTML=dataOrd.length
+    ?dataOrd.map(op=>{
+      // CAFs desta operação
+      const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
+      const cafsPend=cafsDaOp.filter(c=>['aberta','vinculada'].includes(c.status));
+      const cafsSemProc=cafsDaOp.filter(c=>!['processo','entregue','fechada'].includes(c.status));
+      // Atraso
+      let atraso='';
       if(op.planSaida&&op.dataOp){
         const planDt=new Date(op.dataOp+'T'+op.planSaida);
-        if(planDt<hoje)atrasoD1=`<span style="font-size:.62rem;color:var(--red);font-weight:700">⚠ Horário passou!</span>`;
+        if(planDt<agora)atraso='<div style="background:var(--red4);border:1px solid #fca5a5;border-radius:4px;padding:3px 7px;font-size:.62rem;color:var(--red);font-weight:700;margin-top:6px">⚠️ Horário passou!</div>';
       }
-      return `<div class="card" onclick="openEdit('${op.id}')">
-        <div class="card-top"><span class="card-id">${op.id}</span><span class="card-rota-badge">${op.rota}</span></div>
-        <div class="card-badges"><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span></div>
-        <div class="ci">
-          <div class="row"><span class="lbl">Transp.</span><span class="val">${op.transp||'—'}</span></div>
-          <div class="row"><span class="lbl">Motorista</span><span class="val">${op.mot||'—'}</span></div>
-          <div class="row"><span class="lbl">SM</span><span class="val">${op.sm||'—'}</span></div>
-          <div class="row"><span class="lbl">Data Op.</span><span class="val">${fmtD(op.dataOp)}</span></div>
-          <div class="row"><span class="lbl">Saída Plan.</span><span class="val">${op.planSaida||'—'}</span></div>
+      // Status badge color
+      const stCors={PROG:'var(--t3)',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)'};
+      const stCor=stCors[op.status]||'var(--t3)';
+      // Volume total das CAFs
+      const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
+      const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
+
+      return `<div class="yard-card" onclick="openEdit('${op.id}')">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:.85rem;font-weight:800;color:var(--red)">${op.id}</div>
+            <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${op.rota} · ${op.tipoCarga}</div>
+          </div>
+          <span style="background:${stCor}22;color:${stCor};border:1px solid ${stCor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${stObj(op.status).lb}</span>
         </div>
-        ${atrasoD1}
+
+        <!-- Info principal -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;font-size:.7rem">
+          <div>
+            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Motorista</div>
+            <div style="font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.mot||'—'}</div>
+          </div>
+          <div>
+            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Transportadora</div>
+            <div style="font-weight:600;color:var(--gray2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.transp||'—'}</div>
+          </div>
+          <div>
+            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Placa</div>
+            <div style="font-weight:700;color:var(--text)">${op.placa||'—'}${op.placaCarreta?' <span style="color:var(--t3)">/ '+op.placaCarreta+'</span>':''}</div>
+          </div>
+          <div>
+            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Saída Planejada</div>
+            <div style="font-weight:800;font-size:.85rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+          </div>
+        </div>
+
+        <!-- CAFs -->
+        <div style="border-top:1px solid var(--bd);padding-top:7px;margin-top:2px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:.62rem;font-weight:700;color:var(--t2);text-transform:uppercase">📦 CAFs</span>
+            ${volTotal?`<span style="font-size:.6rem;color:var(--t3)">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+          </div>
+          ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
+            ${cafsDaOp.map(c=>{
+              const cor=c.status==='aberta'?'var(--t3)':c.status==='vinculada'?'var(--green)':c.status==='fechada'?'var(--orange)':c.status==='processo'?'var(--blue)':'var(--t3)';
+              const bg=c.status==='aberta'?'var(--bg4)':c.status==='vinculada'?'var(--green2)':c.status==='fechada'?'rgba(249,115,22,.1)':c.status==='processo'?'var(--blue2)':'var(--bg4)';
+              const alerta=!['processo','entregue','fechada'].includes(c.status);
+              return`<div title="${c.num} · ${c.tipo} · ${c.vol} un" style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 5px;font-size:.6rem;font-weight:700;display:flex;align-items:center;gap:3px">
+                ${alerta?'⚠ ':''}${c.num}
+              </div>`;
+            }).join('')}
+          </div>`
+          :`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
+          ${cafsSemProc.length&&op.status!=='PROG'?`<div style="margin-top:5px;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#92400e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) aguardam processo de entrega</div>`:''}
+        </div>
+
+        ${atraso}
         ${countdown(op)}
+        ${_quickStatusBtns(op)}
       </div>`;
     }).join('')
-    :'<div style="color:var(--t3);text-align:center;padding:40px">Nenhuma operação programada</div>';
+    :`<div style="color:var(--t3);text-align:center;padding:40px;grid-column:1/-1">
+      <div style="font-size:2rem;margin-bottom:8px">🏭</div>
+      <div>Nenhuma operação no pátio em ${new Date(yardDt+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</div>
+      <button class="btn btn-p" onclick="openNew()" style="margin-top:12px">+ Programar operação</button>
+    </div>`;
 }
+
 
 // ══════════════════════════════════════════════════════════════════
 // FUP
@@ -1887,7 +2129,7 @@ function buildForm(op){
       <label>CAF disponível</label>
       <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
         <option value="">— selecione uma CAF —</option>
-        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&!['processo','entregue','fechada'].includes(c.status)&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${c.num}|${c.tipo}|${c.vol}">${c.num} · ${c.tipo} · ${c.vol} un · ${c.rota}</option>`).join('')}
+        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='vinculada'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${c.num}|${c.tipo}|${c.vol}">${c.num} · ${c.tipo} · ${c.vol} un · ${c.rota}</option>`).join('')}
       </select>
     </div>
     <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
@@ -2173,6 +2415,18 @@ function setView(name){
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
   if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
+  if(name==='prog')renderProg();
+  if(name==='tv-yard'){
+    renderTVYard();
+    if(_tvYardInterval)clearInterval(_tvYardInterval);
+    _tvYardInterval=setInterval(()=>{if(curPage==='tv-yard')renderTVYard();},30000);
+    const el=document.documentElement;
+    if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+  }
+  if(name!=='tv-yard'){
+    if(_tvYardInterval){clearInterval(_tvYardInterval);_tvYardInterval=null;}
+    if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
+  }
   if(name==='tv'){
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
@@ -2389,6 +2643,16 @@ function renderAnalise(){
 <div class="an-card" style="grid-column:1/-1">
   <h3>📋 Top Operações com Maior Atraso no FC</h3>
   ${_renderTopAtraso(data)}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📅 Heat Map — Volume e SLA (últimos 60 dias)</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia. Cor: verde = SLA bom · vermelho = SLA ruim · intensidade = volume de operações</p>
+  ${_renderHeatMap()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
+  ${_renderMapaDoca()}
 </div>`;
 }
 
@@ -2507,8 +2771,8 @@ function renderCAFs(){
   }
 
   // Table
-  const stCls={aberta:'b-ltl',vinculada:'b-inb',processo:'b-flt',entregue:'b-inb',fechada:'b-ext'};
-  const stLbl={aberta:'Aberta',vinculada:'Vinculada',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Fechada'};
+  const stCls={aberta:'b-ext',vinculada:'b-inb',processo:'b-flt',entregue:'b-ltl',fechada:'b-prod'};
+  const stLbl={aberta:'Em Produção',vinculada:'Disponível',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
   const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -2622,7 +2886,7 @@ async function desvincularCAF(){
     const op=ops.find(o=>o.id===c.opId);
     if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
   }
-  c.opId='';c.status='aberta';
+  c.opId='';c.status='vinculada'; // volta para disponível p/ embarque
   await saveCAFToDB(c);await loadCAFs();
   renderCAFs();closeCAFModal();
   showToast('✅ CAF desvinculada','ok');
@@ -2631,6 +2895,7 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  if(c.status!=='vinculada'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+{aberta:'Em Produção',fechada:'Já vinculada a veículo',processo:'Em processo de entrega',entregue:'Já entregue'}[c.status]+')', 'err');return;}
   const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${c.rota}`,'err');return;}
   // Modal inline sem prompt()
@@ -2663,7 +2928,7 @@ async function _vincularCAF(cafId,op){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
     await saveOp(op);
   }
-  c.opId=op.id;c.status='vinculada';
+  c.opId=op.id;c.status='fechada'; // fechada = vinculada a veículo
   await saveCAFToDB(c);await loadCAFs();
   renderCAFs();
   showToast(`✅ CAF ${c.num} vinculada a ${op.id}`,'ok');
@@ -2952,14 +3217,14 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
   // TRAN: NÃO muda — alerta visual no card até mudança manual
   // FIN: NÃO muda — Entrega Realizada deve ser dado manualmente na aba CAF
   // CANC/REC: CAFs voltam para "aberta" automaticamente (libera para outra viagem)
-  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='aberta';
+  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='vinculada'; // volta para disponível
 
   if(!novoStatusCAF)return;
 
   for(const c of cafsDaOp){
     if(c.status===novoStatusCAF)continue;
     c.status=novoStatusCAF;
-    if(novoStatusCAF==='aberta'){c.opId='';}
+    if(novoStatusCAF==='vinculada'){c.opId='';}
     await saveCAFToDB(c);
   }
   await loadCAFs();
@@ -2991,7 +3256,7 @@ async function autoVincularCAFs(op){
     if(c.opId===op.id&&c.status==='vinculada')continue;
     c.opId=op.id;
     // Só muda para vinculada se estiver aberta
-    if(c.status==='aberta')c.status='vinculada';
+    if(c.status==='vinculada')c.status='fechada'; // disponível → vinculada a veículo
     await saveCAFToDB(c);
     changed=true;
   }
@@ -3148,7 +3413,8 @@ let _tvInterval=null;
 function renderTV(){
   const el=document.getElementById('tv-wrap');if(!el)return;
   const hoje=new Date().toISOString().split('T')[0];
-  const opsHoje=ops.filter(o=>o.dataOp===hoje);
+  const tvDt=document.getElementById('tv-day-filter')?.value||hoje;
+  const opsHoje=ops.filter(o=>o.dataOp===tvDt);
   const total=opsHoje.length;
   const fin=opsHoje.filter(o=>o.status==='FIN').length;
   const tran=opsHoje.filter(o=>o.status==='TRAN').length;
@@ -3281,7 +3547,12 @@ function renderTV(){
       <div id="tv-clock" style="font-size:2.2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums;letter-spacing:2px">
         ${new Date().toLocaleTimeString('pt-BR')}
       </div>
-      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.68rem;margin-top:3px">✕ Sair</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <input type="date" id="tv-day-filter" value="${hoje}"
+        onchange="renderTV()"
+        style="background:#161b22;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 8px;font-size:.68rem;outline:none"/>
+      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.68rem">✕ Sair</button>
+    </div>
     </div>
   </div>
 
@@ -3317,6 +3588,43 @@ function renderTV(){
       <div style="font-size:.58rem;color:#f0883e;margin-top:2px">CAF sem<br>Proc. Entrega</div>
     </div>`:''}
   </div>
+
+  <!-- OCUPAÇÃO DE PISO -->
+  ${(()=>{
+    const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+    const cafsPatio=cafsDB.filter(c=>{
+      const op=c.opId?ops.find(o=>o.id===c.opId):null;
+      return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['vinculada','fechada'].includes(c.status);
+    });
+    const cafCount=cafsPatio.length,palCount=cafsPatio.reduce((s,c)=>s+(c.pallets||0),0);
+    const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
+    const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
+    const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
+    const palCor=palPct>=90?'#ff4444':palPct>=70?'#e3b341':'#56d364';
+    return`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:12px">
+      <div style="font-size:.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏭 Ocupação de Piso</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
+            <span style="color:#8b949e">CAFs no Pátio</span>
+            <span style="font-weight:800;color:${cafCor}">${cafCount}/${CAF_MAX} ${cafPct>=90?'🔴':cafPct>=70?'⚠️':''}</span>
+          </div>
+          <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
+            <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .5s"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
+            <span style="color:#8b949e">Pallets</span>
+            <span style="font-weight:800;color:${palCor}">${palCount}/${PAL_MAX} ${palPct>=90?'🔴':palPct>=70?'⚠️':''}</span>
+          </div>
+          <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
+            <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .5s"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  })()}
 
   <!-- ESTRADAS POR ROTA -->
   <div style="margin-top:4px">
@@ -3691,6 +3999,392 @@ function _renderSLAMetaGrid(){
       onchange="SLA_METAS['${r}']=this.value?parseInt(this.value):undefined;saveSLAMetas()">
   </div>`).join('');
 }
+
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: TV YARD — Segunda TV dedicada ao pátio
+// ══════════════════════════════════════════════════════════════════
+let _tvYardInterval=null;
+
+function renderTVYard(){
+  const el=document.getElementById('tv-yard-wrap');if(!el)return;
+  const hoje=new Date().toISOString().split('T')[0];
+  const yDt=document.getElementById('tv-yard-day')?.value||hoje;
+  const dataFmt=new Date(yDt+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+
+  // Ops no pátio neste dia
+  const opsYard=ops.filter(o=>o.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(o.status))
+    .sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
+
+  // Ocupação de piso
+  const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+  const cafsPatio=cafsDB.filter(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['aberta','vinculada'].includes(c.status);
+  });
+  const cafCount=cafsPatio.length,palCount=cafsPatio.reduce((s,c)=>s+(c.pallets||0),0);
+  const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
+  const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
+  const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
+  const palCor=palPct>=90?'#ff4444':palPct>=70?'#e3b341':'#56d364';
+
+  el.innerHTML=`
+<div style="background:#0d1117;min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;color:#e6edf3">
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:3px solid #cc0000;padding-bottom:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="background:#cc0000;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🏭</div>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:#e6edf3">YARD — Pátio de Carregamento <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
+        <div style="font-size:.7rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
+      </div>
+    </div>
+    <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <div id="tv-yard-clock" style="font-size:2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums">${new Date().toLocaleTimeString('pt-BR')}</div>
+      <div style="display:flex;gap:6px">
+        <input type="date" id="tv-yard-day" value="${yDt}" onchange="renderTVYard()" style="background:#161b22;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 8px;font-size:.65rem;outline:none"/>
+        <button onclick="exitTVYard()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.65rem">✕ Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ocupação de Piso KPI -->
+  <div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:12px;margin-bottom:14px;align-items:center">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:#e6edf3">${opsYard.length}</div>
+      <div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">No Pátio</div>
+    </div>
+    <div style="background:#161b22;border:1px solid ${cafCor}44;border-radius:10px;padding:12px 16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:.75rem;color:#8b949e;font-weight:600">📦 CAFs no Piso</span>
+        <span style="font-size:1.4rem;font-weight:800;color:${cafCor}">${cafCount}/${CAF_MAX} ${cafPct>=90?'🔴':cafPct>=70?'⚠️':''}</span>
+      </div>
+      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+        <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Capacidade: ${CAF_MAX} CAFs · ${cafPct}% ocupado</div>
+    </div>
+    <div style="background:#161b22;border:1px solid ${palCor}44;border-radius:10px;padding:12px 16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:.75rem;color:#8b949e;font-weight:600">🔲 Pallets</span>
+        <span style="font-size:1.4rem;font-weight:800;color:${palCor}">${palCount}/${PAL_MAX} ${palPct>=90?'🔴':palPct>=70?'⚠️':''}</span>
+      </div>
+      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+        <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Capacidade: ${PAL_MAX} pallets · ${palPct}% ocupado</div>
+    </div>
+    ${cafPct>=90||palPct>=90?`<div style="background:#2b1800;border:2px solid #ff4444;border-radius:10px;padding:12px 14px;text-align:center;animation:pulse 1.5s infinite">
+      <div style="font-size:1.8rem">🔴</div>
+      <div style="font-size:.65rem;color:#ff4444;font-weight:700;margin-top:4px">PISO<br>CRÍTICO</div>
+    </div>`:''}
+  </div>
+
+  <!-- Cards do Yard -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">
+    ${opsYard.length?opsYard.map(op=>{
+      const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
+      const cafsSemProc=cafsDaOp.filter(c=>!['processo','entregue','fechada'].includes(c.status));
+      const agora=new Date();
+      const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
+      const stCors={PROG:'#6b7280',AGUCARR:'#e3b341',EMCARR:'#f97316'};
+      const cor=passou?'#ff4444':stCors[op.status]||'#6b7280';
+      const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
+      const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
+      return`<div style="background:#161b22;border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="font-size:1rem;font-weight:800;color:#e6edf3">${op.id}</div>
+            <div style="font-size:.7rem;color:#8b949e;margin-top:1px">${op.rota} · ${op.tipoCarga}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1.4rem;font-weight:800;color:${passou?'#ff4444':'#58a6ff'}">${op.planSaida||'—'}</div>
+            <div style="font-size:.58rem;color:${passou?'#ff4444':'#8b949e'}">${passou?'⚠ PASSOU!':'Saída planejada'}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:.72rem">
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.mot||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.transp||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:#e6edf3">${op.placa||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Status</div><div style="font-weight:700;color:${stCors[op.status]||'#6b7280'}">${stObj(op.status).lb}</div></div>
+        </div>
+        <!-- CAFs -->
+        <div style="border-top:1px solid #21262d;padding-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:.6rem;color:#484f58;text-transform:uppercase;font-weight:700">📦 CAFs (${cafsDaOp.length})</span>
+            ${volTotal?`<span style="font-size:.58rem;color:#484f58">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+          </div>
+          ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
+            ${cafsDaOp.map(c=>{
+              const cor2=c.status==='aberta'?'#58a6ff':c.status==='vinculada'?'#bc8cff':c.status==='processo'?'#56d364':'#484f58';
+              const alerta=!['processo','entregue','fechada'].includes(c.status);
+              return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${c.num}</span>`;
+            }).join('')}
+          </div>`:'<span style="font-size:.65rem;color:#484f58;font-style:italic">Sem CAFs vinculadas</span>'}
+          ${cafsSemProc.length?`<div style="margin-top:5px;background:#2b1800;border:1px solid #f0883e;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#f0883e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem proc. entrega</div>`:''}
+        </div>
+      </div>`;
+    }).join(''):`<div style="color:#484f58;text-align:center;padding:40px;grid-column:1/-1;font-size:.9rem">🏭 Pátio vazio para ${dataFmt}</div>`}
+  </div>
+</div>`;
+  _startTVYardClock();
+}
+
+let _tvYardClockInterval=null;
+function _startTVYardClock(){
+  if(_tvYardClockInterval)clearInterval(_tvYardClockInterval);
+  _tvYardClockInterval=setInterval(()=>{
+    const el=document.getElementById('tv-yard-clock');
+    if(!el){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;return;}
+    el.textContent=new Date().toLocaleTimeString('pt-BR');
+  },1000);
+}
+function exitTVYard(){
+  if(_tvYardInterval){clearInterval(_tvYardInterval);_tvYardInterval=null;}
+  if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  setView('prog');
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// PISO CONFIG — salva/carrega capacidade do yard via CFG
+// ══════════════════════════════════════════════════════════════════
+function savePisoConfig(){
+  const caf=parseInt(document.getElementById('cfgPisoCAF')?.value)||21;
+  const pal=parseInt(document.getElementById('cfgPisoPallets')?.value)||30;
+  CFG.pisoCAF=caf;
+  CFG.pisoPallets=pal;
+  saveConfig(); // persiste junto com o restante do CFG
+  showToast('✅ Capacidade de piso salva: '+caf+' CAFs / '+pal+' pallets','ok');
+  // Re-renderiza views afetadas
+  if(curPage==='prog')renderProg();
+  if(curPage==='tv'||curPage==='tv-yard')renderTV();
+}
+
+function loadPisoConfig(){
+  const cEl=document.getElementById('cfgPisoCAF');
+  const pEl=document.getElementById('cfgPisoPallets');
+  if(cEl)cEl.value=CFG.pisoCAF||21;
+  if(pEl)pEl.value=CFG.pisoPallets||30;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: HEAT MAP SEMANAL (últimos 2 meses)
+// ══════════════════════════════════════════════════════════════════
+function _renderHeatMap(){
+  const hoje=new Date();
+  // Gera os últimos 60 dias
+  const days=[];
+  for(let i=59;i>=0;i--){
+    const d=new Date(hoje);d.setDate(d.getDate()-i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  // Calcula vol e sla por dia
+  const byDay={};
+  ops.forEach(o=>{
+    if(!o.dataOp)return;
+    if(!byDay[o.dataOp])byDay[o.dataOp]={t:0,ok:0,late:0};
+    byDay[o.dataOp].t++;
+    const s=getSLA(o);
+    if(s==='ok')byDay[o.dataOp].ok++;
+    else if(s==='late')byDay[o.dataOp].late++;
+  });
+
+  const maxVol=Math.max(...days.map(d=>byDay[d]?.t||0),1);
+
+  // Cores: vazio=bg, dados=gradiente vermelho (pior SLA) ou verde (bom SLA)
+  const getCor=(d)=>{
+    const v=byDay[d];
+    if(!v||!v.t)return'var(--bg4)';
+    const sla=Math.round(v.ok/v.t*100);
+    const intens=Math.max(0.15,v.t/maxVol);
+    if(sla>=92)return`rgba(34,197,94,${intens})`;
+    if(sla>=80)return`rgba(234,179,8,${intens})`;
+    return`rgba(239,68,68,${intens})`;
+  };
+
+  const diaSem=['D','S','T','Q','Q','S','S'];
+  // Agrupa por semana (iniciando domingo)
+  const weeks=[];
+  let week=[];
+  // Encontra o primeiro domingo antes do primeiro dia
+  const firstDay=new Date(days[0]+'T12:00');
+  const startDow=firstDay.getDay(); // 0=dom
+  for(let i=0;i<startDow;i++)week.push(null); // padding
+  days.forEach(d=>{
+    week.push(d);
+    if(week.length===7){weeks.push(week);week=[];}
+  });
+  if(week.length)weeks.push(week);
+
+  const meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  let html='<div style="overflow-x:auto">';
+  // Labels de dias da semana
+  html+='<div style="display:flex;gap:3px;margin-bottom:4px;padding-left:2px">';
+  html+=diaSem.map(d=>`<div style="width:18px;font-size:.55rem;color:var(--t3);text-align:center">${d}</div>`).join('');
+  html+='</div>';
+  // Grid de semanas (colunas = semanas, linhas = dias)
+  html+='<div style="display:flex;gap:3px">';
+  let lastMes=-1;
+  weeks.forEach(w=>{
+    html+='<div style="display:flex;flex-direction:column;gap:3px">';
+    w.forEach(d=>{
+      if(!d){html+='<div style="width:18px;height:18px"></div>';return;}
+      const v=byDay[d]||{t:0,ok:0,late:0};
+      const sla=v.t?Math.round(v.ok/v.t*100):null;
+      const dateObj=new Date(d+'T12:00');
+      const tooltip=v.t?`${dateObj.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} · ${v.t} ops · SLA ${sla}%`:`${dateObj.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} · sem dados`;
+      const isHoje=d===hoje.toISOString().split('T')[0];
+      html+=`<div title="${tooltip}" style="width:18px;height:18px;border-radius:3px;background:${getCor(d)};cursor:default;${isHoje?'outline:2px solid var(--red);outline-offset:1px':''}"></div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  // Legenda
+  html+='<div style="display:flex;gap:12px;margin-top:8px;align-items:center;font-size:.6rem;color:var(--t2)">';
+  html+='<span>Menos</span>';
+  html+=['var(--bg4)','rgba(34,197,94,0.3)','rgba(34,197,94,0.7)','rgba(34,197,94,1)'].map(c=>`<div style="width:12px;height:12px;border-radius:2px;background:${c}"></div>`).join('');
+  html+='<span>Mais (SLA OK)</span>';
+  html+='<span style="margin-left:8px">|</span>';
+  html+=['rgba(239,68,68,0.3)','rgba(239,68,68,0.7)','rgba(239,68,68,1)'].map(c=>`<div style="width:12px;height:12px;border-radius:2px;background:${c}"></div>`).join('');
+  html+='<span>SLA Ruim</span>';
+  html+='</div>';
+  html+='</div>';
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FEATURE: MAPA DE DOCA
+// ══════════════════════════════════════════════════════════════════
+// Configuração das docas (editável via Admin futuramente)
+let DOCAS_CONFIG={total:8,prefix:'D'};
+
+function _renderMapaDoca(){
+  // Ops em descarga ou aguardando descarga
+  const opsDesc=ops.filter(o=>['AGUDESC','FIN'].includes(o.status)&&o.realChegFC&&!o.realDescarga);
+  const opsAgDesc=ops.filter(o=>o.status==='AGUDESC');
+
+  const totalDocas=DOCAS_CONFIG.total||8;
+  const docas=[];
+  for(let i=1;i<=totalDocas;i++){
+    const idx=i-1;
+    const op=opsAgDesc[idx]||null;
+    const nome=DOCAS_CONFIG.nomes?.[i]||(DOCAS_CONFIG.prefix||'D')+i;
+    docas.push({num:i,nome,op});
+  }
+
+  const agora=new Date();
+  const tempoMin=(op)=>{
+    if(!op?.realChegFC)return null;
+    const dt=new Date(op.realChegFC);
+    if(isNaN(dt))return null;
+    return Math.floor((agora-dt)/60000);
+  };
+
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
+  docas.forEach(({num,op})=>{
+    const t=tempoMin(op);
+    const alerta=t!==null&&t>90;
+    const cor=op?alerta?'var(--red)':'var(--blue)':'var(--bg4)';
+    const bordaCor=op?alerta?'var(--red)':'var(--blue)':'var(--bd)';
+    html+=`<div style="background:var(--bg3);border:2px solid ${bordaCor};border-radius:var(--rs);padding:10px;text-align:center;${alerta?'animation:pulse 2s infinite':''}">
+      <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${nome}</div>
+      ${op?`
+        <div style="font-size:.8rem;font-weight:800;color:${cor}">${op.id}</div>
+        <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.rota}</div>
+        <div style="font-size:.62rem;color:var(--t2)">${op.placa||'—'}</div>
+        ${t!==null?`<div style="font-size:.65rem;color:${alerta?'var(--red)':'var(--t2)'};margin-top:4px;font-weight:${alerta?700:400}">🕐 ${t>59?Math.floor(t/60)+'h '+t%60+'min':t+'min'}${alerta?' ⚠':''}</div>`:''}
+      `:`<div style="font-size:1.5rem;color:var(--bg4)">🟢</div><div style="font-size:.62rem;color:var(--t3)">Livre</div>`}
+    </div>`;
+  });
+  html+='</div>';
+
+  // Fila de espera
+  const fila=opsAgDesc.slice(totalDocas);
+  if(fila.length){
+    html+=`<div style="margin-top:10px;background:var(--yellow2);border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 10px">
+      <div style="font-size:.65rem;font-weight:700;color:var(--yellow);margin-bottom:5px">⏳ Fila de espera (${fila.length})</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${fila.map(o=>`<span style="background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:2px 7px;font-size:.65rem;font-weight:700;color:var(--red)">${o.id}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Resumo
+  const livres=docas.filter(d=>!d.op).length;
+  html+=`<div style="display:flex;gap:10px;margin-top:8px;font-size:.65rem;color:var(--t2)">
+    <span>🟢 ${livres} livre${livres!==1?'s':''}</span>
+    <span>🔵 ${docas.filter(d=>d.op&&!alerta).length} ocupada${docas.filter(d=>d.op&&!alerta).length!==1?'s':''}</span>
+    ${docas.filter(d=>d.op&&tempoMin(d.op)>90).length?`<span style="color:var(--red)">🔴 ${docas.filter(d=>d.op&&tempoMin(d.op)>90).length} em alerta</span>`:''}
+  </div>`;
+  return html;
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// MAPA DE DOCA — Config editável
+// ══════════════════════════════════════════════════════════════════
+function loadDocasConfig(){
+  try{
+    const s=localStorage.getItem('trk_docas');
+    if(s){
+      const d=JSON.parse(s);
+      DOCAS_CONFIG={total:d.total||8,prefix:d.prefix||'D',nomes:d.nomes||{}};
+    }
+  }catch(e){}
+}
+
+async function saveDocasConfig(){
+  const total=parseInt(document.getElementById('cfgDocasTotal')?.value)||8;
+  const prefix=(document.getElementById('cfgDocasPrefix')?.value||'D').trim()||'D';
+  const nomes={};
+  for(let i=1;i<=total;i++){
+    const v=(document.getElementById('docaNome_'+i)?.value||'').trim();
+    if(v)nomes[i]=v;
+  }
+  DOCAS_CONFIG={total,prefix,nomes};
+  // Salva no Supabase + fallback local
+  await _saveCfgSupabase('docas',DOCAS_CONFIG);
+  try{localStorage.setItem('trk_docas',JSON.stringify(DOCAS_CONFIG));}catch(e){}
+  showToast('✅ Docas salvas: '+total+' docas com prefixo "'+prefix+'"','ok');
+  previewDocas();
+  if(curPage==='analise')renderAnalise();
+}
+
+function previewDocas(){
+  const total=parseInt(document.getElementById('cfgDocasTotal')?.value)||8;
+  const prefix=(document.getElementById('cfgDocasPrefix')?.value||'D').trim()||'D';
+  // Atualiza grid de nomes
+  const grid=document.getElementById('docasNomesGrid');
+  if(grid){
+    grid.innerHTML='';
+    for(let i=1;i<=Math.min(total,50);i++){
+      const existing=DOCAS_CONFIG.nomes?.[i]||'';
+      const div=document.createElement('div');
+      div.className='fg';
+      div.innerHTML=`<label style="font-size:.62rem">${prefix}${i}</label>
+        <input id="docaNome_${i}" value="${existing}" placeholder="${prefix}${i}"
+          style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 7px;font-size:.72rem;outline:none;width:100%">`;
+      grid.appendChild(div);
+    }
+  }
+  const lbl=document.getElementById('docasPreviewLabel');
+  if(lbl)lbl.textContent='Prévia: '+Array.from({length:Math.min(total,4)},(_,i)=>(DOCAS_CONFIG.nomes?.[i+1])||prefix+(i+1)).join(', ')+(total>4?'...':'');
+}
+
+function applyDocasAdmin(){
+  const c=document.getElementById('cfgDocasTotal');
+  const p=document.getElementById('cfgDocasPrefix');
+  if(c)c.value=DOCAS_CONFIG.total||8;
+  if(p)p.value=DOCAS_CONFIG.prefix||'D';
+  previewDocas();
+}
+
+// Atualiza _renderMapaDoca para usar nomes customizados
+// (já usa DOCAS_CONFIG.prefix — adicionar suporte a nomes)
 
 loadTheme();
 initAuth();
