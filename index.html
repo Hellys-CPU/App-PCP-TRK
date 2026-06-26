@@ -988,7 +988,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
+      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -1009,7 +1009,7 @@ async function loadFromSupabase(forceFullLoad=false){
     const since=cutoff.toISOString().split('T')[0];
     const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
+      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -1040,7 +1040,7 @@ async function _checkDeletions(){
 async function saveToSupabase(op){
   if(!supabaseOK)return;
   const now=new Date().toISOString();
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -2055,7 +2055,7 @@ async function onDrop(e,sid){
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
     const prevStatus=op.status;
-    if(sid==='TRAN')alertaCAFsTransito(op); // toast se CAF sem processo
+    if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
     op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
@@ -2147,7 +2147,7 @@ const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
 
 function buildForm(op){
-  const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
+  const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',doca:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
   // Data base para os campos reais: usa dataOp da operação ou hoje
   const _baseDate=o.dataOp||new Date().toISOString().split('T')[0];
   // Prefixa datetime-local se valor existente for só HH:MM (migração de dados antigos)
@@ -2203,8 +2203,17 @@ function buildForm(op){
 </div>
 <div class="sec">📊 Status</div>
 <div class="fgrid">
-  <div class="fg"><label>Status Atual</label><select id="fStatus">${slO(STS,o.status)}</select></div>
+  <div class="fg"><label>Status Atual</label><select id="fStatus" onchange="toggleDocaField()">${slO(STS,o.status)}</select></div>
   <div class="fg"><label>Responsável</label><input id="fResp" value="${currentUser?currentUser.nome:o.updatedBy||''}" placeholder="Seu nome"></div>
+</div>
+<div id="wDocaField" style="${o.status==='EMCARR'?'':'display:none;'}margin-top:10px;background:var(--blue2);border:1.5px solid #93c5fd;border-radius:var(--rs);padding:10px">
+  <div style="font-size:.72rem;font-weight:700;color:var(--blue);margin-bottom:7px">🚪 Doca de Carregamento <span style="color:var(--red)">*</span> <span style="font-size:.62rem;font-weight:400;color:var(--t2)">(obrigatório quando Em Carregamento)</span></div>
+  <div class="fgrid c1"><div class="fg">
+    <select id="fDoca" style="background:var(--bg2);border:1.5px solid #93c5fd;border-radius:var(--rs);color:var(--text);padding:7px 10px;font-size:.85rem;width:100%;outline:none;font-weight:600">
+      <option value="">— selecione a doca —</option>
+      ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);return '<option value="'+nome+'"'+(o.doca===nome?' selected':'')+'>'+nome+'</option>';}).join('')}
+    </select>
+  </div></div>
 </div>
 <div class="sec">📦 CAFs Vinculadas</div>
 <div id="cafList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:9px">${o.cafs.map((c,i)=>cafR(c,i)).join('')}</div>
@@ -2269,6 +2278,7 @@ function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:''
 
 async function saveCard(){
   if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para salvar operações','err');return;}
+  if(!validarDoca())return;
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   // Validação de campos obrigatórios
   if(!g('fRota')){showToast('⚠ Selecione a Rota','err');return;}
@@ -2285,7 +2295,7 @@ async function saveCard(){
     upd('planApres',g('fPA'));upd('planSaida',g('fPS'));upd('planChegFC',g('fPC'));
     upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
     const statusAntes=op.status;
-    upd('status',g('fStatus'));upd('obs',g('fObs'));
+    upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
     op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
     if(ch.length){op.hist.push({t:ts(),txt:`[${who}] `+ch.join('; ')});addActivityLog(`${op.id} editado por ${who}`);}
     await saveOp(op);
@@ -2297,7 +2307,7 @@ async function saveCard(){
     }
   }else{
     const id=g('fId')||genId();
-    const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
+    const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
@@ -4046,7 +4056,7 @@ function quickStatus(opId, newStatus, event){
   const who=currentUser?.nome||'Sistema';
   op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
   op.hist.push({t:ts(),txt:`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`});
-  if(newStatus==='TRAN')alertaCAFsTransito(op);
+  if(newStatus==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
   render();renderFUP();
   saveOp(op).then(()=>syncCAFsStatus(op,newStatus,prev));
   addActivityLog(`${opId}: ${stObj(prev).lb} → ${stObj(newStatus).lb}`);
@@ -4360,17 +4370,20 @@ function _renderHeatMap(){
 let DOCAS_CONFIG={total:8,prefix:'D'};
 
 function _renderMapaDoca(){
-  // Ops em descarga ou aguardando descarga
-  const opsDesc=ops.filter(o=>['AGUDESC','FIN'].includes(o.status)&&o.realChegFC&&!o.realDescarga);
-  const opsAgDesc=ops.filter(o=>o.status==='AGUDESC');
-
   const totalDocas=DOCAS_CONFIG.total||8;
+  // Ops em EMCARR com doca vinculada (carregamento no FC)
+  const opsEmCarr=ops.filter(o=>o.status==='EMCARR'&&o.doca);
+  // Ops em AGUDESC (aguardando descarga)
+  const opsAgDesc=ops.filter(o=>o.status==='AGUDESC');
+  // Monta lista de docas
   const docas=[];
   for(let i=1;i<=totalDocas;i++){
-    const idx=i-1;
-    const op=opsAgDesc[idx]||null;
     const nome=DOCAS_CONFIG.nomes?.[i]||(DOCAS_CONFIG.prefix||'D')+i;
-    docas.push({num:i,nome,op});
+    // Prioridade: op EMCARR com doca exata > op AGUDESC por posição
+    const opEmCarr=opsEmCarr.find(o=>o.doca===nome);
+    const opAgDesc=!opEmCarr?opsAgDesc.find(o=>!opsEmCarr.find(e=>e.doca===nome)&&opsAgDesc.indexOf(o)===i-1-opsEmCarr.length):null;
+    const op=opEmCarr||null; // mostra só os vinculados no mapa
+    docas.push({num:i,nome,op,tipo:opEmCarr?'EMCARR':null});
   }
 
   const agora=new Date();
@@ -4387,9 +4400,11 @@ function _renderMapaDoca(){
     const alerta=t!==null&&t>90;
     const cor=op?alerta?'var(--red)':'var(--blue)':'var(--bg4)';
     const bordaCor=op?alerta?'var(--red)':'var(--blue)':'var(--bd)';
+    const statusLabel=op?.status==='EMCARR'?'📦 Carregando':'🏭 Ag. Descarga';
     html+=`<div style="background:var(--bg3);border:2px solid ${bordaCor};border-radius:var(--rs);padding:10px;text-align:center;${alerta?'animation:pulse 2s infinite':''}">
       <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${nome}</div>
       ${op?`
+        <div style="font-size:.65rem;font-weight:700;color:${op.status==='EMCARR'?'var(--orange)':'var(--blue)'};margin-bottom:3px">${statusLabel}</div>
         <div style="font-size:.8rem;font-weight:800;color:${cor}">${op.id}</div>
         <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.rota}</div>
         <div style="font-size:.62rem;color:var(--t2)">${op.placa||'—'}</div>
@@ -4412,10 +4427,11 @@ function _renderMapaDoca(){
 
   // Resumo
   const livres=docas.filter(d=>!d.op).length;
+  const emAlerta=docas.filter(d=>d.op&&tempoMin(d.op)!==null&&tempoMin(d.op)>90).length;
   html+=`<div style="display:flex;gap:10px;margin-top:8px;font-size:.65rem;color:var(--t2)">
     <span>🟢 ${livres} livre${livres!==1?'s':''}</span>
-    <span>🔵 ${docas.filter(d=>d.op&&!alerta).length} ocupada${docas.filter(d=>d.op&&!alerta).length!==1?'s':''}</span>
-    ${docas.filter(d=>d.op&&tempoMin(d.op)>90).length?`<span style="color:var(--red)">🔴 ${docas.filter(d=>d.op&&tempoMin(d.op)>90).length} em alerta</span>`:''}
+    <span>🔵 ${docas.filter(d=>d.op).length} ocupada${docas.filter(d=>d.op).length!==1?'s':''}</span>
+    ${emAlerta?`<span style="color:var(--red)">🔴 ${emAlerta} em alerta</span>`:''}
   </div>`;
   return html;
 }
@@ -4482,6 +4498,40 @@ function applyDocasAdmin(){
 
 // Atualiza _renderMapaDoca para usar nomes customizados
 // (já usa DOCAS_CONFIG.prefix — adicionar suporte a nomes)
+
+
+// ══════════════════════════════════════════════════════════════════
+// DOCA — vínculo real veículo ↔ doca
+// ══════════════════════════════════════════════════════════════════
+
+// Mostra/esconde campo de doca conforme status selecionado
+function toggleDocaField(){
+  const st = document.getElementById('fStatus')?.value;
+  const w  = document.getElementById('wDocaField');
+  if(!w) return;
+  w.style.display = st === 'EMCARR' ? '' : 'none';
+}
+
+// Valida doca obrigatória ao salvar quando status = EMCARR
+function validarDoca(){
+  const st   = document.getElementById('fStatus')?.value;
+  const doca = document.getElementById('fDoca')?.value || '';
+  if(st === 'EMCARR' && !doca){
+    showToast('⚠️ Selecione a doca — obrigatório quando Em Carregamento', 'err');
+    document.getElementById('fDoca')?.focus();
+    return false;
+  }
+  return true;
+}
+
+// Libera doca quando op vai para TRAN
+function _liberarDoca(op){
+  if(op.doca){
+    const nome = op.doca;
+    op.doca = '';
+    addActivityLog(op.id + ': Doca ' + nome + ' liberada (saiu para trânsito)');
+  }
+}
 
 loadTheme();
 initAuth();
