@@ -972,8 +972,8 @@ function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.g
 
 // Timestamp da última sincronização com o banco
 let _lastSyncAt=null;
-// Flag: coluna ocorr existe no banco? Detectada automaticamente
-let _hasOcorrCol=(()=>{try{return localStorage.getItem('trk_has_ocorr')!=='0';}catch(e){return true;}})();
+// Coluna ocorr existe no banco (criada via ALTER TABLE)
+let _hasOcorrCol=true;
 
 async function loadFromSupabase(forceFullLoad=false){
   if(!supabaseOK)return false;
@@ -1071,10 +1071,11 @@ async function deleteFromSupabase(id){if(!supabaseOK)return;try{await sbDelete(T
 async function saveOp(op){
   if(supabaseOK){
     await saveToSupabase(op);
-    // Reset _lastSyncAt para garantir que o próximo delta sync capture o registro salvo
-    // mesmo se houver diferença de clock entre browser e servidor
-    _lastSyncAt=null;
-    await loadFromSupabase(true);
+    // Atualiza só este registro localmente — sem recarregar tudo
+    const idx=ops.findIndex(o=>o.id===op.id);
+    if(idx>=0)ops[idx]=op;
+    // Marca timestamp para delta sync detectar no próximo ciclo
+    _lastSyncAt=Date.now()-5000; // -5s de margem
   }else{saveLocalOps();}
   render();renderFUP();
 }
@@ -1090,7 +1091,7 @@ function initRealtime(){
       ws.send(JSON.stringify({topic:'realtime:public:operacoes',event:'phx_join',payload:{},ref:'1'}));
       ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
       ws.send(JSON.stringify({topic:'realtime:public:configuracoes',event:'phx_join',payload:{},ref:'3'}));
-      ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
+      ws.send(JSON.stringify({topic:'realtime:public:cafs',event:'phx_join',payload:{},ref:'4'}));
       document.getElementById('rtIndicator').style.display='flex';
     };
     ws.onmessage=async(e)=>{
@@ -1102,6 +1103,15 @@ function initRealtime(){
             await loadConfig();
             render();
             showToast('⚙️ Configurações atualizadas por outro usuário','info');
+            return;
+          }
+          // CAF mudou — recarrega e atualiza views
+          if(msg.topic&&msg.topic.includes('cafs')){
+            await loadCAFs();
+            if(curPage==='caf')renderCAFs();
+            if(curPage==='prog')renderProg();
+            if(curPage==='tv-yard')renderTVYard();
+            if(curPage==='tv')renderTV();
             return;
           }
           const hadChanges=await loadFromSupabase();
@@ -1767,6 +1777,11 @@ function renderList(){
 }
 
 function renderProg(){
+  // Garante que cafsDB está populado antes de renderizar
+  if(supabaseOK&&!cafsDB.length){
+    loadCAFs().then(()=>renderProg());
+    return;
+  }
   // Filtro de dia — padrão = hoje
   const hoje=new Date().toISOString().split('T')[0];
   const yardDt=document.getElementById('yardData')?.value||hoje;
@@ -4008,6 +4023,10 @@ let _tvYardInterval=null;
 
 function renderTVYard(){
   const el=document.getElementById('tv-yard-wrap');if(!el)return;
+  if(supabaseOK&&!cafsDB.length){
+    loadCAFs().then(()=>renderTVYard());
+    return;
+  }
   const hoje=new Date().toISOString().split('T')[0];
   const yDt=document.getElementById('tv-yard-day')?.value||hoje;
   const dataFmt=new Date(yDt+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
