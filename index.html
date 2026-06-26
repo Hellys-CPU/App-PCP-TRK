@@ -1119,7 +1119,7 @@ function initRealtime(){
           if(msg.event==='INSERT')addActivityLog('Nova operação via outro dispositivo');
           if(msg.event==='DELETE')addActivityLog('Operação removida via outro dispositivo');
         }
-        if(msg.topic&&msg.topic.includes('sessoes'))renderOnlineFromDB();
+        if(msg.topic&&msg.topic.includes('sessoes')){renderOnlineFromDB().catch(()=>{});return;}
       }catch(err){}
     };
     ws.onclose=()=>{
@@ -1362,7 +1362,7 @@ async function doLogout(){
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
   const pbCls={ADMIN:'pb-admin',OPERADOR:'pb-op',VISUALIZADOR:'pb-vis'};
-  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${u.av}</div><div><div class="user-name">${u.nome}</div><div class="user-user">@${u.user}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${u.perfil}</span></div></div></div><div>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${u.user}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
+  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${u.av}</div><div><div class="user-name">${u.nome}</div><div class="user-user">@${u.user}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${u.perfil}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${u.user}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${u.user}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
 }
 
 function openNewUser(){
@@ -1399,6 +1399,77 @@ async function saveUser(){
   else showToast(`✅ @${user} criado!`,'ok');
   addActivityLog(`Novo usuário: ${nome} (@${user}) — ${perfil}`);
   closeUserModal();renderUserList();renderStats();
+}
+
+// ── Editar usuário existente (mudar senha / login) ──
+function openEditUser(username){
+  if(currentUser?.perfil!=='ADMIN'){showToast('Apenas administradores','err');return;}
+  const u=USERS.find(x=>x.user===username);if(!u)return;
+  const existing=document.getElementById('_editUserModal');
+  if(existing)existing.remove();
+  const div=document.createElement('div');
+  div.id='_editUserModal';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);width:100%;max-width:440px;box-shadow:var(--sh3)">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--bd);font-size:.9rem;font-weight:700;color:var(--text)">✏️ Editar — @${u.user}</div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div class="fg"><label>Nome completo</label><input id="_euNome" value="${u.nome}" placeholder="Nome completo"></div>
+      <div class="fg"><label>Login (usuário)</label><input id="_euLogin" value="${u.user}" placeholder="login.usuario"></div>
+      <div class="fg"><label>Perfil</label>
+        <select id="_euPerfil" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.82rem;width:100%;outline:none">
+          <option value="OPERADOR"${u.perfil==='OPERADOR'?' selected':''}>OPERADOR</option>
+          <option value="ADMIN"${u.perfil==='ADMIN'?' selected':''}>ADMIN</option>
+          <option value="VISUALIZADOR"${u.perfil==='VISUALIZADOR'?' selected':''}>VISUALIZADOR</option>
+        </select>
+      </div>
+      <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;font-size:.72rem;color:var(--t2)">🔒 Nova senha (deixe em branco para manter a atual)</div>
+      <div class="fg"><label>Nova senha</label><input id="_euSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg"><label>Confirmar senha</label><input id="_euSenha2" type="password" placeholder="Repita a senha"></div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-g" onclick="document.getElementById('_editUserModal').remove()">Cancelar</button>
+      <button class="btn btn-s" onclick="confirmarEditUser('${u.user}')">💾 Salvar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+}
+
+async function confirmarEditUser(oldUsername){
+  const nome=(document.getElementById('_euNome')?.value||'').trim();
+  const novoLogin=(document.getElementById('_euLogin')?.value||'').trim().toLowerCase().replace(/\s+/g,'.');
+  const perfil=document.getElementById('_euPerfil')?.value||'OPERADOR';
+  const senha=document.getElementById('_euSenha')?.value||'';
+  const senha2=document.getElementById('_euSenha2')?.value||'';
+  if(!nome||!novoLogin){showToast('Nome e login são obrigatórios','err');return;}
+  if(senha&&senha.length<6){showToast('Senha muito curta (mín. 6 caracteres)','err');return;}
+  if(senha&&senha!==senha2){showToast('Senhas não conferem','err');return;}
+  if(novoLogin!==oldUsername&&USERS.find(u=>u.user===novoLogin)){showToast('Login já existe','err');return;}
+  loading(true);
+  const u=USERS.find(x=>x.user===oldUsername);if(!u){loading(false);return;}
+  const parts=nome.split(' ');
+  const av=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'X')).toUpperCase();
+  u.nome=nome;u.av=av;u.perfil=perfil;
+  let hashAtual=HASHES[oldUsername];
+  if(senha){hashAtual=await h256(senha);}
+  if(novoLogin!==oldUsername){
+    HASHES[novoLogin]=hashAtual;delete HASHES[oldUsername];
+    u.user=novoLogin;
+  }else{HASHES[oldUsername]=hashAtual;}
+  saveUsersLocal();
+  if(supabaseOK){
+    try{
+      if(novoLogin!==oldUsername){
+        // deleta o antigo e cria novo (Supabase não tem UPDATE na PK facilmente)
+        await sbDelete(TABELA_USR,'usuario',oldUsername);
+      }
+      await sbUpsert(TABELA_USR,{usuario:novoLogin,nome,avatar:av,cor:u.cor,perfil,senha_hash:hashAtual,ativo:true,criado_por:u.criadoPor||currentUser?.nome||'Admin'});
+      showToast(`✅ @${novoLogin} atualizado no banco!`,'ok');
+    }catch(e){showToast('✅ Atualizado (local). Erro banco: '+e.message.slice(0,40),'ok');}
+  }else showToast(`✅ @${novoLogin} atualizado!`,'ok');
+  addActivityLog(`Usuário @${oldUsername} editado por ${currentUser?.nome}`);
+  document.getElementById('_editUserModal')?.remove();
+  loading(false);renderUserList();renderStats();
 }
 
 function deleteUser(username){
@@ -1980,6 +2051,7 @@ function dStart(e,id){dragged=id;setTimeout(()=>{const el=document.querySelector
 async function onDrop(e,sid){
   e.preventDefault();e.currentTarget.classList.remove('dov');
   if(!dragged)return;
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para mover operações','err');dragged=null;return;}
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
     const prevStatus=op.status;
@@ -2007,10 +2079,11 @@ async function onDrop(e,sid){
 // MODAL OPERAÇÃO
 // ══════════════════════════════════════════════════════════════════
 function openNew(){editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;document.getElementById('btnDeletar').style.display='';document.getElementById('btnDuplicar').style.display='';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;const isViz=currentUser?.perfil==='VISUALIZADOR';document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para deletar','err');return;}
   if(!editId)return;
   if(!confirm(`Deletar ${editId}?`))return;
   loading(true);ops=ops.filter(o=>o.id!==editId);
@@ -2195,6 +2268,7 @@ function cafR(c,i){return `<div class="caf-row" id="cr-${i}"><div class="fg"><la
 function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
 
 async function saveCard(){
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para salvar operações','err');return;}
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   // Validação de campos obrigatórios
   if(!g('fRota')){showToast('⚠ Selecione a Rota','err');return;}
@@ -2456,7 +2530,7 @@ function setView(name){
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
-  curPage=name;pingOnlineDB();renderOnlineFromDB();
+  curPage=name;pingOnlineDB();renderOnlineFromDB().catch(()=>{});
 }
 
 setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=new Date().toLocaleTimeString('pt-BR');},1000);
@@ -2854,6 +2928,7 @@ function openEditCAF(id){
 function closeCAFModal(){document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;}
 
 async function saveCAF(){
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
   const num=(document.getElementById('cafNum')?.value||'').trim();
   const rota=document.getElementById('cafRota')?.value||'';
   if(!num){showToast('⚠ Informe o número da CAF','err');return;}
@@ -2882,6 +2957,7 @@ async function saveCAF(){
 }
 
 async function deleteCAF(){
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
   if(!editCAFId)return;
   const c=cafsDB.find(x=>x.id===editCAFId);
   if(!confirm(`Excluir CAF ${c?.num}?`))return;
@@ -3860,6 +3936,7 @@ function _initOcorrBuf(op){
 }
 
 function addOcorr(){
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
   const tipo=document.getElementById('fOcorrTipo')?.value||'';
   const desc=(document.getElementById('fOcorrDesc')?.value||'').trim();
   if(!tipo)return;
@@ -3963,6 +4040,7 @@ function saveSLAMetas(){
 // ══════════════════════════════════════════════════════════════════
 function quickStatus(opId, newStatus, event){
   event.stopPropagation();
+  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
   const op=ops.find(o=>o.id===opId);if(!op)return;
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
