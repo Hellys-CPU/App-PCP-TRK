@@ -10,6 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="description" content="TRK PCP 2026 — Sistema Operacional Logístico Total Express"/>
 <title>TRK PCP 2026</title>
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <script>
 // Carrega pptxgenjs com múltiplos CDNs de fallback
 (function(){
@@ -934,6 +935,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 const APP_VERSION='v67';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
+const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8ZkeOKo24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs';
 let supabaseOK=false,realtimeWS=null;
@@ -1071,11 +1073,11 @@ async function deleteFromSupabase(id){if(!supabaseOK)return;try{await sbDelete(T
 async function saveOp(op){
   if(supabaseOK){
     await saveToSupabase(op);
-    // Atualiza só este registro localmente — sem recarregar tudo
     const idx=ops.findIndex(o=>o.id===op.id);
     if(idx>=0)ops[idx]=op;
-    // Marca timestamp para delta sync detectar no próximo ciclo
-    _lastSyncAt=Date.now()-5000; // -5s de margem
+    _lastSyncAt=Date.now()-5000;
+    // Notifica outros usuários via Ably (instantâneo)
+    _publishAbly('ops_update',{id:op.id,status:op.status});
   }else{saveLocalOps();}
   render();renderFUP();
 }
@@ -1326,6 +1328,7 @@ async function bootApp(){
   if(supabaseOK){await loadFromSupabase(true);initRealtime();}else{loadLocalOps();}
   loading(false);
   await loadConfig();
+  initAbly(); // Realtime via Ably
   await pingOnlineDB();await renderOnlineFromDB();
   window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
   // OTIMIZADO: só re-renderiza se dados mudaram
@@ -1334,9 +1337,9 @@ async function bootApp(){
   // O Realtime WebSocket cobre alterações instantâneas — sync é só fallback
   window._sync=setInterval(async()=>{
     if(!supabaseOK||!CFG.sync)return;
-    const hadChanges=await loadFromSupabase(); // delta automático
+    const hadChanges=await loadFromSupabase(); // delta automático — WebSocket é o realtime principal
     if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
-  },30000);
+  },60000); // 60s — WebSocket cobre atualizações em tempo real, sync é só fallback
   window._timerTick=setInterval(()=>{
     if(CFG.timer||CFG.countdown)renderPainel();
     checkAlertas();
@@ -1578,6 +1581,7 @@ async function saveConfig(){
   await _saveCfgSupabase('transportadoras',TRANSPS);
   try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));}catch(e){}
   applyConfig();showToast('⚙️ Configurações salvas e sincronizadas','ok');
+  _publishAbly('cfg_update',{});
 }
 
 // ── Carrega configurações do Supabase (boot) ──
@@ -4530,6 +4534,94 @@ function _liberarDoca(op){
     const nome = op.doca;
     op.doca = '';
     addActivityLog(op.id + ': Doca ' + nome + ' liberada (saiu para trânsito)');
+  }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// ABLY REALTIME — substitui WebSocket do Supabase para notificações
+// Supabase cuida dos dados, Ably cuida do tempo real
+// ══════════════════════════════════════════════════════════════════
+let _ably=null;
+let _ablyChannel=null;
+let _ablyOK=false;
+
+function initAbly(){
+  try{
+    _ably=new Ably.Realtime({key:ABLY_KEY,autoConnect:true});
+    _ably.connection.on('connected',()=>{
+      _ablyOK=true;
+      console.log('Ably conectado ✅');
+      _subscribeAbly();
+      _updateRTIndicator();
+    });
+    _ably.connection.on('disconnected',()=>{
+      _ablyOK=false;
+      console.warn('Ably desconectado — reconectando...');
+      _updateRTIndicator();
+    });
+    _ably.connection.on('failed',()=>{
+      _ablyOK=false;
+      console.error('Ably falhou — usando polling');
+      _updateRTIndicator();
+    });
+  }catch(e){
+    console.error('initAbly erro:',e);
+  }
+}
+
+function _subscribeAbly(){
+  if(!_ably)return;
+  _ablyChannel=_ably.channels.get('trk-pcp-ops');
+
+  // Operações atualizadas
+  _ablyChannel.subscribe('ops_update',async(msg)=>{
+    if(msg.data?.by===currentUser?.user)return; // ignora próprias atualizações
+    const hadChanges=await loadFromSupabase();
+    if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
+  });
+
+  // CAFs atualizadas
+  _ablyChannel.subscribe('cafs_update',async(msg)=>{
+    if(msg.data?.by===currentUser?.user)return;
+    await loadCAFs();
+    if(curPage==='caf')renderCAFs();
+    if(curPage==='prog')renderProg();
+    if(curPage==='tv-yard')renderTVYard();
+    if(curPage==='tv')renderTV();
+  });
+
+  // Configurações atualizadas
+  _ablyChannel.subscribe('cfg_update',async(msg)=>{
+    if(msg.data?.by===currentUser?.user)return;
+    await loadConfig();
+    render();
+    showToast('⚙️ Configurações atualizadas','info');
+  });
+
+  // Presença online via Ably
+  _ablyChannel.subscribe('ping',async()=>{
+    await renderOnlineFromDB();
+  });
+}
+
+// Publica notificação no canal Ably
+function _publishAbly(event,data={}){
+  if(!_ablyOK||!_ablyChannel)return;
+  try{
+    _ablyChannel.publish(event,{...data,by:currentUser?.user||'',ts:Date.now()});
+  }catch(e){console.warn('Ably publish error:',e);}
+}
+
+function _updateRTIndicator(){
+  const el=document.getElementById('rtIndicator');
+  if(!el)return;
+  if(_ablyOK){
+    el.style.background='#22c55e';
+    el.title='Realtime: Ably conectado';
+  } else {
+    el.style.background='#f97316';
+    el.title='Realtime: reconectando...';
   }
 }
 
