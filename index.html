@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
-    <button class="tab" id="tb-prog" onclick="setView('prog')">📅 D-1</button>
+    <button class="tab" id="tb-prog" onclick="setView('prog')">🚪 Gestão de Doca</button>
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- D-1 -->
 <div class="view" id="view-prog">
   <div class="toolbar" style="flex-wrap:wrap;gap:8px">
-    <span style="font-size:.8rem;font-weight:700;color:var(--red)">🏭 YARD — Pátio de Carregamento</span>
+    <span style="font-size:.8rem;font-weight:700;color:var(--red)">🚪 Gestão de Doca — Pátio de Carregamento</span>
     <input type="date" id="yardData" onchange="renderProg()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.76rem;outline:none"/>
     <button class="btn btn-g" onclick="document.getElementById('yardData').value='';renderProg()" style="font-size:.7rem">Hoje</button>
     <div class="sp"></div>
@@ -1861,6 +1861,7 @@ function renderProg(){
   const hoje=new Date().toISOString().split('T')[0];
   const yardDt=document.getElementById('yardData')?.value||hoje;
   // YARD mostra todos os status que ainda estão no pátio (não saíram)
+  // Gestão de Doca: mostra ops no pátio (aguardando/carregando) e em trânsito recente
   const data=ops.filter(o=>o.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(o.status));
   const dataOrd=[...data].sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
 
@@ -1922,54 +1923,94 @@ function renderProg(){
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
       const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
 
-      return `<div class="yard-card" onclick="openEdit('${op.id}')">
+      // Calcula hora limite de encosto na doca
+      // Regra: o veículo precisa estar na doca X horas antes da saída planejada
+      // Estimativa padrão: 2h antes da saída para carregar
+      const horaEncostoLimite=(()=>{
+        if(!op.planSaida)return null;
+        const [hh,mm]=op.planSaida.split(':').map(Number);
+        const total=(hh*60+mm)-120; // 2h antes
+        if(total<0)return null;
+        return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+      })();
+      const agoraTm=new Date();
+      const encostoAtrasado=horaEncostoLimite&&op.status==='AGUCARR'&&(()=>{
+        const [eh,em]=horaEncostoLimite.split(':').map(Number);
+        const limDt=new Date(op.dataOp+'T'+horaEncostoLimite);
+        return agoraTm>limDt;
+      })();
+
+      return `<div class="yard-card">
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:.85rem;font-weight:800;color:var(--red)">${op.id}</div>
-            <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${op.rota} · ${op.tipoCarga}</div>
+            <div style="font-size:.9rem;font-weight:800;color:var(--red);cursor:pointer" onclick="openEdit('${op.id}')">${op.id}</div>
+            <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${op.rota} · ${op.tipoCarga} · ${op.transp||'—'}</div>
           </div>
           <span style="background:${stCor}22;color:${stCor};border:1px solid ${stCor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${stObj(op.status).lb}</span>
         </div>
 
-        <!-- Info principal -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;font-size:.7rem">
+        <!-- Placa + Motorista -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
           <div>
-            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Motorista</div>
-            <div style="font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.mot||'—'}</div>
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
+            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${op.placa||'—'}</div>
+            ${op.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${op.placaCarreta}</div>`:''}
           </div>
           <div>
-            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Transportadora</div>
-            <div style="font-weight:600;color:var(--gray2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.transp||'—'}</div>
-          </div>
-          <div>
-            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Placa</div>
-            <div style="font-weight:700;color:var(--text)">${op.placa||'—'}${op.placaCarreta?' <span style="color:var(--t3)">/ '+op.placaCarreta+'</span>':''}</div>
-          </div>
-          <div>
-            <div style="color:var(--t2);font-size:.58rem;text-transform:uppercase;letter-spacing:.3px">Saída Planejada</div>
-            <div style="font-weight:800;font-size:.85rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
+            <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.mot||'—'}</div>
           </div>
         </div>
 
+        <!-- Horários -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;background:var(--bg3);border-radius:var(--rs);padding:7px">
+          <div style="text-align:center">
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
+            <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosto Limite</div>
+            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
+            ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
+          </div>
+        </div>
+
+        <!-- Doca -->
+        <div style="margin-bottom:8px">
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">🚪 Doca</div>
+          ${op.status==='EMCARR'&&currentUser?.perfil!=='VISUALIZADOR'?`
+            <select onchange="atribuirDocaRapido('${op.id}',this.value)" onclick="event.stopPropagation()"
+              style="background:var(--bg2);border:1.5px solid ${op.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
+              <option value="">— selecione a doca —</option>
+              ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
+                const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+                return '<option value="'+nome+'"'+(op.doca===nome?' selected':'')+'>'+nome+'</option>';
+              }).join('')}
+            </select>
+            ${!op.doca?'<div style="font-size:.6rem;color:var(--red);margin-top:2px;font-weight:700">⚠ Doca obrigatória</div>':''}
+          `:`<div style="font-weight:800;font-size:.85rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border-radius:4px;padding:4px 8px;display:inline-block">
+            ${op.doca||'Não vinculada'}
+          </div>`}
+        </div>
+
         <!-- CAFs -->
-        <div style="border-top:1px solid var(--bd);padding-top:7px;margin-top:2px">
+        <div style="border-top:1px solid var(--bd);padding-top:7px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:.62rem;font-weight:700;color:var(--t2);text-transform:uppercase">📦 CAFs</span>
+            <span style="font-size:.62rem;font-weight:700;color:var(--t2);text-transform:uppercase">📦 CAFs (${cafsDaOp.length})</span>
             ${volTotal?`<span style="font-size:.6rem;color:var(--t3)">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
               const cor=c.status==='aberta'?'var(--t3)':c.status==='vinculada'?'var(--green)':c.status==='fechada'?'var(--orange)':c.status==='processo'?'var(--blue)':'var(--t3)';
               const bg=c.status==='aberta'?'var(--bg4)':c.status==='vinculada'?'var(--green2)':c.status==='fechada'?'rgba(249,115,22,.1)':c.status==='processo'?'var(--blue2)':'var(--bg4)';
-              const alerta=!['processo','entregue','fechada'].includes(c.status);
-              return`<div title="${c.num} · ${c.tipo} · ${c.vol} un" style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 5px;font-size:.6rem;font-weight:700;display:flex;align-items:center;gap:3px">
-                ${alerta?'⚠ ':''}${c.num}
+              return`<div title="${c.num} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal."
+                style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700">
+                ${c.num}
               </div>`;
             }).join('')}
-          </div>`
-          :`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
-          ${cafsSemProc.length&&op.status!=='PROG'?`<div style="margin-top:5px;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#92400e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) aguardam processo de entrega</div>`:''}
+          </div>`:`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
+          ${cafsSemProc.length&&op.status!=='PROG'?`<div style="margin-top:5px;background:var(--yellow2);border:1px solid #fcd34d;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#92400e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem processo de entrega</div>`:''}
         </div>
 
         ${atraso}
@@ -4217,7 +4258,13 @@ function renderTVYard(){
           <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.mot||'—'}</div></div>
           <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.transp||'—'}</div></div>
           <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:#e6edf3">${op.placa||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Status</div><div style="font-weight:700;color:${stCors[op.status]||'#6b7280'}">${stObj(op.status).lb}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Saída Plan.</div><div style="font-weight:800;font-size:.85rem;color:#58a6ff">${op.planSaida||'—'}</div></div>
+        </div>
+        <!-- Doca na TV Yard -->
+        <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          <span style="color:#484f58;font-size:.58rem;text-transform:uppercase">🚪 Doca</span>
+          <span style="font-weight:800;font-size:.85rem;color:${op.doca?'#56d364':'#484f58'};background:${op.doca?'rgba(34,197,94,.15)':'#161b22'};border-radius:4px;padding:2px 10px">${op.doca||'Não vinculada'}</span>
+          ${!op.doca&&op.status==='EMCARR'?'<span style="font-size:.65rem;color:#ff4444;font-weight:700;animation:pulse 1.5s infinite">⚠ Atribuir doca!</span>':''}
         </div>
         <!-- CAFs -->
         <div style="border-top:1px solid #21262d;padding-top:8px">
@@ -4623,6 +4670,28 @@ function _updateRTIndicator(){
     el.style.background='#f97316';
     el.title='Realtime: reconectando...';
   }
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// ATRIBUIR DOCA RÁPIDO — direto no card do YARD sem abrir modal
+// ══════════════════════════════════════════════════════════════════
+async function atribuirDocaRapido(opId, doca){
+  const op=ops.find(o=>o.id===opId);if(!op)return;
+  const prev=op.doca||'';
+  op.doca=doca;
+  op.updatedAt=new Date().toISOString();
+  op.updatedBy=currentUser?.nome||'Sistema';
+  const acao=doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`;
+  op.hist.push({t:ts(),txt:`[${currentUser?.nome||'Sistema'}] ${acao}`});
+  // Atualiza local imediato
+  const idx=ops.findIndex(o=>o.id===opId);
+  if(idx>=0)ops[idx]=op;
+  renderProg();
+  // Salva no banco
+  await saveOp(op);
+  showToast(doca?`✅ ${opId} → ${doca}`:'Doca removida','ok');
+  addActivityLog(opId+': '+acao);
 }
 
 loadTheme();
