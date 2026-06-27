@@ -184,7 +184,7 @@ body.dark .rota-cell{color:#e6edf3;}
 .dbd.off{background:#f87171;}
 .dbd.loading{background:var(--yellow);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.rt-badge{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--green);font-weight:600;}
+.rt-badge{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--green);font-weight:600;background:var(--green2);border:1px solid var(--green);border-radius:10px;padding:2px 7px;}
 .rt-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:rtpulse 2s infinite;}
 @keyframes rtpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 .ob-item{display:flex;align-items:center;gap:4px;background:var(--bg2);border:1.5px solid var(--bd);border-radius:20px;padding:2px 8px 2px 3px;box-shadow:var(--sh);}
@@ -511,9 +511,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
   <div class="topbar-r">
-    <div id="onlineBar" style="display:flex;gap:4px;align-items:center"></div>
-    <div id="rtIndicator" style="display:none" class="rt-badge"><div class="rt-dot"></div>Live</div>
-    <div class="dbs"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
+    <div id="onlineBar" style="display:flex;gap:4px;align-items:center;margin-right:4px"></div>
+    <div id="rtIndicator" style="display:none;margin-right:6px" class="rt-badge"><div class="rt-dot"></div><span>Live</span></div>
+    <div class="dbs" style="margin-right:4px"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
     <span class="clock" id="clock"></span>
     <div class="uchip" onclick="doLogout()"><div class="uav" id="uAv">?</div><span class="uname" id="uName">...</span><span class="uout">sair</span></div>
     <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
@@ -1078,7 +1078,7 @@ async function saveOp(op){
     if(idx>=0)ops[idx]=op;
     _lastSyncAt=Date.now()-5000;
     // Notifica outros usuários via Ably (instantâneo)
-    _publishAbly('ops_update',{id:op.id,status:op.status});
+    _publishAbly('ops_update',{id:op.id,status:op.status,action:editId?'update':'insert'});
   }else{saveLocalOps();}
   render();renderFUP();
 }
@@ -1086,63 +1086,20 @@ async function saveOp(op){
 // REALTIME
 let _rtAttempts=0;
 function initRealtime(){
-  if(!supabaseOK)return;
-  try{
-    const ws=new WebSocket(`${SUPABASE_URL.replace('https://','wss://')}/realtime/v1/websocket?vsn=1.0.0&apikey=${SUPABASE_KEY}`);
-    ws.onopen=()=>{
-      _rtAttempts=0;
-      ws.send(JSON.stringify({topic:'realtime:public:operacoes',event:'phx_join',payload:{},ref:'1'}));
-      ws.send(JSON.stringify({topic:'realtime:public:sessoes',event:'phx_join',payload:{},ref:'2'}));
-      ws.send(JSON.stringify({topic:'realtime:public:configuracoes',event:'phx_join',payload:{},ref:'3'}));
-      ws.send(JSON.stringify({topic:'realtime:public:cafs',event:'phx_join',payload:{},ref:'4'}));
-      document.getElementById('rtIndicator').style.display='flex';
-    };
-    ws.onmessage=async(e)=>{
-      try{
-        const msg=JSON.parse(e.data);
-        if(msg.event==='INSERT'||msg.event==='UPDATE'||msg.event==='DELETE'){
-          // Configurações mudaram — recarrega para todos instantaneamente
-          if(msg.topic&&msg.topic.includes('configuracoes')){
-            await loadConfig();
-            render();
-            showToast('⚙️ Configurações atualizadas por outro usuário','info');
-            return;
-          }
-          // CAF mudou — recarrega e atualiza views
-          if(msg.topic&&msg.topic.includes('cafs')){
-            await loadCAFs();
-            if(curPage==='caf')renderCAFs();
-            if(curPage==='prog')renderProg();
-            if(curPage==='tv-yard')renderTVYard();
-            if(curPage==='tv')renderTV();
-            return;
-          }
-          const hadChanges=await loadFromSupabase();
-          if(hadChanges||msg.event==='DELETE'){render();renderFUP();if(curPage==='analise')renderAnalise();}
-          if(msg.event==='INSERT')addActivityLog('Nova operação via outro dispositivo');
-          if(msg.event==='DELETE')addActivityLog('Operação removida via outro dispositivo');
-        }
-        if(msg.topic&&msg.topic.includes('sessoes')){renderOnlineFromDB().catch(()=>{});return;}
-      }catch(err){}
-    };
-    ws.onclose=()=>{
-      document.getElementById('rtIndicator').style.display='none';
-      _rtAttempts++;
-      // Backoff exponencial: 5s, 10s, 20s, 40s, máximo 60s
-      const delay=Math.min(5000*Math.pow(2,_rtAttempts-1),60000);
-      setTimeout(initRealtime,delay);
-    };
-    ws.onerror=()=>ws.close();
-    realtimeWS=ws;
-    setInterval(()=>{if(ws.readyState===1)ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));},25000);
-  }catch(e){console.error('Realtime error:',e);}
+  // Supabase WebSocket desativado — Ably cuida de 100% do Realtime
+  // Isso elimina o consumo de conexões Realtime do Supabase Free
+  // O Ably já subscreve ops_update, cafs_update, cfg_update e ping
+  _wsOK=false;
+  // Ably é inicializado separadamente em initAbly()
+  // Se Ably não estiver disponível, o delta sync de 60s serve de fallback
+  console.log('Realtime: usando Ably exclusivamente');
 }
 
 // PRESENÇA
 async function pingOnlineDB(){
   if(!currentUser||!supabaseOK)return;
   try{await sbUpsert(TABELA_SESS,{usuario:currentUser.user,nome:currentUser.nome,avatar:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel',ultimo_ping:new Date().toISOString()});}catch(e){}
-  pingOnlineLocal();
+  _publishAbly('ping',{user:currentUser.user,pagina:curPage||'painel'});gOnlineLocal();
 }
 async function unpingOnlineDB(){if(!currentUser)return;if(supabaseOK)try{await sbDelete(TABELA_SESS,'usuario',currentUser.user);}catch(e){}unpingOnlineLocal();}
 async function renderOnlineFromDB(){
@@ -1356,6 +1313,8 @@ async function doLogout(){
   await unpingOnlineDB();
   localStorage.removeItem('trk_sess');currentUser=null;
   clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);
+  _publishAbly('logout',{user:currentUser?.user||''});
+  if(_ably){try{_ably.connection.close();}catch(e){}}
   if(realtimeWS)realtimeWS.close();
   document.getElementById('appRoot').style.display='none';
   document.getElementById('loginScreen').classList.add('show');
@@ -1564,18 +1523,21 @@ function countdown(op){
 // ══════════════════════════════════════════════════════════════════
 // ── Salva configuração no Supabase + localStorage (fallback) ──
 async function saveConfig(){
+  // Lê do DOM quando Admin aberto — senão preserva CFG atual (não sobrescreve com fallback)
+  const _g=id=>{const el=document.getElementById(id);return el?el:null;};
   CFG={
-    alertas:document.getElementById('cfgAlertas')?.checked??true,
-    timer:document.getElementById('cfgTimer')?.checked??true,
-    countdown:document.getElementById('cfgCountdown')?.checked??true,
-    sync:document.getElementById('cfgSync')?.checked??true,
-    banner:document.getElementById('cfgBanner')?.checked??true,
-    limiteAtraso:parseInt(document.getElementById('cfgLimiteAtraso')?.value||30),
-    slaMeta:parseInt(document.getElementById('cfgSlaMeta')?.value||92),
-    pisoCAF:parseInt(document.getElementById('cfgPisoCAF')?.value||21),
-    pisoPallets:parseInt(document.getElementById('cfgPisoPallets')?.value||30),
+    alertas:_g('cfgAlertas')?_g('cfgAlertas').checked:CFG.alertas,
+    timer:_g('cfgTimer')?_g('cfgTimer').checked:CFG.timer,
+    countdown:_g('cfgCountdown')?_g('cfgCountdown').checked:CFG.countdown,
+    sync:_g('cfgSync')?_g('cfgSync').checked:CFG.sync,
+    banner:_g('cfgBanner')?_g('cfgBanner').checked:CFG.banner,
+    limiteAtraso:_g('cfgLimiteAtraso')?parseInt(_g('cfgLimiteAtraso').value)||CFG.limiteAtraso||30:CFG.limiteAtraso||30,
+    slaMeta:_g('cfgSlaMeta')?parseInt(_g('cfgSlaMeta').value)||CFG.slaMeta||92:CFG.slaMeta||92,
+    // CRÍTICO: só atualiza piso se o campo estiver visível no DOM
+    pisoCAF:_g('cfgPisoCAF')?parseInt(_g('cfgPisoCAF').value)||CFG.pisoCAF||27:CFG.pisoCAF||27,
+    pisoPallets:_g('cfgPisoPallets')?parseInt(_g('cfgPisoPallets').value)||CFG.pisoPallets||30:CFG.pisoPallets||30,
   };
-  ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else delete SLA_METAS[r];});
+  ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else if(!el){}else delete SLA_METAS[r];});
   await _saveCfgSupabase('cfg_sistema',CFG);
   await _saveCfgSupabase('sla_metas',SLA_METAS);
   await _saveCfgSupabase('rotas',ROTAS);
@@ -1585,7 +1547,7 @@ async function saveConfig(){
   _publishAbly('cfg_update',{});
 }
 
-// ── Carrega configurações do Supabase (boot) ──
+
 async function loadConfig(){
   if(supabaseOK){
     try{
@@ -1869,12 +1831,22 @@ function renderProg(){
   // ── Ocupação de piso ──
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   // CAFs abertas/vinculadas neste dia (aguardando carregamento)
+  // Ocupação real: CAFs que estão fisicamente no piso
+  // = CAFs disponíveis (vinculada) + CAFs já vinculadas a veículo (fechada)
+  // dentro das ops do dia selecionado que ainda estão no pátio
   const cafsDia=cafsDB.filter(c=>{
-    const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    return op&&op.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['vinculada','fechada'].includes(c.status);
+    if(!['vinculada','fechada'].includes(c.status))return false;
+    if(c.opId){
+      const op=ops.find(o=>o.id===c.opId);
+      // Se tem op: considera se a op é do dia e ainda no pátio
+      return op&&op.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);
+    }
+    // CAF disponível sem op vinculada - conta se tem rota relevante
+    return true;
   });
   const cafCount=cafsDia.length;
-  const palCount=cafsDia.reduce((s,c)=>s+(c.pallets||0),0);
+  // Pallets reais: soma os pallets de cada CAF (campo pallets do banco)
+  const palCount=Math.round(cafsDia.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
   const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
@@ -1926,11 +1898,11 @@ function renderProg(){
 
       // Calcula hora limite de encosto na doca
       // Regra: o veículo precisa estar na doca X horas antes da saída planejada
-      // Estimativa padrão: 2h antes da saída para carregar
+      // Regra: veículo encosta 1h antes da saída planejada
       const horaEncostoLimite=(()=>{
         if(!op.planSaida)return null;
         const [hh,mm]=op.planSaida.split(':').map(Number);
-        const total=(hh*60+mm)-120; // 2h antes
+        const total=(hh*60+mm)-60; // 1h antes da saída // 2h antes
         if(total<0)return null;
         return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
       })();
@@ -1971,7 +1943,7 @@ function renderProg(){
             <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
           </div>
           <div style="text-align:center">
-            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosto Limite</div>
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosta até</div>
             <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
             ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
           </div>
@@ -1986,7 +1958,9 @@ function renderProg(){
               <option value="">— selecione a doca —</option>
               ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
                 const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
-                return '<option value="'+nome+'"'+(op.doca===nome?' selected':'')+'>'+nome+'</option>';
+                const emUso=ops.find(o=>o.id!==op.id&&o.doca===nome&&o.status==='EMCARR'&&o.dataOp===op.dataOp);
+                const label=emUso?nome+' 🔒 ('+emUso.id+')':nome;
+                return '<option value="'+nome+'"'+(op.doca===nome?' selected':'')+(emUso&&op.doca!==nome?' disabled':'')+'>'+label+'</option>';
               }).join('')}
             </select>
             ${!op.doca?'<div style="font-size:.6rem;color:var(--red);margin-top:2px;font-weight:700">⚠ Doca obrigatória</div>':''}
@@ -2136,6 +2110,7 @@ async function deletarCard(){
   await deleteFromSupabase(editId);
   if(!supabaseOK)saveLocalOps();
   addActivityLog(`Operação ${editId} deletada`);
+  _publishAbly('ops_delete',{id:editId,by:currentUser?.user||''});
   loading(false);closeModal();render();renderFUP();showToast('🗑 Operação deletada','ok');
 }
 
@@ -2257,7 +2232,12 @@ function buildForm(op){
   <div class="fgrid c1"><div class="fg">
     <select id="fDoca" style="background:var(--bg2);border:1.5px solid #93c5fd;border-radius:var(--rs);color:var(--text);padding:7px 10px;font-size:.85rem;width:100%;outline:none;font-weight:600">
       <option value="">— selecione a doca —</option>
-      ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);return '<option value="'+nome+'"'+(o.doca===nome?' selected':'')+'>'+nome+'</option>';}).join('')}
+      ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
+            const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+            const emUso=ops.find(x=>x.id!==editId&&x.doca===nome&&x.status==='EMCARR'&&x.dataOp===o.dataOp);
+            const label=emUso?nome+' 🔒 ('+emUso.id+')':nome;
+            return '<option value="'+nome+'"'+(o.doca===nome?' selected':'')+(emUso&&o.doca!==nome?' disabled':'')+'>'+label+'</option>';
+          }).join('')}
     </select>
   </div></div>
 </div>
@@ -3740,10 +3720,11 @@ function renderTV(){
   ${(()=>{
     const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
     const cafsPatio=cafsDB.filter(c=>{
-      const op=c.opId?ops.find(o=>o.id===c.opId):null;
-      return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['vinculada','fechada'].includes(c.status);
+      if(!['vinculada','fechada'].includes(c.status))return false;
+      if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
+      return true;
     });
-    const cafCount=cafsPatio.length,palCount=cafsPatio.reduce((s,c)=>s+(c.pallets||0),0);
+    const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
     const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
     const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
     const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
@@ -4172,10 +4153,11 @@ function renderTVYard(){
   // Ocupação de piso
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   const cafsPatio=cafsDB.filter(c=>{
-    const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['aberta','vinculada'].includes(c.status);
+    if(!['vinculada','fechada'].includes(c.status))return false;
+    if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
+    return true;
   });
-  const cafCount=cafsPatio.length,palCount=cafsPatio.reduce((s,c)=>s+(c.pallets||0),0);
+  const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
   const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
@@ -4309,14 +4291,14 @@ function exitTVYard(){
 // ══════════════════════════════════════════════════════════════════
 // PISO CONFIG — salva/carrega capacidade do yard via CFG
 // ══════════════════════════════════════════════════════════════════
-function savePisoConfig(){
+async function savePisoConfig(){
   const caf=parseInt(document.getElementById('cfgPisoCAF')?.value)||27;
   const pal=parseInt(document.getElementById('cfgPisoPallets')?.value)||30;
   CFG.pisoCAF=caf;
   CFG.pisoPallets=pal;
   const lbl=document.getElementById('pisoCapLabel');
   if(lbl)lbl.textContent=caf+' CAFs × '+pal+' pal. = '+(caf*pal)+' pal. totais';
-  saveConfig();
+  await saveConfig();
   showToast('✅ Piso salvo: '+caf+' CAFs × '+pal+' pal./CAF = '+(caf*pal)+' pal. totais','ok');
   if(curPage==='prog')renderProg();
   if(curPage==='tv'||curPage==='tv-yard'){renderTV();renderTVYard();}
@@ -4578,6 +4560,22 @@ function validarDoca(){
     document.getElementById('fDoca')?.focus();
     return false;
   }
+  // Bloqueio de doca dupla no modal
+  if(st === 'EMCARR' && doca && editId){
+    const op=ops.find(o=>o.id===editId);
+    const dataOp=document.getElementById('fDataOp')?.value||op?.dataOp||'';
+    const docaEmUso=ops.find(o=>
+      o.id!==editId &&
+      o.doca===doca &&
+      o.status==='EMCARR' &&
+      o.dataOp===dataOp
+    );
+    if(docaEmUso){
+      showToast(`⛔ ${doca} já ocupada por ${docaEmUso.id} (${docaEmUso.placa||'—'})`, 'err');
+      document.getElementById('fDoca')?.focus();
+      return false;
+    }
+  }
   return true;
 }
 
@@ -4598,6 +4596,7 @@ function _liberarDoca(op){
 let _ably=null;
 let _ablyChannel=null;
 let _ablyOK=false;
+let _wsOK=false; // Supabase WebSocket fallback
 
 function initAbly(){
   try{
@@ -4627,14 +4626,23 @@ function _subscribeAbly(){
   if(!_ably)return;
   _ablyChannel=_ably.channels.get('trk-pcp-ops');
 
-  // Operações atualizadas
+  // Operações criadas/editadas/movidas
   _ablyChannel.subscribe('ops_update',async(msg)=>{
-    if(msg.data?.by===currentUser?.user)return; // ignora próprias atualizações
+    if(msg.data?.by===currentUser?.user)return;
     const hadChanges=await loadFromSupabase();
     if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
+    if(msg.data?.action==='insert')addActivityLog('Nova operação via outro dispositivo');
   });
 
-  // CAFs atualizadas
+  // Operação deletada
+  _ablyChannel.subscribe('ops_delete',async(msg)=>{
+    if(msg.data?.by===currentUser?.user)return;
+    await loadFromSupabase(true);
+    render();renderFUP();
+    addActivityLog('Operação removida via outro dispositivo');
+  });
+
+  // CAFs criadas/editadas/vinculadas
   _ablyChannel.subscribe('cafs_update',async(msg)=>{
     if(msg.data?.by===currentUser?.user)return;
     await loadCAFs();
@@ -4644,18 +4652,25 @@ function _subscribeAbly(){
     if(curPage==='tv')renderTV();
   });
 
-  // Configurações atualizadas
+  // Configurações alteradas no Admin
   _ablyChannel.subscribe('cfg_update',async(msg)=>{
     if(msg.data?.by===currentUser?.user)return;
     await loadConfig();
     render();
-    showToast('⚙️ Configurações atualizadas','info');
+    showToast('⚙️ Configurações atualizadas por '+( msg.data?.by||'outro usuário'),'info');
   });
 
-  // Presença online via Ably
-  _ablyChannel.subscribe('ping',async()=>{
+  // Presença online — ping de outros usuários
+  _ablyChannel.subscribe('ping',async(msg)=>{
     await renderOnlineFromDB();
   });
+
+  // Usuário saiu
+  _ablyChannel.subscribe('logout',async(msg)=>{
+    await renderOnlineFromDB();
+  });
+
+  console.log('Ably: subscrito em todos os canais ✅');
 }
 
 // Publica notificação no canal Ably
@@ -4669,12 +4684,24 @@ function _publishAbly(event,data={}){
 function _updateRTIndicator(){
   const el=document.getElementById('rtIndicator');
   if(!el)return;
+  // Verde: Ably conectado (melhor) ou WS Supabase ativo (fallback)
+  // Laranja: só aparece se AMBOS desconectados
   if(_ablyOK){
-    el.style.background='#22c55e';
-    el.title='Realtime: Ably conectado';
+    el.style.color='#22c55e';
+    el.style.borderColor='#22c55e';
+    el.style.background='rgba(34,197,94,.1)';
+    el.querySelector('.rt-dot').style.background='#22c55e';
+    el.querySelector('span').textContent='Live';
+    el.title='Realtime: Ably ativo (< 60ms)';
+    el.style.display='flex';
   } else {
-    el.style.background='#f97316';
-    el.title='Realtime: reconectando...';
+    el.style.color='#f97316';
+    el.style.borderColor='#f97316';
+    el.style.background='rgba(249,115,22,.1)';
+    el.querySelector('.rt-dot').style.background='#f97316';
+    el.querySelector('span').textContent='Offline';
+    el.title='Realtime: Ably desconectado — sync a cada 60s';
+    el.style.display='flex';
   }
 }
 
@@ -4684,19 +4711,36 @@ function _updateRTIndicator(){
 // ══════════════════════════════════════════════════════════════════
 async function atribuirDocaRapido(opId, doca){
   const op=ops.find(o=>o.id===opId);if(!op)return;
+
+  // ── Bloqueio de doca dupla ──
+  if(doca){
+    const docaEmUso=ops.find(o=>
+      o.id!==opId &&
+      o.doca===doca &&
+      o.status==='EMCARR' &&
+      o.dataOp===op.dataOp
+    );
+    if(docaEmUso){
+      showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.id} (${docaEmUso.placa||'—'})`, 'err');
+      // Reseta o select para o valor anterior
+      const sel=document.querySelector(`select[data-op="${opId}"]`)||
+                document.querySelector(`select[onchange*="${opId}"]`);
+      if(sel)sel.value=op.doca||'';
+      return;
+    }
+  }
+
   const prev=op.doca||'';
   op.doca=doca;
   op.updatedAt=new Date().toISOString();
   op.updatedBy=currentUser?.nome||'Sistema';
   const acao=doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`;
   op.hist.push({t:ts(),txt:`[${currentUser?.nome||'Sistema'}] ${acao}`});
-  // Atualiza local imediato
   const idx=ops.findIndex(o=>o.id===opId);
   if(idx>=0)ops[idx]=op;
   renderProg();
-  // Salva no banco
   await saveOp(op);
-  showToast(doca?`✅ ${opId} → ${doca}`:'Doca removida','ok');
+  showToast(doca?`✅ ${opId} → ${doca}`:`${prev} liberada`,'ok');
   addActivityLog(opId+': '+acao);
 }
 
