@@ -456,6 +456,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 .pwa-install-bar.show{display:flex;}
 
 @media print{.topbar,.tabs,.toolbar,.btn,.ls,.mobile-nav,.pwa-install-bar{display:none!important;}body{background:#fff;}}
+.tv-wrap{background:var(--bg1,#0d1117);color:var(--text,#e6edf3);}
 .yard-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:13px;cursor:pointer;transition:.15s;box-shadow:var(--sh);}
 .yard-card:hover{border-color:var(--red);box-shadow:var(--sh2);transform:translateY(-1px);}
 #progGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px;}
@@ -738,17 +739,17 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg">
         <label>Máx. CAFs no Piso</label>
-        <input type="number" id="cfgPisoCAF" min="1" max="200" value="21"
+        <input type="number" id="cfgPisoCAF" min="1" max="200" value="27"
           onchange="savePisoConfig()"
           style="width:100%">
-        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Padrão: 21 CAFs</div>
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px" id="pisoCapLabel">27 CAFs × 30 pal. = 810 pal. totais</div>
       </div>
       <div class="fg">
-        <label>Máx. Pallets no Piso</label>
+        <label>Pallets por CAF (capacidade)</label>
         <input type="number" id="cfgPisoPallets" min="1" max="500" value="30"
           onchange="savePisoConfig()"
           style="width:100%">
-        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Padrão: 30 pallets</div>
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Total piso = CAFs × Pallets/CAF</div>
       </div>
     </div>
     <div id="pisoPreview" style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:.7rem">
@@ -1499,7 +1500,7 @@ const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','PE
 const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f59e0b'};
 
 let ops=[],editId=null,seq=1000,mRows=[],fupGrouped=false,curPage='painel';
-let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:21,pisoPallets:30};
+let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:27,pisoPallets:30};
 
 // ══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -1866,7 +1867,7 @@ function renderProg(){
   const dataOrd=[...data].sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
 
   // ── Ocupação de piso ──
-  const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+  const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   // CAFs abertas/vinculadas neste dia (aguardando carregamento)
   const cafsDia=cafsDB.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
@@ -1940,7 +1941,7 @@ function renderProg(){
         return agoraTm>limDt;
       })();
 
-      return `<div class="yard-card">
+      return `<div class="yard-card" onclick="openEdit('${op.id}')">
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
@@ -3679,7 +3680,7 @@ function renderTV(){
   }
 
   el.innerHTML=`
-<div style="background:#0d1117;min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;color:#e6edf3">
+<div class="tv-wrap" style="min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;">
   <!-- Header com relógio que atualiza via JS, não por re-render -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:3px solid #cc0000;padding-bottom:10px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -3737,7 +3738,7 @@ function renderTV(){
 
   <!-- OCUPAÇÃO DE PISO -->
   ${(()=>{
-    const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+    const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
     const cafsPatio=cafsDB.filter(c=>{
       const op=c.opId?ops.find(o=>o.id===c.opId):null;
       return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['vinculada','fechada'].includes(c.status);
@@ -4046,7 +4047,7 @@ function _renderComparativoSemanas(){
     if(d===0)return'<span style="color:var(--t2)">—</span>';
     const good=inv?d<0:d>0;
     const cor=good?'var(--green)':'var(--red)';
-    return'<span style="color:'+cor+';font-weight:700">'+(d>0?'+':'')+d+(inv&&va<10?'':'')+' '+(good?'✅':'❌')+'</span>';
+    return'<span style="color:'+cor+';font-weight:700">'+(d>0?'+':'')+d+' '+(good?'✅':'❌')+'</span>';
   };
   const rows=[
     {l:'Total ops',va:a.total,vb:b.total,inv:false},
@@ -4169,7 +4170,7 @@ function renderTVYard(){
     .sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
 
   // Ocupação de piso
-  const CAF_MAX=CFG.pisoCAF||21,PAL_MAX=CFG.pisoPallets||30;
+  const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   const cafsPatio=cafsDB.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status)&&['aberta','vinculada'].includes(c.status);
@@ -4181,7 +4182,7 @@ function renderTVYard(){
   const palCor=palPct>=90?'#ff4444':palPct>=70?'#e3b341':'#56d364';
 
   el.innerHTML=`
-<div style="background:#0d1117;min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;color:#e6edf3">
+<div class="tv-wrap" style="min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;">
   <!-- Header -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:3px solid #cc0000;padding-bottom:10px">
     <div style="display:flex;align-items:center;gap:12px">
@@ -4309,22 +4310,27 @@ function exitTVYard(){
 // PISO CONFIG — salva/carrega capacidade do yard via CFG
 // ══════════════════════════════════════════════════════════════════
 function savePisoConfig(){
-  const caf=parseInt(document.getElementById('cfgPisoCAF')?.value)||21;
+  const caf=parseInt(document.getElementById('cfgPisoCAF')?.value)||27;
   const pal=parseInt(document.getElementById('cfgPisoPallets')?.value)||30;
   CFG.pisoCAF=caf;
   CFG.pisoPallets=pal;
-  saveConfig(); // persiste junto com o restante do CFG
-  showToast('✅ Capacidade de piso salva: '+caf+' CAFs / '+pal+' pallets','ok');
-  // Re-renderiza views afetadas
+  const lbl=document.getElementById('pisoCapLabel');
+  if(lbl)lbl.textContent=caf+' CAFs × '+pal+' pal. = '+(caf*pal)+' pal. totais';
+  saveConfig();
+  showToast('✅ Piso salvo: '+caf+' CAFs × '+pal+' pal./CAF = '+(caf*pal)+' pal. totais','ok');
   if(curPage==='prog')renderProg();
-  if(curPage==='tv'||curPage==='tv-yard')renderTV();
+  if(curPage==='tv'||curPage==='tv-yard'){renderTV();renderTVYard();}
 }
 
 function loadPisoConfig(){
+  const caf=CFG.pisoCAF||27;
+  const pal=CFG.pisoPallets||30;
   const cEl=document.getElementById('cfgPisoCAF');
   const pEl=document.getElementById('cfgPisoPallets');
-  if(cEl)cEl.value=CFG.pisoCAF||21;
-  if(pEl)pEl.value=CFG.pisoPallets||30;
+  if(cEl)cEl.value=caf;
+  if(pEl)pEl.value=pal;
+  const lbl=document.getElementById('pisoCapLabel');
+  if(lbl)lbl.textContent=caf+' CAFs × '+pal+' pal. = '+(caf*pal)+' pal. totais';
 }
 
 
