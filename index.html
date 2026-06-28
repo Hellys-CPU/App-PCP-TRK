@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v68</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v69</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1163,43 +1163,24 @@ const DEFAULT_USERS=[
 async function h256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 async function loadUsers(){
-  // 1. Tenta carregar do Supabase (fonte de verdade)
+  // Carrega usuários da VIEW SEGURA (sem senhas — senhas nunca vêm ao navegador)
   if(supabaseOK){
     try{
-      const data=await sbFetch(`${TABELA_USR}?ativo=eq.true&order=criado_em.asc`);
+      const data=await sbFetch(`usuarios_seguro?ativo=eq.true&order=criado_em.asc`);
       if(data&&data.length){
         USERS=data.map(r=>({user:r.usuario,nome:r.nome,av:r.avatar||'??',cor:r.cor||'#cc0000',perfil:r.perfil,pw:null}));
-        data.forEach(r=>{if(r.senha_hash)HASHES[r.usuario]=r.senha_hash;});
-        // Se carregou pelo menos 1 hash — considera válido
-        if(Object.keys(HASHES).length>0){
-          saveUsersLocal();
-          try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
-          return;
-        }
+        // HASHES não é mais carregado — validação de senha é 100% server-side via RPC fazer_login
+        saveUsersLocal();
+        return;
       }
-    }catch(e){console.error('loadUsers Supabase error:',e);}
+    }catch(e){console.error('loadUsers error:',e);}
   }
-  // 2. Tenta localStorage (cache offline)
+  // Fallback offline — lista de usuários (sem senhas, login exige conexão)
   try{
     const savedU=localStorage.getItem('trk_users');
-    const savedH=localStorage.getItem('trk_hashes');
-    if(savedU&&savedH){
-      const pu=JSON.parse(savedU),ph=JSON.parse(savedH);
-      if(pu.length&&Object.keys(ph).length){USERS=pu;Object.assign(HASHES,ph);return;}
-    }
+    if(savedU){const pu=JSON.parse(savedU);if(pu.length){USERS=pu;return;}}
   }catch(e){}
-  // 3. Fallback de emergência — hashes pré-calculados (senhas nunca expostas no código)
   USERS=[...DEFAULT_USERS];
-  const defaultHashes={
-    'hellys':        '0f1838062d29c6232e9b47b703399ce236df8e31e14a20dcc866a51c29f99d18',
-    'bianca.xavier': '13aafd0caee04e087c9cff067377b397a24e98173e936ff5b233005d2eef3448',
-    'pedro.arthur':  '48b283f3b051f420116ef4374c4283054a2ccac5e7d0189cfe44fe55f6d4db8c',
-    'vitor.vitorio': 'fe4300674dfa046ad6d42792883bef0b43bf93993256487bf6f77dfe3812021d',
-    'admin':         '8b3ce0c3977ee6e8d53efeb1fb5b4f82bfb85e44b706c4eded197bd78875da67',
-  };
-  Object.assign(HASHES, defaultHashes);
-  try{localStorage.setItem('trk_hashes',JSON.stringify(HASHES));}catch(e){}
-  await syncUsersToSupabase();
 }
 
 async function buildHashesLocal(){for(const u of USERS){if(u.pw&&!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}}
@@ -1245,39 +1226,45 @@ async function initAuth(){
 
 let _loginAttempts=0,_loginBlock=0;
 async function doLogin(){
-  const now=Date.now();
-  if(_loginBlock>now){
-    const s=Math.ceil((_loginBlock-now)/1000);
-    const err=document.getElementById('lErr');
-    err.textContent=`Muitas tentativas. Aguarde ${s}s para tentar novamente.`;
-    err.style.display='block';
-    return;
-  }
   const user=(document.getElementById('lUser').value||'').trim().toLowerCase();
   const pass=document.getElementById('lPass').value;
   const err=document.getElementById('lErr');
   err.style.display='none';
   if(!user||!pass){err.textContent='Preencha usuário e senha.';err.style.display='block';return;}
+
   const hash=await h256(pass);
-  const found=USERS.find(u=>u.user===user&&HASHES[u.user]===hash);
-  if(found){
-    _loginAttempts=0;_loginBlock=0;
-    currentUser=found;
-    const _st=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
-    localStorage.setItem('trk_sess',JSON.stringify({user:found.user,ts:Date.now(),token:_st}));
-    await bootApp();
-  } else {
-    _loginAttempts++;
-    if(_loginAttempts>=5){
-      _loginBlock=Date.now()+60000;
-      _loginAttempts=0;
-      err.textContent='5 tentativas incorretas. Login bloqueado por 60 segundos.';
-    } else {
-      err.textContent=`Usuário ou senha incorretos. (${_loginAttempts}/5 tentativas)`;
+
+  // Login validado 100% no servidor via RPC (rate limit + bcrypt server-side)
+  if(supabaseOK){
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({p_usuario:user,p_senha_sha256:hash})
+      });
+      const r=await res.json();
+      if(r&&r.ok){
+        currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_h:hash};
+        const _st=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
+        localStorage.setItem('trk_sess',JSON.stringify({user:r.usuario,ts:Date.now(),token:_st}));
+        await bootApp();
+        return;
+      }
+      if(r&&r.erro==='bloqueado'){
+        err.textContent=`Muitas tentativas. Aguarde ${r.segundos||60}s para tentar novamente.`;
+        err.style.display='block';document.getElementById('lPass').value='';return;
+      }
+      // credenciais inválidas
+      err.textContent='Usuário ou senha incorretos.';
+      err.style.display='block';document.getElementById('lPass').value='';return;
+    }catch(e){
+      console.error('login RPC error:',e);
+      err.textContent='Erro de conexão. Tente novamente.';
+      err.style.display='block';return;
     }
-    err.style.display='block';
-    document.getElementById('lPass').value='';
   }
+  err.textContent='Sem conexão com o servidor. Login requer internet.';
+  err.style.display='block';
 }
 
 async function bootApp(){
@@ -1368,47 +1355,17 @@ async function saveUser(){
   const parts=nome.split(' ');
   const av=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'X')).toUpperCase();
   const hash=await h256(pw);
-  HASHES[user]=hash;
-  USERS.push({user,nome,av,cor:selectedColor,perfil,pw:null});
-  saveUsersLocal();
-  if(supabaseOK){try{await sbUpsert(TABELA_USR,{usuario:user,nome,avatar:av,cor:selectedColor,perfil,senha_hash:hash,ativo:true,criado_por:currentUser?.nome||'Admin'});showToast(`✅ @${user} criado no banco!`,'ok');}catch(e){showToast(`✅ @${user} criado (local)!`,'ok');}}
-  else showToast(`✅ @${user} criado!`,'ok');
-  addActivityLog(`Novo usuário: ${nome} (@${user}) — ${perfil}`);
-  closeUserModal();renderUserList();renderStats();
-}
-
-// ── Editar usuário existente (mudar senha / login) ──
-function openEditUser(username){
-  if(currentUser?.perfil!=='ADMIN'){showToast('Apenas administradores','err');return;}
-  const u=USERS.find(x=>x.user===username);if(!u)return;
-  const existing=document.getElementById('_editUserModal');
-  if(existing)existing.remove();
-  const div=document.createElement('div');
-  div.id='_editUserModal';
-  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
-  div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);width:100%;max-width:440px;box-shadow:var(--sh3)">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--bd);font-size:.9rem;font-weight:700;color:var(--text)">✏️ Editar — @${u.user}</div>
-    <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
-      <div class="fg"><label>Nome completo</label><input id="_euNome" value="${u.nome}" placeholder="Nome completo"></div>
-      <div class="fg"><label>Login (usuário)</label><input id="_euLogin" value="${u.user}" placeholder="login.usuario"></div>
-      <div class="fg"><label>Perfil</label>
-        <select id="_euPerfil" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.82rem;width:100%;outline:none">
-          <option value="OPERADOR"${u.perfil==='OPERADOR'?' selected':''}>OPERADOR</option>
-          <option value="ADMIN"${u.perfil==='ADMIN'?' selected':''}>ADMIN</option>
-          <option value="VISUALIZADOR"${u.perfil==='VISUALIZADOR'?' selected':''}>VISUALIZADOR</option>
-        </select>
-      </div>
-      <div style="background:var(--bg3);border-radius:var(--rs);padding:10px;font-size:.72rem;color:var(--t2)">🔒 Nova senha (deixe em branco para manter a atual)</div>
-      <div class="fg"><label>Nova senha</label><input id="_euSenha" type="password" placeholder="Mínimo 6 caracteres"></div>
-      <div class="fg"><label>Confirmar senha</label><input id="_euSenha2" type="password" placeholder="Repita a senha"></div>
-    </div>
-    <div style="padding:12px 16px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-g" onclick="document.getElementById('_editUserModal').remove()">Cancelar</button>
-      <button class="btn btn-s" onclick="confirmarEditUser('${u.user}')">💾 Salvar</button>
-    </div>
-  </div>`;
-  document.body.appendChild(div);
-  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+  try{
+    await _rpcGerenciarUsuario('criar',{usuario:user,nome,avatar:av,cor:selectedColor,perfil,senha_sha256:hash});
+    USERS.push({user,nome,av,cor:selectedColor,perfil,pw:null});
+    saveUsersLocal();
+    showToast('✅ Usuário '+nome+' criado!','ok');
+    addActivityLog('Usuário @'+user+' criado por '+currentUser?.nome);
+    _publishAbly('cfg_update',{});
+    document.getElementById('uNome').value='';document.getElementById('uUser').value='';
+    document.getElementById('uSenha').value='';document.getElementById('uSenha2').value='';
+    renderUserList();renderStats();
+  }catch(e){showToast('Erro: '+e.message,'err');}
 }
 
 async function confirmarEditUser(oldUsername){
@@ -1425,39 +1382,39 @@ async function confirmarEditUser(oldUsername){
   const u=USERS.find(x=>x.user===oldUsername);if(!u){loading(false);return;}
   const parts=nome.split(' ');
   const av=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'X')).toUpperCase();
-  u.nome=nome;u.av=av;u.perfil=perfil;
-  let hashAtual=HASHES[oldUsername];
-  if(senha){hashAtual=await h256(senha);}
-  if(novoLogin!==oldUsername){
-    HASHES[novoLogin]=hashAtual;delete HASHES[oldUsername];
-    u.user=novoLogin;
-  }else{HASHES[oldUsername]=hashAtual;}
-  saveUsersLocal();
-  if(supabaseOK){
-    try{
-      if(novoLogin!==oldUsername){
-        // deleta o antigo e cria novo (Supabase não tem UPDATE na PK facilmente)
-        await sbDelete(TABELA_USR,'usuario',oldUsername);
-      }
-      await sbUpsert(TABELA_USR,{usuario:novoLogin,nome,avatar:av,cor:u.cor,perfil,senha_hash:hashAtual,ativo:true,criado_por:u.criadoPor||currentUser?.nome||'Admin'});
-      showToast(`✅ @${novoLogin} atualizado no banco!`,'ok');
-    }catch(e){showToast('✅ Atualizado (local). Erro banco: '+e.message.slice(0,40),'ok');}
-  }else showToast(`✅ @${novoLogin} atualizado!`,'ok');
-  addActivityLog(`Usuário @${oldUsername} editado por ${currentUser?.nome}`);
-  document.getElementById('_editUserModal')?.remove();
-  loading(false);renderUserList();renderStats();
+  const senhaHash=senha?await h256(senha):null;
+  try{
+    await _rpcGerenciarUsuario('editar',{
+      usuario:oldUsername,nome,avatar:av,cor:u.cor,perfil,
+      senha_sha256:senhaHash,
+      novo_login:novoLogin!==oldUsername?novoLogin:null
+    });
+    u.nome=nome;u.av=av;u.perfil=perfil;
+    if(novoLogin!==oldUsername)u.user=novoLogin;
+    saveUsersLocal();
+    showToast('✅ @'+novoLogin+' atualizado!','ok');
+    addActivityLog('Usuário @'+oldUsername+' editado por '+currentUser?.nome);
+    _publishAbly('cfg_update',{});
+    document.getElementById('_editUserModal')?.remove();
+    loading(false);renderUserList();renderStats();
+  }catch(e){loading(false);showToast('Erro: '+e.message,'err');}
 }
 
-function deleteUser(username){
+
+async function deleteUser(username){
   if(username===currentUser?.user){showToast('Você não pode deletar sua própria conta','err');return;}
   const opCount=ops.filter(o=>o.updatedBy===USERS.find(u=>u.user===username)?.nome).length;
   const warn=opCount>0?`\n⚠ Este usuário tem ${opCount} operação(ões) no histórico.`:'';
   if(!confirm(`Deletar @${username}?${warn}`))return;
-  USERS=USERS.filter(u=>u.user!==username);delete HASHES[username];saveUsersLocal();
-  if(supabaseOK)sbDelete(TABELA_USR,'usuario',username).then(()=>showToast('Usuário removido do banco','ok')).catch(()=>showToast('Usuário removido','ok'));
-  else showToast('Usuário removido','ok');
-  addActivityLog(`Usuário removido: @${username}`);
-  renderUserList();renderStats();
+  try{
+    await _rpcGerenciarUsuario('deletar',{usuario:username});
+    USERS=USERS.filter(u=>u.user!==username);
+    saveUsersLocal();
+    showToast('✅ Usuário removido','ok');
+    addActivityLog('Usuário @'+username+' removido por '+currentUser?.nome);
+    _publishAbly('cfg_update',{});
+    renderUserList();renderStats();
+  }catch(e){showToast('Erro: '+e.message,'err');}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4788,6 +4745,36 @@ async function atribuirDocaRapido(opId, doca){
   await saveOp(op);
   showToast(doca?`✅ ${opId} → ${doca}`:`${prev} liberada`,'ok');
   addActivityLog(opId+': '+acao);
+}
+
+
+// ── Helper: chama RPC de gerenciamento de usuário (server-side, seguro) ──
+async function _rpcGerenciarUsuario(acao, dados){
+  if(!supabaseOK)throw new Error('Sem conexão');
+  if(!currentUser?._h)throw new Error('Sessão sem credencial — refaça login');
+  const body={
+    p_admin_user:currentUser.user,
+    p_admin_senha_sha256:currentUser._h,
+    p_acao:acao,
+    p_usuario:dados.usuario,
+    p_nome:dados.nome||null,
+    p_avatar:dados.avatar||null,
+    p_cor:dados.cor||null,
+    p_perfil:dados.perfil||null,
+    p_senha_sha256:dados.senha_sha256||null,
+    p_novo_login:dados.novo_login||null
+  };
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/gerenciar_usuario`,{
+    method:'POST',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  const r=await res.json();
+  if(!r||!r.ok){
+    const erros={nao_autorizado:'Não autorizado (apenas ADMIN)',usuario_existe:'Usuário já existe',nao_pode_deletar_proprio:'Não pode deletar a si mesmo',acao_invalida:'Ação inválida'};
+    throw new Error(erros[r?.erro]||r?.erro||'Erro desconhecido');
+  }
+  return r;
 }
 
 loadTheme();
