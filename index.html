@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <meta name="theme-color" content="#cc0000"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -497,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v67</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v68</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1283,29 +1286,37 @@ async function bootApp(){
   document.getElementById('uName').textContent=currentUser.nome;
   if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';document.getElementById('tb-tv-yard').style.display='';}
   loading(true);
-  if(supabaseOK){await loadFromSupabase(true);initRealtime();}else{loadLocalOps();}
+  // Carrega dados — cada etapa protegida para nunca travar o boot
+  try{
+    if(supabaseOK){await loadFromSupabase(true);}else{loadLocalOps();}
+  }catch(e){console.error('boot loadFromSupabase:',e);loadLocalOps();}
+  try{await loadConfig();}catch(e){console.error('boot loadConfig:',e);}
+  try{await loadCAFs();}catch(e){console.error('boot loadCAFs:',e);}
   loading(false);
-  await loadConfig();
-  initAbly(); // Realtime via Ably
-  await pingOnlineDB();await renderOnlineFromDB();
-  window._ping=setInterval(async()=>{await pingOnlineDB();await renderOnlineFromDB();},60000);
-  // OTIMIZADO: só re-renderiza se dados mudaram
-  await loadCAFs();
-  // Sync inteligente: delta a cada 30s (reduz requests 3x vs 10s)
-  // O Realtime WebSocket cobre alterações instantâneas — sync é só fallback
+  // RENDERIZA IMEDIATAMENTE — antes de qualquer realtime/presença
+  try{render();renderFUP();}catch(e){console.error('boot render:',e);}
+  // Realtime e presença — não-bloqueantes, falhas não afetam a UI
+  try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
+  try{initAbly();}catch(e){console.error('boot initAbly:',e);}
+  pingOnlineDB().catch(e=>console.warn('boot ping:',e));
+  renderOnlineFromDB().catch(e=>console.warn('boot online:',e));
+  // Intervalos periódicos
+  window._ping=setInterval(()=>{pingOnlineDB().catch(()=>{});renderOnlineFromDB().catch(()=>{});},60000);
   window._sync=setInterval(async()=>{
     if(!supabaseOK||!CFG.sync)return;
-    const hadChanges=await loadFromSupabase(); // delta automático — WebSocket é o realtime principal
-    if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
-  },60000); // 60s — WebSocket cobre atualizações em tempo real, sync é só fallback
-  window._timerTick=setInterval(()=>{
-    if(CFG.timer||CFG.countdown)renderPainel();
-    checkAlertas();
-    checkCAFsSemBaixa();
+    try{
+      const hadChanges=await loadFromSupabase();
+      if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
+    }catch(e){console.warn('sync:',e);}
   },60000);
-  // Check CAFs vencendo e sem baixa ao boot (1x)
-  setTimeout(()=>{if(cafsDB.length){checkCAFsVencendo();checkCAFsSemBaixa();}},5000);
-  render();
+  window._timerTick=setInterval(()=>{
+    try{
+      if(CFG.timer||CFG.countdown)renderPainel();
+      checkAlertas();
+      checkCAFsSemBaixa();
+    }catch(e){console.warn('timerTick:',e);}
+  },60000);
+  setTimeout(()=>{if(cafsDB.length){try{checkCAFsVencendo();checkCAFsSemBaixa();}catch(e){}}},5000);
 }
 
 async function doLogout(){
@@ -1645,7 +1656,7 @@ function buildSels(){
   fSel('fRo',ROTAS);fSel('fTr',u(o=>o.transp));
   fSel('fSt',STS.map(s=>({v:s.id,l:s.lb})),true);fSel('fTp',TIPOS);
 }
-function fSel(id,opts,obj=false){const el=document.getElementById(id);if(!el)return;const cur=el.value,base=el.options[0].outerHTML;el.innerHTML=base+(obj?opts.map(o=>`<option value="${o.v}">${o.l}</option>`).join(''):opts.map(o=>`<option>${o}</option>`).join(''));el.value=cur;}
+function fSel(id,opts,obj=false){const el=document.getElementById(id);if(!el)return;const cur=el.value,base=el.options[0]?el.options[0].outerHTML:'<option value="">Todos</option>';el.innerHTML=base+(obj?opts.map(o=>`<option value="${o.v}">${o.l}</option>`).join(''):opts.map(o=>`<option>${o}</option>`).join(''));el.value=cur;}
 function clrF(){['fRo','fSt','fTr','fTp','fData'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});const e=document.getElementById('sQ');if(e)e.value='';render();}
 
 // ══════════════════════════════════════════════════════════════════
@@ -2586,6 +2597,7 @@ function isoWeek(ds){
 }
 function isoWeekKey(ds){const{w,y}=isoWeek(ds);return w?`${y}-W${String(w).padStart(2,'0')}`:null;}
 function semanaLabel(k){
+  if(!k||typeof k!=='string'||!k.includes('-W'))return '—';
   const[yr,wp]=k.split('-W');const y=parseInt(yr),w=parseInt(wp);
   const jan4=new Date(y,0,4);const sw=new Date(jan4);sw.setDate(jan4.getDate()-(jan4.getDay()||7)+1);
   const mon=new Date(sw.getTime()+(w-1)*7*86400000);
@@ -2647,6 +2659,7 @@ function pizzaSVG(items,total){
 const ST_COR={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f0883e'};
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
+  try{
   const lbl=document.getElementById('aFiltroLabel');if(lbl)lbl.textContent=getAnaliseLabel();
   // Popula select de transportadora com as disponíveis
   const tSel=document.getElementById('aFiltroTransp');
@@ -2779,6 +2792,10 @@ function renderAnalise(){
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
   ${_renderMapaDoca()}
 </div>`;
+  }catch(e){
+    console.error('renderAnalise erro:',e);
+    el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">⚠️ Erro ao carregar análise: '+(e.message||e)+'<br><br><button class="btn btn-g" onclick="renderAnalise()">Tentar novamente</button></div>';
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4434,7 +4451,7 @@ function _renderMapaDoca(){
   };
 
   let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
-  docas.forEach(({num,op})=>{
+  docas.forEach(({num,nome,op})=>{
     const t=tempoMin(op);
     const alerta=t!==null&&t>90;
     const cor=op?alerta?'var(--red)':'var(--blue)':'var(--bg4)';
@@ -4599,6 +4616,13 @@ let _ablyOK=false;
 let _wsOK=false; // Supabase WebSocket fallback
 
 function initAbly(){
+  // Verifica se a biblioteca Ably carregou (CDN pode estar bloqueado)
+  if(typeof Ably==='undefined'||!Ably?.Realtime){
+    console.warn('Ably não disponível — usando delta sync de 60s como realtime');
+    _ablyOK=false;
+    _updateRTIndicator();
+    return;
+  }
   try{
     _ably=new Ably.Realtime({key:ABLY_KEY,autoConnect:true});
     _ably.connection.on('connected',()=>{
