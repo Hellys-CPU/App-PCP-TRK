@@ -1102,7 +1102,9 @@ function initRealtime(){
 async function pingOnlineDB(){
   if(!currentUser||!supabaseOK)return;
   try{await sbUpsert(TABELA_SESS,{usuario:currentUser.user,nome:currentUser.nome,avatar:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel',ultimo_ping:new Date().toISOString()});}catch(e){}
-  _publishAbly('ping',{user:currentUser.user,pagina:curPage||'painel'});gOnlineLocal();
+  // Presença em tempo real via Ably Presence API (não consome mensagens)
+  if(_ablyChannel&&_ablyOK&&currentUser){try{_ablyChannel.presence.update({user:currentUser.user,nome:currentUser.nome,av:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel'});}catch(e){}}
+  pingOnlineLocal();
 }
 async function unpingOnlineDB(){if(!currentUser)return;if(supabaseOK)try{await sbDelete(TABELA_SESS,'usuario',currentUser.user);}catch(e){}unpingOnlineLocal();}
 async function renderOnlineFromDB(){
@@ -1299,7 +1301,7 @@ async function bootApp(){
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
   try{initAbly();}catch(e){console.error('boot initAbly:',e);}
   pingOnlineDB().catch(e=>console.warn('boot ping:',e));
-  renderOnlineFromDB().catch(e=>console.warn('boot online:',e));
+  renderOnlineFromDB().catch(e=>console.warn('boot online:',e)); // fallback inicial; Ably Presence assume quando conecta
   // Intervalos periódicos
   window._ping=setInterval(()=>{pingOnlineDB().catch(()=>{});renderOnlineFromDB().catch(()=>{});},60000);
   window._sync=setInterval(async()=>{
@@ -1324,7 +1326,7 @@ async function doLogout(){
   await unpingOnlineDB();
   localStorage.removeItem('trk_sess');currentUser=null;
   clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);
-  _publishAbly('logout',{user:currentUser?.user||''});
+  if(_ablyChannel){try{_ablyChannel.presence.leave();}catch(e){}}
   if(_ably){try{_ably.connection.close();}catch(e){}}
   if(realtimeWS)realtimeWS.close();
   document.getElementById('appRoot').style.display='none';
@@ -4684,15 +4686,18 @@ function _subscribeAbly(){
     showToast('⚙️ Configurações atualizadas por '+( msg.data?.by||'outro usuário'),'info');
   });
 
-  // Presença online — ping de outros usuários
-  _ablyChannel.subscribe('ping',async(msg)=>{
-    await renderOnlineFromDB();
+  // Presença nativa do Ably — NÃO consome mensagens (vs ping manual que custava ~9M/mês)
+  _ablyChannel.presence.subscribe(['enter','leave','update'],async()=>{
+    _renderOnlinePresence();
   });
-
-  // Usuário saiu
-  _ablyChannel.subscribe('logout',async(msg)=>{
-    await renderOnlineFromDB();
-  });
+  // Entra na presença com dados do usuário
+  if(currentUser){
+    try{_ablyChannel.presence.enter({
+      user:currentUser.user,nome:currentUser.nome,
+      av:currentUser.av,cor:currentUser.cor,
+      perfil:currentUser.perfil,pagina:curPage||'painel'
+    });}catch(e){console.warn('presence.enter:',e);}
+  }
 
   console.log('Ably: subscrito em todos os canais ✅');
 }
@@ -4729,6 +4734,23 @@ function _updateRTIndicator(){
   }
 }
 
+
+// Renderiza presença online a partir do Ably Presence (tempo real, sem custo de mensagens)
+async function _renderOnlinePresence(){
+  if(!_ablyChannel||!_ablyOK){renderOnlineFromDB().catch(()=>{});return;}
+  try{
+    const members=await _ablyChannel.presence.get();
+    const el=document.getElementById('onlineBar');
+    if(!el)return;
+    const uniq={};
+    (members||[]).forEach(m=>{const d=m.data||{};if(d.user)uniq[d.user]=d;});
+    const lista=Object.values(uniq);
+    if(!lista.length){el.innerHTML='';return;}
+    el.innerHTML='<span style="font-size:.62rem;color:var(--green);font-weight:700;margin-right:2px">●</span>'+
+      lista.slice(0,6).map(u=>`<div title="${u.nome||u.user} · ${u.pagina||''}" style="width:22px;height:22px;border-radius:50%;background:${u.cor||'#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;border:1.5px solid var(--bg1);margin-left:-4px">${u.av||'?'}</div>`).join('')+
+      (lista.length>6?`<span style="font-size:.62rem;color:var(--t2);margin-left:4px">+${lista.length-6}</span>`:'');
+  }catch(e){renderOnlineFromDB().catch(()=>{});}
+}
 
 // ══════════════════════════════════════════════════════════════════
 // ATRIBUIR DOCA RÁPIDO — direto no card do YARD sem abrir modal
