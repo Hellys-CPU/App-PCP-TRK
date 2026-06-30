@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v69</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v71</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -987,7 +987,7 @@ async function loadFromSupabase(forceFullLoad=false){
     if(!forceFullLoad&&_lastSyncAt&&ops.length>0){
       // ── SYNC DELTA: busca só o que mudou desde o último sync ──
       // Payload mínimo: ~1-5 KB vs ~1 MB do full load
-      const since=new Date(_lastSyncAt-2000).toISOString(); // -2s de margem
+      const since=new Date(_lastSyncAt-30000).toISOString(); // -30s de margem (tolera clock drift entre PCs)
       const changed=await sbFetch(`${TABELA}?updated_at=gte.${encodeURIComponent(since)}&order=updated_at.asc&limit=500`);
       if(!Array.isArray(changed)||changed.length===0){
         _lastSyncAt=Date.now();
@@ -1297,7 +1297,7 @@ async function bootApp(){
       const hadChanges=await loadFromSupabase();
       if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
     }catch(e){console.warn('sync:',e);}
-  },60000);
+  },45000); // 45s — equilibrio entre velocidade e consumo (Ably é o realtime principal)
   window._timerTick=setInterval(()=>{
     try{
       if(CFG.timer||CFG.countdown)renderPainel();
@@ -1546,9 +1546,31 @@ async function loadConfig(){
 
 // ── Helper: upsert configuração no Supabase ──
 async function _saveCfgSupabase(chave,valor){
-  if(!supabaseOK)return;
-  try{await sbUpsert('configuracoes',{chave,valor,updated_by:currentUser?.nome||'Sistema',updated_at:new Date().toISOString()});}
-  catch(e){console.error('_saveCfgSupabase:',chave,e);}
+  if(!supabaseOK)return false;
+  try{
+    // Upsert explícito usando on_conflict=chave (PK da tabela configuracoes)
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/configuracoes?on_conflict=chave`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_KEY,
+        'Authorization':`Bearer ${SUPABASE_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates,return=minimal'
+      },
+      body:JSON.stringify({chave,valor,updated_by:currentUser?.nome||'Sistema',updated_at:new Date().toISOString()})
+    });
+    if(!res.ok){
+      const txt=await res.text();
+      console.error('_saveCfgSupabase ERRO:',chave,res.status,txt);
+      showToast('⚠ Erro ao salvar '+chave+': '+res.status,'err');
+      return false;
+    }
+    return true;
+  }catch(e){
+    console.error('_saveCfgSupabase exceção:',chave,e);
+    showToast('⚠ Erro ao salvar '+chave,'err');
+    return false;
+  }
 }
 
 
@@ -4661,8 +4683,9 @@ function _subscribeAbly(){
 
 // Publica notificação no canal Ably
 function _publishAbly(event,data={}){
-  if(!_ablyOK||!_ablyChannel)return;
+  if(!_ablyChannel){console.warn('Ably não inicializado — usuário verá dados via sync de 20s');return;}
   try{
+    // publish funciona mesmo se conexão estiver oscilando — Ably faz queue
     _ablyChannel.publish(event,{...data,by:currentUser?.user||'',ts:Date.now()});
   }catch(e){console.warn('Ably publish error:',e);}
 }
