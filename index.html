@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v71</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v72</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1283,6 +1283,7 @@ async function bootApp(){
   try{await loadCAFs();}catch(e){console.error('boot loadCAFs:',e);}
   loading(false);
   // RENDERIZA IMEDIATAMENTE — antes de qualquer realtime/presença
+  _setFiltrosHoje(); // preenche filtros de data com hoje por padrão
   try{render();renderFUP();}catch(e){console.error('boot render:',e);}
   // Realtime e presença — não-bloqueantes, falhas não afetam a UI
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
@@ -2525,6 +2526,7 @@ document.addEventListener('keydown',e=>{
 // NAV
 // ══════════════════════════════════════════════════════════════════
 function setView(name){
+  _setFiltrosHoje(); // garante data de hoje nos filtros vazios
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.tab,.mnav-btn').forEach(b=>b.classList.remove('active'));
   const v=document.getElementById('view-'+name),nb=document.getElementById('tb-'+name),mn=document.getElementById('mn-'+name);
@@ -4798,6 +4800,18 @@ async function _rpcGerenciarUsuario(acao, dados){
     throw new Error(erros[r?.erro]||r?.erro||'Erro desconhecido');
   }
   return r;
+}
+
+
+// ── Define hoje como padrão em todos os filtros de data ──
+function _setFiltrosHoje(){
+  const hoje=new Date().toISOString().split('T')[0];
+  // Lista de IDs de filtros de data que existem nas views
+  const filtros=['fData','lFData','yardData','ffData','aDiaSel'];
+  filtros.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&!el.value)el.value=hoje;
+  });
 }
 
 loadTheme();
