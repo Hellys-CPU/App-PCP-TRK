@@ -459,7 +459,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 .pwa-install-bar.show{display:flex;}
 
 @media print{.topbar,.tabs,.toolbar,.btn,.ls,.mobile-nav,.pwa-install-bar{display:none!important;}body{background:#fff;}}
-.tv-wrap{background:var(--bg1,#0d1117);color:var(--text,#e6edf3);}
+.tv-wrap{background:var(--bg1);color:var(--text);min-height:100vh;}
+.tv-wrap *{scrollbar-color:var(--bd) var(--bg1);}
+.tv-card{background:var(--bg2)!important;color:var(--text)!important;border-color:var(--bd)!important;}
 .yard-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:13px;cursor:pointer;transition:.15s;box-shadow:var(--sh);}
 .yard-card:hover{border-color:var(--red);box-shadow:var(--sh2);transform:translateY(-1px);}
 #progGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px;}
@@ -500,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v79</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v80</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3668,14 +3670,14 @@ function renderTV(){
 
   // Mapa de status para posição na estrada (0=início, 4=fim)
   const statusPos={'PROG':0,'AGUCARR':0,'EMCARR':1,'TRAN':2,'AGUDESC':3,'FIN':4,'PERN':2,'CANC':null,'REC':null};
-  const statusCor={'PROG':'#6b7280','AGUCARR':'#f59e0b','EMCARR':'#f97316','TRAN':'#3b82f6','AGUDESC':'#8b5cf6','FIN':'#22c55e','PERN':'#f59e0b','CANC':'#374151','REC':'#374151'};
+  const statusCor={'PROG':'#6b7280','AGUCARR':'#f59e0b','EMCARR':'var(--orange)','TRAN':'#3b82f6','AGUDESC':'#8b5cf6','FIN':'#22c55e','PERN':'#f59e0b','CANC':'#374151','REC':'#374151'};
   const statusIcon={'PROG':'📋','AGUCARR':'⏳','EMCARR':'📦','TRAN':'🚛','AGUDESC':'🏭','FIN':'✅','PERN':'🌙','CANC':'❌','REC':'🚫'};
 
   // Gera a estrada SVG para uma rota
   function rotaEstrada(rota, d){
     if(!d.total)return'';
     const pct=Math.round(d.fin/d.total*100);
-    const corBorda=d.late>0?'#ff4444':d.tran>0?'#3b82f6':'#22c55e';
+    const corBorda=d.late>0?'var(--red)':d.tran>0?'#3b82f6':'#22c55e';
 
     // Estágios da estrada
     const estagios=[
@@ -3706,28 +3708,28 @@ function renderTV(){
           style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px;cursor:default">
           <div style="font-size:1.1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
           <div style="font-size:.45rem;color:${cor};font-weight:700;max-width:30px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.id.replace('OP-','')}</div>
-          ${atrasado?'<div style="font-size:.5rem;color:#ff4444">⚠</div>':''}
+          ${atrasado?'<div style="font-size:.5rem;color:var(--red)">⚠</div>':''}
           ${semProc?'<div style="font-size:.5rem;color:#f59e0b">📦</div>':''}
-          ${semBaixa?'<div style="font-size:.5rem;color:#ff4444">🔴</div>':''}
+          ${semBaixa?'<div style="font-size:.5rem;color:var(--red)">🔴</div>':''}
         </div>`;
       }).join('');
     }
 
-    return`<div style="background:#0d1117;border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
+    return`<div style="background:var(--bg1);border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
       <!-- Rota header -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:1rem;font-weight:800;color:#e6edf3">${rota}</div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text)">${rota}</div>
         <div style="display:flex;gap:10px;align-items:center">
-          <span style="font-size:.65rem;color:#8b949e">${d.total} viagem${d.total>1?'s':''}</span>
-          ${d.late?`<span style="font-size:.65rem;color:#ff4444;font-weight:700">⚠ ${d.late} atrasada${d.late>1?'s':''}</span>`:''}
-          <span style="font-size:.7rem;font-weight:700;color:${pct===100?'#56d364':pct>=50?'#e3b341':'#8b949e'}">${pct}%</span>
+          <span style="font-size:.65rem;color:var(--t2)">${d.total} viagem${d.total>1?'s':''}</span>
+          ${d.late?`<span style="font-size:.65rem;color:var(--red);font-weight:700">⚠ ${d.late} atrasada${d.late>1?'s':''}</span>`:''}
+          <span style="font-size:.7rem;font-weight:700;color:${pct===100?'var(--green)':pct>=50?'var(--yellow)':'var(--t2)'}">${pct}%</span>
         </div>
       </div>
 
       <!-- Estrada com caminhões -->
       <div style="position:relative;padding:8px 0">
         <!-- Trilho da estrada -->
-        <div style="position:absolute;top:50%;left:2%;right:2%;height:4px;background:#21262d;border-radius:2px;transform:translateY(-50%);z-index:0">
+        <div style="position:absolute;top:50%;left:2%;right:2%;height:4px;background:var(--bg3);border-radius:2px;transform:translateY(-50%);z-index:0">
           <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${corBorda}88,${corBorda});border-radius:2px;transition:width 1s"></div>
         </div>
 
@@ -3737,16 +3739,16 @@ function renderTV(){
             const posOps=porPosicao[i]||[];
             const ativo=posOps.length>0;
             const concluido=i<4&&(porPosicao[i+1]||[]).length>0||i===4&&posOps.length>0;
-            const cor=i===4?'#22c55e':i===3?'#8b5cf6':i===2?'#3b82f6':i===1?'#f97316':'#6b7280';
+            const cor=i===4?'#22c55e':i===3?'#8b5cf6':i===2?'#3b82f6':i===1?'var(--orange)':'#6b7280';
             return`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;flex:1">
               <!-- Ícone do estágio -->
-              <div style="background:${ativo?cor+'22':'#161b22'};border:2px solid ${ativo?cor:'#30363d'};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;transition:all .3s">${e.icon}</div>
+              <div style="background:${ativo?cor+'22':'var(--bg2)'};border:2px solid ${ativo?cor:'var(--bd)'};border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;transition:all .3s">${e.icon}</div>
               <!-- Caminhões nesta posição -->
               <div style="min-height:36px;display:flex;flex-wrap:wrap;justify-content:center;max-width:80px">
                 ${renderCaminhoes(posOps, i)}
               </div>
               <!-- Label do estágio -->
-              <div style="font-size:.5rem;color:${ativo?cor:'#484f58'};font-weight:${ativo?700:400};text-align:center;white-space:nowrap">${e.label}</div>
+              <div style="font-size:.5rem;color:${ativo?cor:'var(--t3)'};font-weight:${ativo?700:400};text-align:center;white-space:nowrap">${e.label}</div>
             </div>`;
           }).join('')}
         </div>
@@ -3761,19 +3763,19 @@ function renderTV(){
     <div style="display:flex;align-items:center;gap:12px">
       <div style="background:#cc0000;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🚛</div>
       <div>
-        <div style="font-size:1rem;font-weight:800;color:#e6edf3">TRK PCP 2026 <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
-        <div style="font-size:.7rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text)">TRK PCP 2026 <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
+        <div style="font-size:.7rem;color:var(--t2);text-transform:capitalize">${dataFmt}</div>
       </div>
     </div>
     <div style="text-align:right">
-      <div id="tv-clock" style="font-size:2.2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums;letter-spacing:2px">
+      <div id="tv-clock" style="font-size:2.2rem;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums;letter-spacing:2px">
         ${new Date().toLocaleTimeString('pt-BR')}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <input type="date" id="tv-day-filter" value="${hoje}"
         onchange="renderTV()"
-        style="background:#161b22;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 8px;font-size:.68rem;outline:none"/>
-      <button onclick="exitTV()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.68rem">✕ Sair</button>
+        style="background:var(--bg2);border:1px solid var(--bd);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:.68rem;outline:none"/>
+      <button onclick="exitTV()" style="background:none;border:1px solid var(--bd);color:var(--t2);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.68rem">✕ Sair</button>
     </div>
     </div>
   </div>
@@ -3781,29 +3783,29 @@ function renderTV(){
   <!-- KPIs -->
   <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px">
     ${[
-      {v:total,l:'Total',c:'#e6edf3'},
+      {v:total,l:'Total',c:'var(--text)'},
       {v:prog,l:'Aguardando',c:'#9ca3af'},
-      {v:tran,l:'Em Trânsito',c:'#58a6ff'},
+      {v:tran,l:'Em Trânsito',c:'var(--blue)'},
       {v:aguDesc,l:'Ag. Descarga',c:'#bc8cff'},
-      {v:fin,l:'Finalizadas',c:'#56d364'},
-      {v:atrasadas,l:'⚠ Atrasadas',c:'#ff4444'},
-    ].map(k=>`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;text-align:center">
+      {v:fin,l:'Finalizadas',c:'var(--green)'},
+      {v:atrasadas,l:'⚠ Atrasadas',c:'var(--red)'},
+    ].map(k=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px;text-align:center">
       <div style="font-size:2rem;font-weight:800;color:${k.c};line-height:1">${k.v}</div>
-      <div style="font-size:.58rem;color:#8b949e;margin-top:3px;text-transform:uppercase;letter-spacing:.4px">${k.l}</div>
+      <div style="font-size:.58rem;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">${k.l}</div>
     </div>`).join('')}
   </div>
 
   <!-- SLA + CAF alert -->
   <div style="display:grid;grid-template-columns:1fr ${cafAlert?'auto':'0px'};gap:${cafAlert?'10px':'0'};margin-bottom:12px;align-items:center">
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px">
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:.75rem;color:#8b949e;font-weight:600">SLA DO DIA</span>
-        <span style="font-size:1.4rem;font-weight:800;color:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'}">${taxaSLA}%</span>
+        <span style="font-size:.75rem;color:var(--t2);font-weight:600">SLA DO DIA</span>
+        <span style="font-size:1.4rem;font-weight:800;color:${taxaSLA>=92?'var(--green)':taxaSLA>=85?'var(--yellow)':'var(--red)'}">${taxaSLA}%</span>
       </div>
-      <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
-        <div style="height:100%;width:${taxaSLA}%;background:${taxaSLA>=92?'#56d364':taxaSLA>=85?'#e3b341':'#ff4444'};border-radius:4px;transition:width .5s"></div>
+      <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
+        <div style="height:100%;width:${taxaSLA}%;background:${taxaSLA>=92?'var(--green)':taxaSLA>=85?'var(--yellow)':'var(--red)'};border-radius:4px;transition:width .5s"></div>
       </div>
-      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Meta: ≥ 92% · ${slaOk} no prazo · ${total} total</div>
+      <div style="font-size:.6rem;color:var(--t2);margin-top:4px">Meta: ≥ 92% · ${slaOk} no prazo · ${total} total</div>
     </div>
     ${cafAlert?`<div style="background:#2b1800;border:2px solid #f0883e;border-radius:10px;padding:10px 14px;text-align:center">
       <div style="font-size:1.6rem;font-weight:800;color:#f0883e">${cafAlert}</div>
@@ -3822,26 +3824,26 @@ function renderTV(){
     const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
     const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
     const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
-    const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
-    const palCor=palPct>=90?'#ff4444':palPct>=70?'#e3b341':'#56d364';
-    return`<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:12px">
-      <div style="font-size:.65rem;color:#8b949e;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏭 Ocupação de Piso</div>
+    const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
+    const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
+    return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:12px">
+      <div style="font-size:.65rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏭 Ocupação de Piso</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div>
           <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
-            <span style="color:#8b949e">CAFs no Pátio</span>
+            <span style="color:var(--t2)">CAFs no Pátio</span>
             <span style="font-weight:800;color:${cafCor}">${cafCount}/${CAF_MAX} ${cafPct>=90?'🔴':cafPct>=70?'⚠️':''}</span>
           </div>
-          <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
             <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .5s"></div>
           </div>
         </div>
         <div>
           <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
-            <span style="color:#8b949e">Pallets</span>
+            <span style="color:var(--t2)">Pallets</span>
             <span style="font-weight:800;color:${palCor}">${palCount}/${PAL_MAX} ${palPct>=90?'🔴':palPct>=70?'⚠️':''}</span>
           </div>
-          <div style="background:#21262d;border-radius:4px;height:10px;overflow:hidden">
+          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
             <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .5s"></div>
           </div>
         </div>
@@ -3851,9 +3853,9 @@ function renderTV(){
 
   <!-- ESTRADAS POR ROTA -->
   <div style="margin-top:4px">
-    <div style="font-size:.65rem;color:#484f58;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+    <div style="font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
       <span>📍 Posição das viagens por rota</span>
-      <span style="color:#30363d">·</span>
+      <span style="color:var(--bd)">·</span>
       <span>🚛 Em trânsito</span>
       <span>⚠ Atrasado</span>
       <span>📦 CAF s/ processo</span>
@@ -4255,8 +4257,8 @@ function renderTVYard(){
   const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
-  const cafCor=cafPct>=90?'#ff4444':cafPct>=70?'#e3b341':'#56d364';
-  const palCor=palPct>=90?'#ff4444':palPct>=70?'#e3b341':'#56d364';
+  const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
+  const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
 
   el.innerHTML=`
 <div class="tv-wrap" style="min-height:100vh;padding:16px;font-family:'Segoe UI',sans-serif;">
@@ -4265,48 +4267,48 @@ function renderTVYard(){
     <div style="display:flex;align-items:center;gap:12px">
       <div style="background:#cc0000;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">🏭</div>
       <div>
-        <div style="font-size:1rem;font-weight:800;color:#e6edf3">YARD — Pátio de Carregamento <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
-        <div style="font-size:.7rem;color:#8b949e;text-transform:capitalize">${dataFmt}</div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text)">YARD — Pátio de Carregamento <span style="font-size:.65rem;background:#cc0000;padding:2px 6px;border-radius:4px">LIVE</span></div>
+        <div style="font-size:.7rem;color:var(--t2);text-transform:capitalize">${dataFmt}</div>
       </div>
     </div>
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-      <div id="tv-yard-clock" style="font-size:2rem;font-weight:800;color:#58a6ff;font-variant-numeric:tabular-nums">${new Date().toLocaleTimeString('pt-BR')}</div>
+      <div id="tv-yard-clock" style="font-size:2rem;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums">${new Date().toLocaleTimeString('pt-BR')}</div>
       <div style="display:flex;gap:6px">
-        <input type="date" id="tv-yard-day" value="${yDt}" onchange="renderTVYard()" style="background:#161b22;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 8px;font-size:.65rem;outline:none"/>
-        <button onclick="exitTVYard()" style="background:none;border:1px solid #30363d;color:#8b949e;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.65rem">✕ Sair</button>
+        <input type="date" id="tv-yard-day" value="${yDt}" onchange="renderTVYard()" style="background:var(--bg2);border:1px solid var(--bd);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:.65rem;outline:none"/>
+        <button onclick="exitTVYard()" style="background:none;border:1px solid var(--bd);color:var(--t2);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.65rem">✕ Sair</button>
       </div>
     </div>
   </div>
 
   <!-- Ocupação de Piso KPI -->
   <div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:12px;margin-bottom:14px;align-items:center">
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px 16px;text-align:center">
-      <div style="font-size:2rem;font-weight:800;color:#e6edf3">${opsYard.length}</div>
-      <div style="font-size:.6rem;color:#8b949e;text-transform:uppercase">No Pátio</div>
+    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:var(--text)">${opsYard.length}</div>
+      <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase">No Pátio</div>
     </div>
-    <div style="background:#161b22;border:1px solid ${cafCor}44;border-radius:10px;padding:12px 16px">
+    <div style="background:var(--bg2);border:1px solid ${cafCor}44;border-radius:10px;padding:12px 16px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:.75rem;color:#8b949e;font-weight:600">📦 CAFs no Piso</span>
+        <span style="font-size:.75rem;color:var(--t2);font-weight:600">📦 CAFs no Piso</span>
         <span style="font-size:1.4rem;font-weight:800;color:${cafCor}">${cafCount}/${CAF_MAX} ${cafPct>=90?'🔴':cafPct>=70?'⚠️':''}</span>
       </div>
-      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+      <div style="background:var(--bg3);border-radius:4px;height:12px;overflow:hidden">
         <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .5s"></div>
       </div>
-      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Capacidade: ${CAF_MAX} CAFs · ${cafPct}% ocupado</div>
+      <div style="font-size:.6rem;color:var(--t2);margin-top:4px">Capacidade: ${CAF_MAX} CAFs · ${cafPct}% ocupado</div>
     </div>
-    <div style="background:#161b22;border:1px solid ${palCor}44;border-radius:10px;padding:12px 16px">
+    <div style="background:var(--bg2);border:1px solid ${palCor}44;border-radius:10px;padding:12px 16px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:.75rem;color:#8b949e;font-weight:600">🔲 Pallets</span>
+        <span style="font-size:.75rem;color:var(--t2);font-weight:600">🔲 Pallets</span>
         <span style="font-size:1.4rem;font-weight:800;color:${palCor}">${palCount}/${PAL_MAX} ${palPct>=90?'🔴':palPct>=70?'⚠️':''}</span>
       </div>
-      <div style="background:#21262d;border-radius:4px;height:12px;overflow:hidden">
+      <div style="background:var(--bg3);border-radius:4px;height:12px;overflow:hidden">
         <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .5s"></div>
       </div>
-      <div style="font-size:.6rem;color:#8b949e;margin-top:4px">Capacidade: ${PAL_MAX} pallets · ${palPct}% ocupado</div>
+      <div style="font-size:.6rem;color:var(--t2);margin-top:4px">Capacidade: ${PAL_MAX} pallets · ${palPct}% ocupado</div>
     </div>
-    ${cafPct>=90||palPct>=90?`<div style="background:#2b1800;border:2px solid #ff4444;border-radius:10px;padding:12px 14px;text-align:center;animation:pulse 1.5s infinite">
+    ${cafPct>=90||palPct>=90?`<div style="background:#2b1800;border:2px solid var(--red);border-radius:10px;padding:12px 14px;text-align:center;animation:pulse 1.5s infinite">
       <div style="font-size:1.8rem">🔴</div>
-      <div style="font-size:.65rem;color:#ff4444;font-weight:700;margin-top:4px">PISO<br>CRÍTICO</div>
+      <div style="font-size:.65rem;color:var(--red);font-weight:700;margin-top:4px">PISO<br>CRÍTICO</div>
     </div>`:''}
   </div>
 
@@ -4317,50 +4319,50 @@ function renderTVYard(){
       const cafsSemProc=cafsDaOp.filter(c=>!['processo','entregue','fechada'].includes(c.status));
       const agora=new Date();
       const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
-      const stCors={PROG:'#6b7280',AGUCARR:'#e3b341',EMCARR:'#f97316'};
-      const cor=passou?'#ff4444':stCors[op.status]||'#6b7280';
+      const stCors={PROG:'#6b7280',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)'};
+      const cor=passou?'var(--red)':stCors[op.status]||'#6b7280';
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
       const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
-      return`<div style="background:#161b22;border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
+      return`<div style="background:var(--bg2);border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div>
-            <div style="font-size:1rem;font-weight:800;color:#e6edf3">${esc(op.id)}</div>
-            <div style="font-size:.7rem;color:#8b949e;margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)}</div>
+            <div style="font-size:1rem;font-weight:800;color:var(--text)">${esc(op.id)}</div>
+            <div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)}</div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:1.4rem;font-weight:800;color:${passou?'#ff4444':'#58a6ff'}">${op.planSaida||'—'}</div>
-            <div style="font-size:.58rem;color:${passou?'#ff4444':'#8b949e'}">${passou?'⚠ PASSOU!':'Saída planejada'}</div>
+            <div style="font-size:1.4rem;font-weight:800;color:${passou?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+            <div style="font-size:.58rem;color:${passou?'var(--red)':'var(--t2)'}">${passou?'⚠ PASSOU!':'Saída planejada'}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:.72rem">
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.mot)||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.transp)||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:#e6edf3">${esc(op.placa)||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Saída Plan.</div><div style="font-weight:800;font-size:.85rem;color:#58a6ff">${op.planSaida||'—'}</div></div>
+          <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.mot)||'—'}</div></div>
+          <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.transp)||'—'}</div></div>
+          <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:var(--text)">${esc(op.placa)||'—'}</div></div>
+          <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Saída Plan.</div><div style="font-weight:800;font-size:.85rem;color:var(--blue)">${op.planSaida||'—'}</div></div>
         </div>
         <!-- Doca na TV Yard -->
         <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
-          <span style="color:#484f58;font-size:.58rem;text-transform:uppercase">🚪 Doca</span>
-          <span style="font-weight:800;font-size:.85rem;color:${op.doca?'#56d364':'#484f58'};background:${op.doca?'rgba(34,197,94,.15)':'#161b22'};border-radius:4px;padding:2px 10px">${op.doca||'Não vinculada'}</span>
-          ${!op.doca&&op.status==='EMCARR'?'<span style="font-size:.65rem;color:#ff4444;font-weight:700;animation:pulse 1.5s infinite">⚠ Atribuir doca!</span>':''}
+          <span style="color:var(--t3);font-size:.58rem;text-transform:uppercase">🚪 Doca</span>
+          <span style="font-weight:800;font-size:.85rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'rgba(34,197,94,.15)':'var(--bg2)'};border-radius:4px;padding:2px 10px">${op.doca||'Não vinculada'}</span>
+          ${!op.doca&&op.status==='EMCARR'?'<span style="font-size:.65rem;color:var(--red);font-weight:700;animation:pulse 1.5s infinite">⚠ Atribuir doca!</span>':''}
         </div>
         <!-- CAFs -->
-        <div style="border-top:1px solid #21262d;padding-top:8px">
+        <div style="border-top:1px solid var(--bg3);padding-top:8px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:.6rem;color:#484f58;text-transform:uppercase;font-weight:700">📦 CAFs (${cafsDaOp.length})</span>
-            ${volTotal?`<span style="font-size:.58rem;color:#484f58">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+            <span style="font-size:.6rem;color:var(--t3);text-transform:uppercase;font-weight:700">📦 CAFs (${cafsDaOp.length})</span>
+            ${volTotal?`<span style="font-size:.58rem;color:var(--t3)">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
-              const cor2=c.status==='aberta'?'#58a6ff':c.status==='vinculada'?'#bc8cff':c.status==='processo'?'#56d364':'#484f58';
+              const cor2=c.status==='aberta'?'var(--blue)':c.status==='vinculada'?'#bc8cff':c.status==='processo'?'var(--green)':'var(--t3)';
               const alerta=!['processo','entregue','fechada'].includes(c.status);
               return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${esc(c.num)}</span>`;
             }).join('')}
-          </div>`:'<span style="font-size:.65rem;color:#484f58;font-style:italic">Sem CAFs vinculadas</span>'}
+          </div>`:'<span style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</span>'}
           ${cafsSemProc.length?`<div style="margin-top:5px;background:#2b1800;border:1px solid #f0883e;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#f0883e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem proc. entrega</div>`:''}
         </div>
       </div>`;
-    }).join(''):`<div style="color:#484f58;text-align:center;padding:40px;grid-column:1/-1;font-size:.9rem">🏭 Pátio vazio para ${dataFmt}</div>`}
+    }).join(''):`<div style="color:var(--t3);text-align:center;padding:40px;grid-column:1/-1;font-size:.9rem">🏭 Pátio vazio para ${dataFmt}</div>`}
   </div>
 </div>`;
   _startTVYardClock();
