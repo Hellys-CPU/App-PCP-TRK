@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v78</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v79</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -936,6 +936,33 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 // ══════════════════════════════════════════════════════════════════
 // SUPABASE
 // ══════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────
+// SANITIZAÇÃO XSS - Funções obrigatórias para todo dado
+// que venha do usuário e seja inserido via innerHTML
+// ─────────────────────────────────────────────────────
+function esc(s){
+  if(s===null||s===undefined)return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;')
+    .replace(/`/g,'&#96;');
+}
+// Escapa para uso em atributos (ainda mais restritivo)
+function escAttr(s){
+  if(s===null||s===undefined)return '';
+  return String(s).replace(/[^\w\s.,\-@]/g,c=>'&#'+c.charCodeAt(0)+';');
+}
+// Sanitiza URL - previne javascript: e data: URIs
+function escUrl(s){
+  if(s===null||s===undefined)return '#';
+  const url=String(s).trim();
+  if(/^(javascript|data|vbscript|file):/i.test(url))return '#';
+  return esc(url);
+}
+
 const APP_VERSION='v67';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
@@ -1380,7 +1407,7 @@ async function doLogout(){
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
   const pbCls={ADMIN:'pb-admin',OPERADOR:'pb-op',VISUALIZADOR:'pb-vis'};
-  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${u.perfil}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
+  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
 }
 
 function openNewUser(){
