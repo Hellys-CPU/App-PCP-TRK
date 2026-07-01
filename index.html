@@ -500,7 +500,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v72</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v78</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1072,7 +1072,25 @@ async function saveToSupabase(op){
   }
 }
 
-async function deleteFromSupabase(id){if(!supabaseOK)return;try{await sbDelete(TABELA,'id',id);}catch(e){console.error(e);}}
+async function deleteFromSupabase(id){
+  if(!supabaseOK)return;
+  if(!currentUser?._token){
+    showToast('Sessão inválida para deletar','err');
+    return;
+  }
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/deletar_operacao`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:currentUser._token,p_op_id:id})
+    });
+    const r=await res.json();
+    if(!r||!r.ok){
+      showToast('Erro ao deletar: '+(r?.erro||'desconhecido'),'err');
+      throw new Error(r?.erro||'delete failed');
+    }
+  }catch(e){console.error('deleteFromSupabase:',e);throw e;}
+}
 
 async function saveOp(op){
   if(supabaseOK){
@@ -1114,14 +1132,14 @@ async function renderOnlineFromDB(){
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
     const pgL={painel:'Painel',lista:'Lista',prog:'D-1',massa:'Massa',fup:'FUP FC',admin:'Admin'};
-    el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${u.nome} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
+    el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
 function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');o[currentUser.user]={nome:currentUser.nome,av:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,ts:Date.now(),pg:curPage||'painel'};localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'D-1',massa:'Massa',fup:'FUP FC',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${u.nome}"><div class="ob-av" style="background:${u.cor};position:relative">${u.av}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'D-1',massa:'Massa',fup:'FUP FC',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1205,19 +1223,27 @@ async function syncUsersToSupabase(){
 async function initAuth(){
   await checkSupabase();
   await loadUsers();
+  // Valida sessão NO SUPABASE (fonte de verdade) - localStorage só guarda o token
   try{
     const raw=localStorage.getItem('trk_sess');
-    if(raw){
+    if(raw&&supabaseOK){
       const s=JSON.parse(raw);
-      // Aceita sessões antigas sem token (compatibilidade) e sessões novas com token
-      const validTime=s.user&&s.ts&&(Date.now()-s.ts<8*3600*1000);
-      if(validTime){
-        const u=USERS.find(x=>x.user===s.user);
-        if(u){currentUser=u;await bootApp();return;}
+      if(s.token){
+        const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/validar_sessao`,{
+          method:'POST',
+          headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+          body:JSON.stringify({p_token:s.token})
+        });
+        const r=await res.json();
+        if(r&&r.ok){
+          currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:s.token};
+          await bootApp();
+          return;
+        }
       }
       localStorage.removeItem('trk_sess');
     }
-  }catch(e){localStorage.removeItem('trk_sess');}
+  }catch(e){console.warn('initAuth:',e);localStorage.removeItem('trk_sess');}
   const el=document.getElementById('lConn');
   el.textContent=supabaseOK?'✓ Banco compartilhado conectado':'⚠ Modo offline (dados locais)';
   el.className='lconn '+(supabaseOK?'ok':'err');
@@ -1235,6 +1261,7 @@ async function doLogin(){
   const hash=await h256(pass);
 
   // Login validado 100% no servidor via RPC (rate limit + bcrypt server-side)
+  // Servidor retorna TOKEN — armazenado no Supabase (auth_tokens), localStorage só guarda o token
   if(supabaseOK){
     try{
       const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
@@ -1244,9 +1271,9 @@ async function doLogin(){
       });
       const r=await res.json();
       if(r&&r.ok){
-        currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_h:hash};
-        const _st=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
-        localStorage.setItem('trk_sess',JSON.stringify({user:r.usuario,ts:Date.now(),token:_st}));
+        currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:r.token};
+        // Salva APENAS o token no localStorage — sessão de verdade fica no Supabase (auth_tokens)
+        localStorage.setItem('trk_sess',JSON.stringify({token:r.token}));
         await bootApp();
         return;
       }
@@ -1307,13 +1334,40 @@ async function bootApp(){
     }catch(e){console.warn('timerTick:',e);}
   },60000);
   setTimeout(()=>{if(cafsDB.length){try{checkCAFsVencendo();checkCAFsSemBaixa();}catch(e){}}},5000);
+  // Revalida token a cada 5 min — estende sessão automaticamente (rolling 7 days)
+  window._tokenRefresh=setInterval(async()=>{
+    if(!currentUser?._token||!supabaseOK)return;
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/validar_sessao`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({p_token:currentUser._token})
+      });
+      const r=await res.json();
+      if(r&&!r.ok){
+        // Token foi revogado em outro dispositivo ou expirou
+        showToast('⚠ Sua sessão foi encerrada','err');
+        setTimeout(()=>{localStorage.removeItem('trk_sess');location.reload();},2000);
+      }
+    }catch(e){console.warn('tokenRefresh:',e);}
+  },5*60*1000);
 }
 
 async function doLogout(){
   if(!confirm('Deseja sair?'))return;
+  // Revoga token no servidor (invalida sessão para sempre)
+  try{
+    if(currentUser?._token&&supabaseOK){
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/revogar_sessao`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({p_token:currentUser._token})
+      });
+    }
+  }catch(e){console.warn('revoke token:',e);}
   await unpingOnlineDB();
   localStorage.removeItem('trk_sess');currentUser=null;
-  clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);
+  clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);clearInterval(window._tokenRefresh);
   if(_ablyChannel){try{_ablyChannel.presence.leave();}catch(e){}}
   if(_ably){try{_ably.connection.close();}catch(e){}}
   if(realtimeWS)realtimeWS.close();
@@ -1326,7 +1380,7 @@ async function doLogout(){
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
   const pbCls={ADMIN:'pb-admin',OPERADOR:'pb-op',VISUALIZADOR:'pb-vis'};
-  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${u.av}</div><div><div class="user-name">${u.nome}</div><div class="user-user">@${u.user}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${u.perfil}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${u.user}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${u.user}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
+  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${u.perfil}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
 }
 
 function openNewUser(){
@@ -1391,9 +1445,14 @@ async function confirmarEditUser(oldUsername){
       novo_login:novoLogin!==oldUsername?novoLogin:null
     });
     u.nome=nome;u.av=av;u.perfil=perfil;
-    if(novoLogin!==oldUsername)u.user=novoLogin;
+    const trocouLogin=novoLogin!==oldUsername;
+    if(trocouLogin)u.user=novoLogin;
     saveUsersLocal();
-    showToast('✅ @'+novoLogin+' atualizado!','ok');
+    if(trocouLogin){
+      showToast('✅ Login alterado para @'+novoLogin+'. O usuário precisará fazer login novamente.','ok');
+    }else{
+      showToast('✅ @'+novoLogin+' atualizado!','ok');
+    }
     addActivityLog('Usuário @'+oldUsername+' editado por '+currentUser?.nome);
     _publishAbly('cfg_update',{});
     document.getElementById('_editUserModal')?.remove();
@@ -1708,18 +1767,18 @@ function cardHTML(op){
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
   const lim=CFG.limiteAtraso||30;
   const rc=CFG.alertas?(dC>lim||dS>lim?'r-late':dC>0||dS>0?'r-warn':''):'';
-  return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${op.id}')" onclick="openEdit('${op.id}')">
-    <div class="card-top"><span class="card-id">${op.id}${op.sm?' · '+op.sm:''}</span><span class="card-rota-badge">${op.rota}</span></div>
+  return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
+    <div class="card-top"><span class="card-id">${esc(op.id)}${op.sm?' · '+op.sm:''}</span><span class="card-rota-badge">${esc(op.rota)}</span></div>
     <div class="card-badges">
-      <span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span>
+      <span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span>
       ${op.cafs.length?`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd)">${op.cafs.length} CAF${op.cafs.length>1?'s':''}</span>`:''}
       ${_cafAlertBadge(op)}
     </div>
     <div class="ci">
-      <div class="row"><span class="lbl">Transp.</span><span class="val">${op.transp||'—'}</span></div>
-      <div class="row"><span class="lbl">Motorista</span><span class="val">${op.mot||'—'}</span></div>
-      <div class="row"><span class="lbl">Placa</span><span class="val">${op.placa||'—'}</span></div>
-      ${op.tms?`<div class="row"><span class="lbl">TMS</span><span class="val">${op.tms}</span></div>`:''}
+      <div class="row"><span class="lbl">Transp.</span><span class="val">${esc(op.transp)||'—'}</span></div>
+      <div class="row"><span class="lbl">Motorista</span><span class="val">${esc(op.mot)||'—'}</span></div>
+      <div class="row"><span class="lbl">Placa</span><span class="val">${esc(op.placa)||'—'}</span></div>
+      ${op.tms?`<div class="row"><span class="lbl">TMS</span><span class="val">${esc(op.tms)}</span></div>`:''}
     </div>
     <div class="ct">
       <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}</div></div>
@@ -1791,11 +1850,11 @@ function renderList(){
   document.getElementById('listBody').innerHTML=data.map(op=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
     const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
-    return `<tr onclick="openEdit('${op.id}')">
-      <td style="color:var(--red);font-weight:700">${op.id}</td><td>${fmtD(op.dataOp)}</td>
-      <td><span class="rota-cell">${op.rota}</span></td>
-      <td><span class="badge ${tCls(op.tipoCarga)}">${op.tipoCarga}</span></td>
-      <td>${op.transp}</td><td>${op.mot}</td><td><strong>${op.placa}</strong></td>
+    return `<tr onclick="openEdit('${esc(op.id)}')">
+      <td style="color:var(--red);font-weight:700">${esc(op.id)}</td><td>${fmtD(op.dataOp)}</td>
+      <td><span class="rota-cell">${esc(op.rota)}</span></td>
+      <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
+      <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
       <td style="color:var(--t2)">${op.sm||'—'}</td><td style="color:var(--t2)">${op.tms||'—'}</td>
       <td>${op.planSaida||'—'}</td><td style="color:${dc(dS)}">${toTime(op.realSaida)||'—'}</td>
       <td>${op.planChegFC||'—'}</td><td style="color:${dc(dC)}">${toTime(op.realChegFC)||'—'}</td>
@@ -1906,12 +1965,12 @@ function renderProg(){
         return agoraTm>limDt;
       })();
 
-      return `<div class="yard-card" onclick="openEdit('${op.id}')">
+      return `<div class="yard-card" onclick="openEdit('${esc(op.id)}')">
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:.9rem;font-weight:800;color:var(--red);cursor:pointer" onclick="openEdit('${op.id}')">${op.id}</div>
-            <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${op.rota} · ${op.tipoCarga} · ${op.transp||'—'}</div>
+            <div style="font-size:.9rem;font-weight:800;color:var(--red);cursor:pointer" onclick="openEdit('${esc(op.id)}')">${esc(op.id)}</div>
+            <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)} · ${esc(op.transp)||'—'}</div>
           </div>
           <span style="background:${stCor}22;color:${stCor};border:1px solid ${stCor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${stObj(op.status).lb}</span>
         </div>
@@ -1920,12 +1979,12 @@ function renderProg(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
           <div>
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
-            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${op.placa||'—'}</div>
-            ${op.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${op.placaCarreta}</div>`:''}
+            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(op.placa)||'—'}</div>
+            ${op.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${esc(op.placaCarreta)}</div>`:''}
           </div>
           <div>
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
-            <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.mot||'—'}</div>
+            <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.mot)||'—'}</div>
           </div>
         </div>
 
@@ -1946,7 +2005,7 @@ function renderProg(){
         <div style="margin-bottom:8px">
           <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">🚪 Doca</div>
           ${op.status==='EMCARR'&&currentUser?.perfil!=='VISUALIZADOR'?`
-            <select onchange="atribuirDocaRapido('${op.id}',this.value)" onclick="event.stopPropagation()"
+            <select onchange="atribuirDocaRapido('${esc(op.id)}',this.value)" onclick="event.stopPropagation()"
               style="background:var(--bg2);border:1.5px solid ${op.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
               <option value="">— selecione a doca —</option>
               ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
@@ -1972,9 +2031,9 @@ function renderProg(){
             ${cafsDaOp.map(c=>{
               const cor=c.status==='aberta'?'var(--t3)':c.status==='vinculada'?'var(--green)':c.status==='fechada'?'var(--orange)':c.status==='processo'?'var(--blue)':'var(--t3)';
               const bg=c.status==='aberta'?'var(--bg4)':c.status==='vinculada'?'var(--green2)':c.status==='fechada'?'rgba(249,115,22,.1)':c.status==='processo'?'var(--blue2)':'var(--bg4)';
-              return`<div title="${c.num} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal."
+              return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal."
                 style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700">
-                ${c.num}
+                ${esc(c.num)}
               </div>`;
             }).join('')}
           </div>`:`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
@@ -2016,11 +2075,11 @@ function fupRowCls(op){const s=getSLA(op);if(op.status==='CANC')return'fr-canc';
 function fupRow(op){
   const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC);
   const slaCell=sla==='ok'?'<span class="sla-ok">✔ No Prazo</span>':sla==='late'?'<span class="sla-late">✘ Atraso</span>':'<span class="sla-nd">—</span>';
-  return `<tr class="${fupRowCls(op)}" onclick="openEdit('${op.id}')" style="cursor:pointer">
-    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${op.id}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${op.sm}</div>`:''}</td>
-    <td><span class="rota-cell">${op.rota}</span></td>
-    <td>${op.transp}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${op.mot}</td>
-    <td><strong>${op.placa}</strong></td>
+  return `<tr class="${fupRowCls(op)}" onclick="openEdit('${esc(op.id)}')" style="cursor:pointer">
+    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}</td>
+    <td><span class="rota-cell">${esc(op.rota)}</span></td>
+    <td>${esc(op.transp)}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${esc(op.mot)}</td>
+    <td><strong>${esc(op.placa)}</strong></td>
     <td class="center">${tpFUP(op.planApres,op.realApres,op.dataOp)}</td>
     <td class="center">${tpFUP(op.planSaida,op.realSaida,op.dataOp)}</td>
     <td class="center">${tpFUP(op.planChegFC,op.realChegFC,op.dataOp)}</td>
@@ -2072,7 +2131,7 @@ async function onDrop(e,sid){
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
     op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
-    addActivityLog(`${op.id}: ${p} → ${stObj(sid).lb}`);
+    addActivityLog(`${esc(op.id)}: ${p} → ${stObj(sid).lb}`);
     render();renderFUP();
     try{
       await saveOp(op);
@@ -2110,7 +2169,7 @@ async function deletarCard(){
 function duplicarCard(){
   if(!editId)return;const op=ops.find(o=>o.id===editId);if(!op)return;
   closeModal();
-  const novo={...JSON.parse(JSON.stringify(op)),id:genId(),status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',hist:[{t:ts(),txt:`[${currentUser?.nome||'Usuário'}] Duplicado de ${op.id}`}],updatedAt:ts(),updatedBy:currentUser?.nome||'Usuário'};
+  const novo={...JSON.parse(JSON.stringify(op)),id:genId(),status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',hist:[{t:ts(),txt:`[${currentUser?.nome||'Usuário'}] Duplicado de ${esc(op.id)}`}],updatedAt:ts(),updatedBy:currentUser?.nome||'Usuário'};
   editId=null;
   document.getElementById('mTitle').textContent='Nova Operação (duplicada)';
   document.getElementById('btnDeletar').style.display='none';
@@ -2124,18 +2183,18 @@ function imprimirCard(){
   const op=ops.find(o=>o.id===editId);if(!op)return;
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
   const win=window.open('','_blank','width=600,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Operação ${op.id}</title>
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Operação ${esc(op.id)}</title>
   <style>body{font-family:'Segoe UI',sans-serif;padding:20px;font-size:12px;}h1{color:#cc0000;font-size:16px;margin-bottom:4px;}h2{font-size:11px;color:#666;margin-bottom:16px;font-weight:400;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#f0f0f0;padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#666;}td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;}.ok{color:#16a34a;font-weight:700;}.late{color:#cc0000;font-weight:700;}.nd{color:#999;}@media print{body{padding:10px;}}</style>
   </head><body>
-  <h1>🚛 Operação ${op.id}</h1>
-  <h2>${op.rota} · ${op.tipoCarga} · ${fmtD(op.dataOp)}</h2>
+  <h1>🚛 Operação ${esc(op.id)}</h1>
+  <h2>${esc(op.rota)} · ${esc(op.tipoCarga)} · ${fmtD(op.dataOp)}</h2>
   <table><tr><th colspan="2">Identificação</th></tr>
   <tr><td>SM</td><td>${op.sm||'—'}</td></tr>
   <tr><td>TMS</td><td>${op.tms||'—'}</td></tr>
   <tr><td>ISA</td><td>${op.isa||'—'}</td></tr>
-  <tr><td>Transportadora</td><td>${op.transp||'—'}</td></tr>
-  <tr><td>Motorista</td><td>${op.mot||'—'}</td></tr>
-  <tr><td>Placa</td><td>${op.placa||'—'}${op.placaCarreta?' / '+op.placaCarreta:''}</td></tr>
+  <tr><td>Transportadora</td><td>${esc(op.transp)||'—'}</td></tr>
+  <tr><td>Motorista</td><td>${esc(op.mot)||'—'}</td></tr>
+  <tr><td>Placa</td><td>${esc(op.placa)||'—'}${op.placaCarreta?' / '+op.placaCarreta:''}</td></tr>
   </table>
   <table><tr><th>Horário</th><th>Planejado</th><th>Realizado</th><th>Δ</th></tr>
   <tr><td>Apresentação</td><td>${op.planApres||'—'}</td><td>${op.realApres||'—'}</td><td class="${dMin(op.planApres,op.realApres)>0?'late':dMin(op.planApres,op.realApres)<0?'ok':'nd'}">${fDiff(dMin(op.planApres,op.realApres))}</td></tr>
@@ -2146,7 +2205,7 @@ function imprimirCard(){
   <table><tr><th colspan="2">Status</th></tr>
   <tr><td>Status Atual</td><td>${stObj(op.status).lb}</td></tr>
   <tr><td>SLA</td><td class="${getSLA(op)==='ok'?'ok':getSLA(op)==='late'?'late':'nd'}">${getSLA(op)==='ok'?'✔ No Prazo':getSLA(op)==='late'?'✘ Atrasado':'—'}</td></tr>
-  <tr><td>Obs.</td><td>${op.obs||'—'}</td></tr>
+  <tr><td>Obs.</td><td>${esc(op.obs)||'—'}</td></tr>
   </table>
   <div style="font-size:9px;color:#999;margin-top:12px">Impresso em ${ts()} por ${currentUser?.nome||'—'}</div>
   <script>window.print();window.onafterprint=()=>window.close();<\/script>
@@ -2245,7 +2304,7 @@ function buildForm(op){
       <label>CAF disponível</label>
       <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
         <option value="">— selecione uma CAF —</option>
-        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='vinculada'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${c.num}|${c.tipo}|${c.vol}">${c.num} · ${c.tipo} · ${c.vol} un · ${c.rota}</option>`).join('')}
+        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='vinculada'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
       </select>
     </div>
     <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
@@ -2258,7 +2317,7 @@ function buildForm(op){
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="fOcorrList">
   ${(o.ocorr||[]).map((oc,i)=>`<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:5px 9px;font-size:.7rem;display:flex;align-items:center;gap:6px">
     <span style="color:var(--red)">⚠</span>
-    <span style="font-weight:600;color:var(--gray2)">${oc.tipo}</span>
+    <span style="font-weight:600;color:var(--gray2)">${esc(oc.tipo)}</span>
     <span style="color:var(--t2)">${oc.desc||''}</span>
     <span style="color:var(--t3);font-size:.6rem">${oc.ts||''}</span>
     <button onclick="removerOcorr(${i})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:.75rem">✕</button>
@@ -2282,7 +2341,7 @@ function buildForm(op){
   <div class="fg" style="flex:1;min-width:120px"><label>Descrição</label><input id="fOcorrDesc" placeholder="Detalhe da ocorrência"></div>
   <button class="btn btn-g" style="font-size:.72rem" type="button" onclick="addOcorr()">+ Registrar</button>
 </div>
-${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${h.txt}</div>`).join('')}</div>`:''}`;}
+${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${esc(h.txt)}</div>`).join('')}</div>`:''}`;}
 
 function tgPlaca(){const v=document.getElementById('fTipol').value,w=document.getElementById('wCarreta');if(w)w.style.display=v==='CARRETA'?'':'none';}
 function calcD(){
@@ -2316,7 +2375,7 @@ async function saveCard(){
     const statusAntes=op.status;
     upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
     op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
-    if(ch.length){op.hist.push({t:ts(),txt:`[${who}] `+ch.join('; ')});addActivityLog(`${op.id} editado por ${who}`);}
+    if(ch.length){op.hist.push({t:ts(),txt:`[${who}] `+ch.join('; ')});addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
     await autoVincularCAFs(op);
@@ -2852,8 +2911,17 @@ async function saveCAFToDB(caf){
   }
 }
 async function deleteCAFFromDB(id){
-  try{await sbDelete(TABELA_CAF,'id',id);return true;}
-  catch(e){console.error('deleteCAF:',e);return false;}
+  if(!currentUser?._token){showToast('Sessão inválida para deletar','err');return false;}
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/deletar_caf`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:currentUser._token,p_caf_id:id})
+    });
+    const r=await res.json();
+    if(!r||!r.ok){console.error('deleteCAF:',r);return false;}
+    return true;
+  }catch(e){console.error('deleteCAF:',e);return false;}
 }
 
 // UI CAF
@@ -2908,14 +2976,14 @@ function renderCAFs(){
     const alertaTran=op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
     const rowStyle=alertaTran?'cursor:pointer;background:rgba(251,191,36,.08);border-left:3px solid #f59e0b':'cursor:pointer';
     return`<tr onclick="openEditCAF('${c.id}')" style="${rowStyle}">
-      <td><strong style="color:var(--green)">${c.num}</strong>${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
+      <td><strong style="color:var(--green)">${esc(c.num)}</strong>${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
       <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
-      <td><span class="badge ${tCls(c.tipo)}">${c.tipo}</span></td>
+      <td><span class="badge ${tCls(c.tipo)}">${esc(c.tipo)}</span></td>
       <td style="font-weight:600">${c.vol.toLocaleString('pt-BR')}</td>
       <td>${c.pallets}</td>
       <td style="${vencCls(c)}">${vStr}</td>
       <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
-      <td>${op?`<span style="color:var(--red);font-weight:600">${op.id}</span> <span style="font-size:.65rem;color:var(--t2)">${op.rota}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
       <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
     </tr>`;
@@ -2955,7 +3023,7 @@ function openEditCAF(id){
     const op=ops.find(o=>o.id===c.opId);
     vincEl.style.display='';
     document.getElementById('cafOpVincInfo').innerHTML=op
-      ?`<strong style="color:var(--red)">${op.id}</strong> · ${op.rota} · ${op.transp||'—'} · ${fmtD(op.dataOp)}`
+      ?`<strong style="color:var(--red)">${esc(op.id)}</strong> · ${esc(op.rota)} · ${esc(op.transp)||'—'} · ${fmtD(op.dataOp)}`
       :`Operação ${c.opId} (não encontrada no período atual)`;
   }else{vincEl.style.display='none';}
   document.getElementById('overlayCAF').classList.add('open');
@@ -3024,7 +3092,7 @@ function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
   if(c.status!=='vinculada'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+{aberta:'Em Produção',fechada:'Já vinculada a veículo',processo:'Em processo de entrega',entregue:'Já entregue'}[c.status]+')', 'err');return;}
   const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
-  if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${c.rota}`,'err');return;}
+  if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${esc(c.rota)}`,'err');return;}
   // Modal inline sem prompt()
   const existing=document.getElementById('_cafVincModal');
   if(existing)existing.remove();
@@ -3032,7 +3100,7 @@ function vincularCAFDialog(cafId){
   div.id='_cafVincModal';
   div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
   div.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:20px;width:100%;max-width:460px;box-shadow:var(--sh3)">
-    <div style="font-size:.9rem;font-weight:700;color:var(--green);margin-bottom:12px">🔗 Vincular CAF ${c.num} (${c.rota})</div>
+    <div style="font-size:.9rem;font-weight:700;color:var(--green);margin-bottom:12px">🔗 Vincular CAF ${esc(c.num)} (${esc(c.rota)})</div>
     <div class="fg" style="margin-bottom:12px"><label>Selecione a operação</label>
       <select id="_cafVincSel" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px;font-size:.82rem;width:100%;outline:none">
         <option value="">— escolha uma operação —</option>
@@ -3058,7 +3126,7 @@ async function _vincularCAF(cafId,op){
   c.opId=op.id;c.status='fechada'; // fechada = vinculada a veículo
   await saveCAFToDB(c);await loadCAFs();
   renderCAFs();
-  showToast(`✅ CAF ${c.num} vinculada a ${op.id}`,'ok');
+  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
 }
 
 function exportCAFs(){
@@ -3910,7 +3978,7 @@ async function confirmarDuplicarDia(){
     const novo={...JSON.parse(JSON.stringify(op)),
       id:genId(),dataOp:destino,dataProg:new Date().toISOString().split('T')[0],
       status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',
-      cafs:[],hist:[{t:ts(),txt:`[${who}] Duplicado de ${op.id} (${fmtD(origem)})`}],
+      cafs:[],hist:[{t:ts(),txt:`[${who}] Duplicado de ${esc(op.id)} (${fmtD(origem)})`}],
       updatedAt:new Date().toISOString(),updatedBy:who
     };
     ops.push(novo);
@@ -3991,7 +4059,7 @@ function _renderOcorrList(){
   const el=document.getElementById('fOcorrList');if(!el)return;
   el.innerHTML=_ocorrBuf.map((oc,i)=>`<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:5px 9px;font-size:.7rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     <span style="color:var(--red)">⚠</span>
-    <span style="font-weight:600;color:var(--gray2)">${oc.tipo}</span>
+    <span style="font-weight:600;color:var(--gray2)">${esc(oc.tipo)}</span>
     ${oc.desc?`<span style="color:var(--t2)">${oc.desc}</span>`:''}
     <span style="color:var(--t3);font-size:.6rem">${oc.ts||''}</span>
     <button onclick="removerOcorr(${i})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:.8rem;line-height:1">✕</button>
@@ -4229,8 +4297,8 @@ function renderTVYard(){
       return`<div style="background:#161b22;border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
           <div>
-            <div style="font-size:1rem;font-weight:800;color:#e6edf3">${op.id}</div>
-            <div style="font-size:.7rem;color:#8b949e;margin-top:1px">${op.rota} · ${op.tipoCarga}</div>
+            <div style="font-size:1rem;font-weight:800;color:#e6edf3">${esc(op.id)}</div>
+            <div style="font-size:.7rem;color:#8b949e;margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:1.4rem;font-weight:800;color:${passou?'#ff4444':'#58a6ff'}">${op.planSaida||'—'}</div>
@@ -4238,9 +4306,9 @@ function renderTVYard(){
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:.72rem">
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.mot||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${op.transp||'—'}</div></div>
-          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:#e6edf3">${op.placa||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.mot)||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.transp)||'—'}</div></div>
+          <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:#e6edf3">${esc(op.placa)||'—'}</div></div>
           <div><div style="color:#484f58;font-size:.58rem;text-transform:uppercase">Saída Plan.</div><div style="font-weight:800;font-size:.85rem;color:#58a6ff">${op.planSaida||'—'}</div></div>
         </div>
         <!-- Doca na TV Yard -->
@@ -4259,7 +4327,7 @@ function renderTVYard(){
             ${cafsDaOp.map(c=>{
               const cor2=c.status==='aberta'?'#58a6ff':c.status==='vinculada'?'#bc8cff':c.status==='processo'?'#56d364':'#484f58';
               const alerta=!['processo','entregue','fechada'].includes(c.status);
-              return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${c.num}</span>`;
+              return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${esc(c.num)}</span>`;
             }).join('')}
           </div>`:'<span style="font-size:.65rem;color:#484f58;font-style:italic">Sem CAFs vinculadas</span>'}
           ${cafsSemProc.length?`<div style="margin-top:5px;background:#2b1800;border:1px solid #f0883e;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#f0883e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem proc. entrega</div>`:''}
@@ -4444,9 +4512,9 @@ function _renderMapaDoca(){
       <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${nome}</div>
       ${op?`
         <div style="font-size:.65rem;font-weight:700;color:${op.status==='EMCARR'?'var(--orange)':'var(--blue)'};margin-bottom:3px">${statusLabel}</div>
-        <div style="font-size:.8rem;font-weight:800;color:${cor}">${op.id}</div>
-        <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${op.rota}</div>
-        <div style="font-size:.62rem;color:var(--t2)">${op.placa||'—'}</div>
+        <div style="font-size:.8rem;font-weight:800;color:${cor}">${esc(op.id)}</div>
+        <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)}</div>
+        <div style="font-size:.62rem;color:var(--t2)">${esc(op.placa)||'—'}</div>
         ${t!==null?`<div style="font-size:.65rem;color:${alerta?'var(--red)':'var(--t2)'};margin-top:4px;font-weight:${alerta?700:400}">🕐 ${t>59?Math.floor(t/60)+'h '+t%60+'min':t+'min'}${alerta?' ⚠':''}</div>`:''}
       `:`<div style="font-size:1.5rem;color:var(--bg4)">🟢</div><div style="font-size:.62rem;color:var(--t3)">Livre</div>`}
     </div>`;
@@ -4773,13 +4841,16 @@ async function atribuirDocaRapido(opId, doca){
 }
 
 
-// ── Helper: chama RPC de gerenciamento de usuário (server-side, seguro) ──
+// ── Helper: chama RPC de gerenciamento de usuário (autorizado pelo token de sessão) ──
 async function _rpcGerenciarUsuario(acao, dados){
   if(!supabaseOK)throw new Error('Sem conexão');
-  if(!currentUser?._h)throw new Error('Sessão sem credencial — refaça login');
+  if(!currentUser?._token){
+    showToast('⚠ Sessão inválida. Faça login novamente.','err');
+    setTimeout(()=>{localStorage.removeItem('trk_sess');location.reload();},2000);
+    throw new Error('Sem token de sessão');
+  }
   const body={
-    p_admin_user:currentUser.user,
-    p_admin_senha_sha256:currentUser._h,
+    p_token:currentUser._token,
     p_acao:acao,
     p_usuario:dados.usuario,
     p_nome:dados.nome||null,
@@ -4789,14 +4860,23 @@ async function _rpcGerenciarUsuario(acao, dados){
     p_senha_sha256:dados.senha_sha256||null,
     p_novo_login:dados.novo_login||null
   };
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/gerenciar_usuario`,{
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/gerenciar_usuario_v2`,{
     method:'POST',
     headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
     body:JSON.stringify(body)
   });
   const r=await res.json();
   if(!r||!r.ok){
-    const erros={nao_autorizado:'Não autorizado (apenas ADMIN)',usuario_existe:'Usuário já existe',nao_pode_deletar_proprio:'Não pode deletar a si mesmo',acao_invalida:'Ação inválida'};
+    const erros={
+      sessao_invalida:'Sessão expirada — faça login novamente',
+      nao_autorizado:'Não autorizado (apenas ADMIN)',
+      usuario_existe:'Usuário já existe',
+      novo_login_ja_existe:'O novo login já está em uso por outro usuário',
+      usuario_nao_existe:'Usuário não encontrado',
+      nao_pode_deletar_proprio:'Não pode deletar a si mesmo',
+      acao_invalida:'Ação inválida'
+    };
+    if(r?.erro==='sessao_invalida'){setTimeout(()=>{localStorage.removeItem('trk_sess');location.reload();},2000);}
     throw new Error(erros[r?.erro]||r?.erro||'Erro desconhecido');
   }
   return r;
@@ -4812,6 +4892,33 @@ function _setFiltrosHoje(){
     const el=document.getElementById(id);
     if(el&&!el.value)el.value=hoje;
   });
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// SEGURANÇA — Sanitização contra XSS
+// ══════════════════════════════════════════════════════════════════
+// Escapa HTML para uso seguro em innerHTML
+function esc(s){
+  if(s===null||s===undefined)return'';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;')
+    .replace(/`/g,'&#96;');
+}
+// Escapa atributo HTML (uso dentro de aspas duplas)
+function escAttr(s){
+  return esc(s);
+}
+// Sanitiza URL (evita javascript:, data:)
+function escUrl(s){
+  if(!s)return'';
+  const u=String(s).trim();
+  if(/^(javascript|data|vbscript):/i.test(u))return'#';
+  return esc(u);
 }
 
 loadTheme();
