@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v81</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v82</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1677,9 +1677,9 @@ function applyConfig(){
 function renderRotasList(){const el=document.getElementById('rotasList');if(!el)return;el.innerHTML=ROTAS.map(r=>`<div style="display:flex;align-items:center;gap:3px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:20px;padding:2px 8px;font-size:.71rem;font-weight:600;color:var(--red)">${r}<button onclick="removeRota('${r}')" style="background:none;border:none;cursor:pointer;color:var(--t2);font-size:.75rem;padding:0 0 0 3px;line-height:1">✕</button></div>`).join('');}
 function renderTranspList(){const el=document.getElementById('transpList');if(!el)return;el.innerHTML=TRANSPS.map(t=>`<div style="display:flex;align-items:center;gap:3px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:20px;padding:2px 8px;font-size:.71rem;font-weight:600;color:var(--gray2)">${t}<button onclick="removeTransp('${t}')" style="background:none;border:none;cursor:pointer;color:var(--t2);font-size:.75rem;padding:0 0 0 3px;line-height:1">✕</button></div>`).join('');}
 function addRota(){const v=(document.getElementById('novaRota').value||'').trim().toUpperCase();if(!v||ROTAS.includes(v)){showToast(v?'Rota já existe':'Digite o nome','err');return;}ROTAS.push(v);document.getElementById('novaRota').value='';saveConfig();renderRotasList();buildSels();showToast(`✅ ${v} adicionada`,'ok');}
-function removeRota(r){if(ROTAS.length<=1){showToast('Deve haver ao menos uma rota','err');return;}ROTAS.splice(ROTAS.indexOf(r),1);renderRotasList();buildSels();showToast(`${r} removida`,'ok');}
+function removeRota(r){if(ROTAS.length<=1){showToast('Deve haver ao menos uma rota','err');return;}ROTAS.splice(ROTAS.indexOf(r),1);saveConfig();renderRotasList();buildSels();showToast(`${r} removida`,'ok');}
 function addTransp(){const v=(document.getElementById('novaTransp').value||'').trim().toUpperCase();if(!v||TRANSPS.includes(v)){showToast(v?'Já existe':'Digite o nome','err');return;}TRANSPS.push(v);document.getElementById('novaTransp').value='';saveConfig();renderTranspList();buildSels();showToast(`✅ ${v} adicionada`,'ok');}
-function removeTransp(t){if(TRANSPS.length<=1){showToast('Deve haver ao menos uma','err');return;}TRANSPS.splice(TRANSPS.indexOf(t),1);renderTranspList();buildSels();showToast(`${t} removida`,'ok');}
+function removeTransp(t){if(TRANSPS.length<=1){showToast('Deve haver ao menos uma','err');return;}TRANSPS.splice(TRANSPS.indexOf(t),1);saveConfig();renderTranspList();buildSels();showToast(`${t} removida`,'ok');}
 
 function renderStats(){
   const el=document.getElementById('statsGrid');if(!el)return;
