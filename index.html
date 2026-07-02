@@ -459,8 +459,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 .pwa-install-bar.show{display:flex;}
 
 @media print{.topbar,.tabs,.toolbar,.btn,.ls,.mobile-nav,.pwa-install-bar{display:none!important;}body{background:#fff;}}
-.tv-wrap{background:var(--bg1);color:var(--text);min-height:100vh;}
-.tv-wrap *{scrollbar-color:var(--bd) var(--bg1);}
+.tv-wrap{background:var(--bg);color:var(--text);min-height:100vh;}
+.tv-wrap *{scrollbar-color:var(--bd) var(--bg);}
 .tv-card{background:var(--bg2)!important;color:var(--text)!important;border-color:var(--bd)!important;}
 .yard-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:13px;cursor:pointer;transition:.15s;box-shadow:var(--sh);}
 .yard-card:hover{border-color:var(--red);box-shadow:var(--sh2);transform:translateY(-1px);}
@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v80</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v81</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3715,7 +3715,7 @@ function renderTV(){
       }).join('');
     }
 
-    return`<div style="background:var(--bg1);border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
+    return`<div style="background:var(--bg);border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
       <!-- Rota header -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-size:1rem;font-weight:800;color:var(--text)">${rota}</div>
@@ -4826,7 +4826,7 @@ async function _renderOnlinePresence(){
     const lista=Object.values(uniq);
     if(!lista.length){el.innerHTML='';return;}
     el.innerHTML='<span style="font-size:.62rem;color:var(--green);font-weight:700;margin-right:2px">●</span>'+
-      lista.slice(0,6).map(u=>`<div title="${u.nome||u.user} · ${u.pagina||''}" style="width:22px;height:22px;border-radius:50%;background:${u.cor||'#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;border:1.5px solid var(--bg1);margin-left:-4px">${u.av||'?'}</div>`).join('')+
+      lista.slice(0,6).map(u=>`<div title="${u.nome||u.user} · ${u.pagina||''}" style="width:22px;height:22px;border-radius:50%;background:${u.cor||'#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;border:1.5px solid var(--bg);margin-left:-4px">${u.av||'?'}</div>`).join('')+
       (lista.length>6?`<span style="font-size:.62rem;color:var(--t2);margin-left:4px">+${lista.length-6}</span>`:'');
   }catch(e){renderOnlineFromDB().catch(()=>{});}
 }
