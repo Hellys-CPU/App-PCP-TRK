@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v82</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v83</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1615,8 +1615,8 @@ async function loadConfig(){
         rows.forEach(r=>{
           if(r.chave==='cfg_sistema')CFG={...CFG,...r.valor};
           if(r.chave==='sla_metas'){SLA_METAS={};Object.assign(SLA_METAS,r.valor||{});}
-          if(r.chave==='rotas'&&Array.isArray(r.valor)){ROTAS=[...new Set([...ROTAS,...r.valor])];}
-          if(r.chave==='transportadoras'&&Array.isArray(r.valor)){TRANSPS=[...new Set([...TRANSPS,...r.valor])];}
+          if(r.chave==='rotas'&&Array.isArray(r.valor)&&r.valor.length){ROTAS=r.valor;}
+          if(r.chave==='transportadoras'&&Array.isArray(r.valor)&&r.valor.length){TRANSPS=r.valor;}
           if(r.chave==='docas')DOCAS_CONFIG={...DOCAS_CONFIG,...(r.valor||{})};
         });
         try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));localStorage.setItem('trk_docas',JSON.stringify(DOCAS_CONFIG));}catch(e){}
