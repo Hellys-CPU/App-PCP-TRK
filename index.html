@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v83</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v84</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -942,6 +942,45 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 // SANITIZAÇÃO XSS - Funções obrigatórias para todo dado
 // que venha do usuário e seja inserido via innerHTML
 // ─────────────────────────────────────────────────────
+// ── Data local (Brasília) — resolve bug de UTC virando dia seguinte após 21h ──
+// ── Adiciona entrada no histórico com cap de 50 (evita JSONB infinito) ──
+// ── localStorage seguro: parse com validação + fallback ──
+function lsGet(key, fallback=null){
+  try{
+    const raw=localStorage.getItem(key);
+    if(!raw)return fallback;
+    const parsed=JSON.parse(raw);
+    return parsed!==null&&parsed!==undefined?parsed:fallback;
+  }catch(e){
+    console.warn('localStorage corrompido para',key,'— limpando');
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+function lsSet(key, val){
+  try{localStorage.setItem(key, JSON.stringify(val));}
+  catch(e){console.warn('localStorage cheio ou erro:',key,e);}
+}
+
+function addHist(op, txt){
+  if(!op.hist)op.hist=[];
+  op.hist.push({t:ts(),txt});
+  if(op.hist.length>50)op.hist=op.hist.slice(-50); // mantém as 50 mais recentes
+}
+
+// ── Converte Date para YYYY-MM-DD local (evita UTC) ──
+function dateLocal(d){
+  if(!d)d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function hojeLocal(){return dateLocal(new Date());}
+function agoraLocal(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+
 function esc(s){
   if(s===null||s===undefined)return '';
   return String(s)
@@ -1041,7 +1080,7 @@ async function loadFromSupabase(forceFullLoad=false){
 
     // ── FULL LOAD: primeira carga ou forçado ──
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
-    const since=cutoff.toISOString().split('T')[0];
+    const since=dateLocal(cutoff);
     const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
     if(Array.isArray(data)){
       ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
@@ -1060,7 +1099,7 @@ let _lastFullCheck=null;
 async function _checkDeletions(){
   try{
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
-    const since=cutoff.toISOString().split('T')[0];
+    const since=dateLocal(cutoff);
     const remote=await sbFetch(`${TABELA}?data_op=gte.${since}&select=id&limit=5000`);
     if(!Array.isArray(remote))return;
     const remoteIds=new Set(remote.map(r=>r.id));
@@ -1075,10 +1114,22 @@ async function _checkDeletions(){
 async function saveToSupabase(op){
   if(!supabaseOK)return;
   const now=new Date().toISOString();
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:op.realApres||null,real_saida:op.realSaida||null,real_cheg_fc:op.realChegFC||null,real_descarga:op.realDescarga||null,status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
+  // Sanitiza horários — garante formato HH:MM (remove datetime completo se vier)
+  const _hh=(v)=>{if(!v)return null;const m=String(v).match(/(\d{2}:\d{2})/);return m?m[1]:null;};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
+    // Lock otimista: verifica se outro usuário alterou desde a última leitura
+    if(op.updatedAt){
+      const check=await sbFetch(`${TABELA}?id=eq.${encodeURIComponent(op.id)}&select=updated_at,updated_by`);
+      if(check&&check[0]&&check[0].updated_at&&check[0].updated_at>op.updatedAt){
+        const quem=check[0].updated_by||'outro usuário';
+        if(!confirm(`⚠ ${quem} alterou esta operação enquanto você editava.\n\nSalvar mesmo assim sobrescreve as mudanças dele.\n\nDeseja salvar?`)){
+          showToast('⚠ Salvar cancelado — recarregue para ver a versão atual','err');return;
+        }
+      }
+    }
     await sbUpsert(TABELA,row);
     op.updatedAt=now;
     if(_hasOcorrCol){localStorage.setItem('trk_has_ocorr','1');}
@@ -1565,7 +1616,7 @@ function liveTimer(op){
 
 function countdown(op){
   if(!CFG.countdown||!['PROG','AGUCARR'].includes(op.status)||!op.planSaida)return'';
-  const hojeStr=new Date().toISOString().split('T')[0];
+  const hojeStr=hojeLocal();
   if(op.dataOp&&op.dataOp!==hojeStr)return''; // só mostra para operações de hoje
   const tStr=toTime(op.planSaida)||op.planSaida;
   const hoje=new Date();const[h,m]=tStr.split(':').map(Number);
@@ -1683,7 +1734,7 @@ function removeTransp(t){if(TRANSPS.length<=1){showToast('Deve haver ao menos um
 
 function renderStats(){
   const el=document.getElementById('statsGrid');if(!el)return;
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   el.innerHTML=[{v:ops.length,l:'Total Op.'},{v:ops.filter(o=>o.dataOp===hoje).length,l:'Op. Hoje'},{v:USERS.length,l:'Usuários'},{v:ops.filter(o=>o.status==='FIN').length,l:'Finalizadas'},{v:ROTAS.length,l:'Rotas'},{v:ops.filter(o=>{const d=dMin(o.planChegFC,o.realChegFC);return d!==null&&d>0;}).length,l:'Com Atraso'}].map(s=>`<div class="stat-box"><div class="sv">${s.v}</div><div class="sl">${s.l}</div></div>`).join('');
 }
 
@@ -1738,7 +1789,7 @@ function renderDayBanner(){
   const el=document.getElementById('dayBanner');if(!el)return;
   if(!CFG.banner){el.style.display='none';return;}
   el.style.display='';
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const hj=ops.filter(o=>o.dataOp===hoje);
   const tot=hj.length,ok=hj.filter(o=>o.status==='FIN').length;
   const atr=hj.filter(o=>{const d=dMin(o.planChegFC,o.realChegFC);return d!==null&&d>0;}).length;
@@ -1902,7 +1953,7 @@ function renderProg(){
     return;
   }
   // Filtro de dia — padrão = hoje
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const yardDt=document.getElementById('yardData')?.value||hoje;
   // YARD mostra todos os status que ainda estão no pátio (não saíram)
   // Gestão de Doca: mostra ops no pátio (aguardando/carregando) e em trânsito recente
@@ -2159,7 +2210,7 @@ async function onDrop(e,sid){
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
-    op.hist.push({t:ts(),txt:`[${who}] ${p} → ${stObj(sid).lb}`});
+    addHist(op,`[${who}] ${p} → ${stObj(sid).lb}`);
     addActivityLog(`${esc(op.id)}: ${p} → ${stObj(sid).lb}`);
     render();renderFUP();
     try{
@@ -2251,7 +2302,7 @@ const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selecte
 function buildForm(op){
   const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',doca:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
   // Data base para os campos reais: usa dataOp da operação ou hoje
-  const _baseDate=o.dataOp||new Date().toISOString().split('T')[0];
+  const _baseDate=o.dataOp||hojeLocal();
   // Prefixa datetime-local se valor existente for só HH:MM (migração de dados antigos)
   const _rt=v=>!v?'':v.includes('T')?v:`${_baseDate}T${v}`;
   const _rDef=''; // campos vazios = usuário preenche quando o evento ocorre
@@ -2404,7 +2455,7 @@ async function saveCard(){
     const statusAntes=op.status;
     upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
     op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
-    if(ch.length){op.hist.push({t:ts(),txt:`[${who}] `+ch.join('; ')});addActivityLog(`${esc(op.id)} editado por ${who}`);}
+    if(ch.length){addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
     await autoVincularCAFs(op);
@@ -2414,7 +2465,7 @@ async function saveCard(){
     }
   }else{
     const id=g('fId')||genId();
-    const newOp={id,dataProg:g('fDP')||new Date().toISOString().split('T')[0],dataOp:g('fDO')||new Date().toISOString().split('T')[0],rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
+    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
@@ -2507,7 +2558,7 @@ function initMassa(){
   if(tp){tp.innerHTML='<option value="">— definir depois —</option>';TRANSPS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tp.appendChild(o);});}
   const tt=document.getElementById('mTipoP');if(tt&&!tt.options.length)TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tt.appendChild(o);});
   const tl=document.getElementById('mTipolP');if(tl&&!tl.options.length)TIPOLS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tl.appendChild(o);});
-  const md=document.getElementById('mData');if(md&&!md.value){const d=new Date();d.setDate(d.getDate()+1);md.value=d.toISOString().split('T')[0];}
+  const md=document.getElementById('mData');if(md&&!md.value){const d=new Date();d.setDate(d.getDate()+1);md.value=dateLocal(d);}
   const grid=document.getElementById('rotaGrid');
   if(grid&&!grid.children.length)grid.innerHTML=ROTAS.map(r=>`<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);padding:10px;box-shadow:var(--sh)"><div style="font-size:.78rem;font-weight:700;color:var(--red);margin-bottom:6px">🛣 ${r}</div><div class="fg"><label>Qtd. viagens</label><input type="number" min="0" max="50" value="0" id="mq-${r}" style="font-size:1rem;font-weight:700;text-align:center"></div></div>`).join('');
 }
@@ -2567,8 +2618,8 @@ function aplicarHorariosMassa(){
 }
 async function confirmarMassa(){
   if(!mRows.length){showToast('Nenhuma viagem para gerar','err');return;}
-  const dataOp=document.getElementById('mData')?.value||new Date().toISOString().split('T')[0];
-  const dataProg=new Date().toISOString().split('T')[0];
+  const dataOp=document.getElementById('mData')?.value||hojeLocal();
+  const dataProg=hojeLocal();
   const who=currentUser?currentUser.nome:'Sistema';
   loading(true);
   for(const r of mRows){
@@ -2755,9 +2806,9 @@ function renderAnalise(){
   const rArr=Object.entries(byR).sort((a,b)=>a[0].localeCompare(b[0]));
   const bySt={};STS.forEach(s=>bySt[s.id]=0);data.forEach(o=>bySt[o.status]=(bySt[o.status]||0)+1);
   const stArr=STS.map(s=>({id:s.id,lb:s.lb,v:bySt[s.id]||0,cor:ST_COR[s.id]})).filter(s=>s.v>0);
-  const hoje=new Date().toISOString().split('T')[0];
-  const ontemD=new Date();ontemD.setDate(ontemD.getDate()-1);const ontem=ontemD.toISOString().split('T')[0];
-  const dias7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split('T')[0];});
+  const hoje=hojeLocal();
+  const ontemD=new Date();ontemD.setDate(ontemD.getDate()-1);const ontem=dateLocal(ontemD);
+  const dias7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return dateLocal(d);});
   const vol7=dias7.map(d=>({d,v:data.filter(o=>o.dataOp===d).length}));
   const maxV=Math.max(...vol7.map(x=>x.v),1);
   const hjV=data.filter(o=>o.dataOp===hoje).length;
@@ -2983,7 +3034,7 @@ function renderCAFs(){
     const abertas=data.filter(c=>c.status==='aberta').length;
     const vinc=data.filter(c=>c.status==='vinculada').length;
     const fech=data.filter(c=>c.status==='fechada').length;
-    const hoje=new Date().toISOString().split('T')[0];
+    const hoje=hojeLocal();
     const venc=data.filter(c=>c.venc&&c.venc<hoje&&c.status!=='fechada').length;
     kpiEl.innerHTML=[
       {v:data.length,l:'Total',c:'var(--text)'},{v:abertas,l:'Abertas',c:'var(--blue)'},
@@ -3373,7 +3424,7 @@ async function exportRD(){
       const vinc=cafsDB.filter(c=>c.status==='vinculada').length;
       const proc=cafsDB.filter(c=>c.status==='processo').length;
       const entr=cafsDB.filter(c=>c.status==='entregue').length;
-      const hoje2=new Date().toISOString().split('T')[0];
+      const hoje2=hojeLocal();
       const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&c.status!=='entregue').length;
       const volTotal=cafsDB.reduce((sv,c)=>sv+(c.vol||0),0);
       const cafKpis=[
@@ -3400,7 +3451,7 @@ async function exportRD(){
       s.addText(lbl+'  ·  '+new Date().toLocaleDateString('pt-BR'),{x:0.5,y:3.6,w:9,h:0.35,fontSize:12,color:'8B949E',fontFace:'Segoe UI'});
     }
 
-    const sem=isoWeekKey(new Date().toISOString().split('T')[0])||'periodo';
+    const sem=isoWeekKey(hojeLocal())||'periodo';
     await pptx.writeFile({fileName:`RD_PCP_${sem.replace('-','_')}.pptx`});
     showToast('✅ RD exportado!','ok');
 
@@ -3500,7 +3551,7 @@ function _renderCAFPanel(data){
   const vinc=cafPeriodo.filter(c=>c.status==='vinculada').length;
   const proc=cafPeriodo.filter(c=>c.status==='processo').length;
   const entr=cafPeriodo.filter(c=>c.status==='entregue').length;
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const venc=cafPeriodo.filter(c=>c.venc&&c.venc<hoje&&c.status!=='entregue').length;
   const alertas=cafPeriodo.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
@@ -3610,7 +3661,7 @@ function checkAlertas(){
   if(!CFG.alertas)return;
   const lim=CFG.limiteAtraso||30;
   const agora=new Date();
-  const hojeStr=agora.toISOString().split('T')[0];
+  const hojeStr=dateLocal(agora);
   ops.filter(o=>o.dataOp===hojeStr&&['PROG','AGUCARR','EMCARR'].includes(o.status)&&o.planSaida).forEach(op=>{
     const [h,m]=(op.planSaida||'').split(':').map(Number);
     if(isNaN(h))return;
@@ -3636,7 +3687,7 @@ function checkAlertas(){
 let _tvInterval=null;
 function renderTV(){
   const el=document.getElementById('tv-wrap');if(!el)return;
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const tvDt=document.getElementById('tv-day-filter')?.value||hoje;
   const opsHoje=ops.filter(o=>o.dataOp===tvDt);
   const total=opsHoje.length;
@@ -3961,9 +4012,9 @@ function _gSearchFilter(q){
 function openDuplicarDia(){
   const existing=document.getElementById('_dupDiaModal');
   if(existing){existing.remove();return;}
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const amanha=new Date();amanha.setDate(amanha.getDate()+1);
-  const amanhaStr=amanha.toISOString().split('T')[0];
+  const amanhaStr=dateLocal(amanha);
   const div=document.createElement('div');
   div.id='_dupDiaModal';
   div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -4005,7 +4056,7 @@ async function confirmarDuplicarDia(){
   const who=currentUser?.nome||'Sistema';
   for(const op of fonte){
     const novo={...JSON.parse(JSON.stringify(op)),
-      id:genId(),dataOp:destino,dataProg:new Date().toISOString().split('T')[0],
+      id:genId(),dataOp:destino,dataProg:hojeLocal(),
       status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',
       cafs:[],hist:[{t:ts(),txt:`[${who}] Duplicado de ${esc(op.id)} (${fmtD(origem)})`}],
       updatedAt:new Date().toISOString(),updatedBy:who
@@ -4041,8 +4092,8 @@ function checkCAFsSemBaixa(){
 function checkCAFsVencendo(){
   if(!cafsDB.length)return;
   const hoje=new Date();
-  const em3dias=new Date(hoje.getTime()+3*86400000).toISOString().split('T')[0];
-  const hojeStr=hoje.toISOString().split('T')[0];
+  const em3dias=dateLocal(new Date(hoje.getTime()+3*86400000));
+  const hojeStr=dateLocal(hoje);
   const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['entregue','fechada'].includes(c.status));
   if(vencendo.length&&curPage!=='caf'){
     showToast(`📦 ${vencendo.length} CAF(s) vencendo nos próximos 3 dias!`,'info');
@@ -4104,7 +4155,7 @@ function _renderOcorrList(){
 // FEATURE: COMPARATIVO SEMANA A SEMANA NA ANÁLISE
 // ══════════════════════════════════════════════════════════════════
 function _renderComparativoSemanas(){
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const semAtual=isoWeekKey(hoje);
   if(!semAtual)return'<p style="color:var(--t3);text-align:center;padding:12px">Sem dados</p>';
   const[yr,wp]=semAtual.split('-W');
@@ -4179,7 +4230,7 @@ function quickStatus(opId, newStatus, event){
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
   op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
-  op.hist.push({t:ts(),txt:`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`});
+  addHist(op,`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`);
   if(newStatus==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
   render();renderFUP();
   saveOp(op).then(()=>syncCAFsStatus(op,newStatus,prev));
@@ -4239,7 +4290,7 @@ function renderTVYard(){
     loadCAFs().then(()=>renderTVYard());
     return;
   }
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   const yDt=document.getElementById('tv-yard-day')?.value||hoje;
   const dataFmt=new Date(yDt+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
 
@@ -4422,7 +4473,7 @@ function _renderHeatMap(){
   const days=[];
   for(let i=59;i>=0;i--){
     const d=new Date(hoje);d.setDate(d.getDate()-i);
-    days.push(d.toISOString().split('T')[0]);
+    days.push(dateLocal(d));
   }
   // Calcula vol e sla por dia
   const byDay={};
@@ -4480,7 +4531,7 @@ function _renderHeatMap(){
       const sla=v.t?Math.round(v.ok/v.t*100):null;
       const dateObj=new Date(d+'T12:00');
       const tooltip=v.t?`${dateObj.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} · ${v.t} ops · SLA ${sla}%`:`${dateObj.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} · sem dados`;
-      const isHoje=d===hoje.toISOString().split('T')[0];
+      const isHoje=d===dateLocal(hoje);
       html+=`<div title="${tooltip}" style="width:18px;height:18px;border-radius:3px;background:${getCor(d)};cursor:default;${isHoje?'outline:2px solid var(--red);outline-offset:1px':''}"></div>`;
     });
     html+='</div>';
@@ -4860,7 +4911,7 @@ async function atribuirDocaRapido(opId, doca){
   op.updatedAt=new Date().toISOString();
   op.updatedBy=currentUser?.nome||'Sistema';
   const acao=doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`;
-  op.hist.push({t:ts(),txt:`[${currentUser?.nome||'Sistema'}] ${acao}`});
+  addHist(op,`[${currentUser?.nome||'Sistema'}] ${acao}`);
   const idx=ops.findIndex(o=>o.id===opId);
   if(idx>=0)ops[idx]=op;
   renderProg();
@@ -4914,7 +4965,7 @@ async function _rpcGerenciarUsuario(acao, dados){
 
 // ── Define hoje como padrão em todos os filtros de data ──
 function _setFiltrosHoje(){
-  const hoje=new Date().toISOString().split('T')[0];
+  const hoje=hojeLocal();
   // Lista de IDs de filtros de data que existem nas views
   const filtros=['fData','lFData','yardData','ffData','aDiaSel'];
   filtros.forEach(id=>{
