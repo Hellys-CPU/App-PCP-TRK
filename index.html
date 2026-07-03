@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v84</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v85</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3035,7 +3035,7 @@ function renderCAFs(){
     const vinc=data.filter(c=>c.status==='vinculada').length;
     const fech=data.filter(c=>c.status==='fechada').length;
     const hoje=hojeLocal();
-    const venc=data.filter(c=>c.venc&&c.venc<hoje&&c.status!=='fechada').length;
+    const venc=data.filter(c=>c.venc&&c.venc<hoje&&!['fechada','entregue','cancelada'].includes(c.status)).length;
     kpiEl.innerHTML=[
       {v:data.length,l:'Total',c:'var(--text)'},{v:abertas,l:'Abertas',c:'var(--blue)'},
       {v:vinc,l:'Vinculadas',c:'var(--green)'},{v:fech,l:'Fechadas',c:'var(--gray)'},
@@ -3046,7 +3046,7 @@ function renderCAFs(){
   // Table
   const stCls={aberta:'b-ext',vinculada:'b-inb',processo:'b-flt',entregue:'b-ltl',fechada:'b-prod'};
   const stLbl={aberta:'Em Produção',vinculada:'Disponível',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
-  const vencCls=c=>{if(!c.venc)return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n&&c.status!=='fechada'?'color:var(--red);font-weight:700':'';};
+  const vencCls=c=>{if(!c.venc)return'';if(['entregue','fechada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
   body.innerHTML=data.length?data.map(c=>{
@@ -3425,7 +3425,7 @@ async function exportRD(){
       const proc=cafsDB.filter(c=>c.status==='processo').length;
       const entr=cafsDB.filter(c=>c.status==='entregue').length;
       const hoje2=hojeLocal();
-      const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&c.status!=='entregue').length;
+      const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&!['entregue','fechada','cancelada'].includes(c.status)).length;
       const volTotal=cafsDB.reduce((sv,c)=>sv+(c.vol||0),0);
       const cafKpis=[
         {l:'Abertas',v:abertas,c:BLUE},{l:'Vinculadas',v:vinc,c:'7C3AED'},
@@ -3552,7 +3552,7 @@ function _renderCAFPanel(data){
   const proc=cafPeriodo.filter(c=>c.status==='processo').length;
   const entr=cafPeriodo.filter(c=>c.status==='entregue').length;
   const hoje=hojeLocal();
-  const venc=cafPeriodo.filter(c=>c.venc&&c.venc<hoje&&c.status!=='entregue').length;
+  const venc=cafPeriodo.filter(c=>c.venc&&c.venc<hoje&&!['entregue','fechada','cancelada'].includes(c.status)).length;
   const alertas=cafPeriodo.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     return op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
@@ -4094,7 +4094,7 @@ function checkCAFsVencendo(){
   const hoje=new Date();
   const em3dias=dateLocal(new Date(hoje.getTime()+3*86400000));
   const hojeStr=dateLocal(hoje);
-  const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['entregue','fechada'].includes(c.status));
+  const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['entregue','fechada','cancelada'].includes(c.status));
   if(vencendo.length&&curPage!=='caf'){
     showToast(`📦 ${vencendo.length} CAF(s) vencendo nos próximos 3 dias!`,'info');
   }
