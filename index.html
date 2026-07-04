@@ -503,7 +503,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v92</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v95</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1124,9 +1124,18 @@ async function loadFromSupabase(forceFullLoad=false){
     }
 
     // ── FULL LOAD: primeira carga ou forçado ──
+    // Pagina em blocos de 1000 (limite PostgREST Free) até buscar tudo
     const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
     const since=dateLocal(cutoff);
-    const data=await sbFetch(`${TABELA}?data_op=gte.${since}&order=created_at.asc&limit=5000`);
+    let allData=[], offset=0, pageSize=1000;
+    while(true){
+      const page=await sbFetch(`${TABELA}?data_op=gte.${since}&order=data_op.asc,id.asc&limit=${pageSize}&offset=${offset}`);
+      if(!Array.isArray(page)||page.length===0)break;
+      allData=[...allData,...page];
+      if(page.length<pageSize)break; // última página
+      offset+=pageSize;
+    }
+    const data=allData;
     if(Array.isArray(data)){
       ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
@@ -1786,11 +1795,11 @@ function renderStats(){
 }
 
 const activityLogs=[];
-try{const saved=localStorage.getItem('trk_logs');if(saved)activityLogs.push(...JSON.parse(saved).slice(0,100));}catch(e){}
+// trk_logs removido — logs ficam no Supabase (auditoria)
 function addActivityLog(msg){
   activityLogs.unshift({t:ts(),msg,user:currentUser?.nome||'Sistema'});
   if(activityLogs.length>100)activityLogs.pop();
-  try{localStorage.setItem('trk_logs',JSON.stringify(activityLogs.slice(0,50)));}catch(e){}
+  // trk_logs removido — auditoria fica no Supabase
   const el=document.getElementById('activityLog');
   if(el)el.innerHTML=activityLogs.slice(0,20).map(l=>`<div class="log-item"><div class="lt">${l.t} · ${l.user}</div>${l.msg}</div>`).join('');
 }
