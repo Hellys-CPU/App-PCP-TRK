@@ -503,13 +503,14 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v95</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v96</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
     <button class="tab" id="tb-prog" onclick="setView('prog')">🚪 Gestão de Doca</button>
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
+    <button class="tab" id="tb-amazon" onclick="setView('amazon')">📦 FUP Amazon</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
     <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard')" style="color:#22c55e;display:none" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
@@ -547,6 +548,20 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="painel-wrap"><div class="painel" id="painel"></div></div>
 </div>
 
+<!-- FUP AMAZON -->
+<div class="view" id="view-amazon">
+  <div class="toolbar" id="amazonToolbar">
+    <span style="font-size:.8rem;font-weight:700;color:var(--red)">📦 FUP Amazon por FC</span>
+    <select id="amFC" onchange="renderAmazon()" style="min-width:160px">
+      <option value="">Selecione o FC (Rota)</option>
+    </select>
+    <input type="date" id="amData" onchange="renderAmazon()" title="Data da operação"/>
+    <div class="sp"></div>
+    <button class="btn btn-s" onclick="exportAmazonPDF()" style="font-size:.72rem">📄 Exportar PDF</button>
+    <button class="btn" onclick="window.print()" style="font-size:.72rem">🖨 Imprimir</button>
+  </div>
+  <div id="amazonWrap" style="padding:12px 16px 40px"></div>
+</div>
 <!-- LISTA -->
 <div class="view" id="view-lista">
   <div class="toolbar">
@@ -925,6 +940,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-prog" onclick="setView('prog')"><span class="mni">📅</span>D-1</button>
     <button class="mnav-btn" id="mn-massa" onclick="setView('massa')"><span class="mni">⚡</span>Massa</button>
     <button class="mnav-btn" id="mn-fup" onclick="setView('fup')"><span class="mni">📋</span>FUP</button>
+    <button class="mnav-btn" id="mn-amazon" onclick="setView('amazon')"><span class="mni">📦</span>Amazon</button>
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
     <button class="mnav-btn" id="mn-admin" onclick="setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
@@ -2742,6 +2758,7 @@ function setView(name){
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
+  if(name==='amazon'){_initAmazonSelects();renderAmazon();}
   if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
@@ -5415,6 +5432,192 @@ async function _confirmarImportPlanilha(){
   loading(false);
   showToast(`✅ Importação concluída: ${ok} processadas${erros?', '+erros+' erros':''}`, erros?'err':'ok');
   addActivityLog(`Planilha importada: ${novas.length} novas, ${atualizadas.length} atualizadas`);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// FUP AMAZON — Relatório por FC para envio via WhatsApp/PDF
+// ════════════════════════════════════════════════════════════
+
+function _initAmazonSelects(){
+  const fcSel = document.getElementById('amFC');
+  if(!fcSel) return;
+  const cur = fcSel.value;
+  // Rotas disponíveis nos dados do dia
+  const amData = document.getElementById('amData')?.value || hojeLocal();
+  const rotasDisponiveis = [...new Set(ops.filter(o=>!amData||o.dataOp===amData).map(o=>o.rota).filter(Boolean))].sort();
+  fcSel.innerHTML = '<option value="">Selecione o FC (Rota)</option>' +
+    rotasDisponiveis.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');
+  if(cur && rotasDisponiveis.includes(cur)) fcSel.value = cur;
+}
+
+function renderAmazon(){
+  _initAmazonSelects();
+  const fc = document.getElementById('amFC')?.value || '';
+  const dataFiltro = document.getElementById('amData')?.value || hojeLocal();
+  const wrap = document.getElementById('amazonWrap');
+  if(!wrap) return;
+
+  if(!fc){
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--t2)">
+      <div style="font-size:2rem;margin-bottom:12px">📦</div>
+      <div style="font-size:.9rem">Selecione um FC (Rota) para gerar o relatório</div>
+    </div>`;
+    return;
+  }
+
+  const data = ops.filter(o => o.rota === fc && (!dataFiltro || o.dataOp === dataFiltro));
+
+  if(!data.length){
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--t2)">Nenhuma operação encontrada para <b>${esc(fc)}</b> em ${fmtD(dataFiltro)}.</div>`;
+    return;
+  }
+
+  // Ordena por horário planejado de saída
+  data.sort((a,b)=>(a.planSaida||'').localeCompare(b.planSaida||''));
+
+  // Status a exibir com detalhes (os finalizados só contagem)
+  const STATUS_DETALHE = ['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','PERN','REC'];
+  const STATUS_LABELS = {
+    PROG:'🕐 PROGRAMADO', AGUCARR:'⏳ AGUARD. CARREGAMENTO',
+    EMCARR:'🔄 EM CARREGAMENTO', TRAN:'🚛 EM TRÂNSITO',
+    AGUDESC:'📥 AGUARD. DESCARGA', PERN:'🌙 PERNOITE',
+    REC:'❌ RECUSADO', FIN:'✅ FINALIZADO', CANC:'🚫 CANCELADO'
+  };
+
+  const totalFin  = data.filter(o=>o.status==='FIN').length;
+  const totalCanc = data.filter(o=>o.status==='CANC').length;
+  const slaOk     = data.filter(o=>getSLA(o)==='ok').length;
+  const slaLate   = data.filter(o=>getSLA(o)==='late').length;
+  const total     = data.length;
+
+  // Monta cards por status
+  let html = `
+    <div id="amazonReport" style="max-width:900px;margin:0 auto;font-family:'Segoe UI',sans-serif">
+      <!-- Cabeçalho -->
+      <div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--red)">📦 FUP AMAZON — ${esc(fc)}</div>
+          <div style="font-size:.8rem;color:var(--t2);margin-top:2px">${fmtD(dataFiltro)} · Gerado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--text)">${total}</div><div style="font-size:.65rem;color:var(--t2)">TOTAL</div></div>
+          <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--green)">${slaOk}</div><div style="font-size:.65rem;color:var(--t2)">NO PRAZO</div></div>
+          <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--red)">${slaLate}</div><div style="font-size:.65rem;color:var(--t2)">ATRASO</div></div>
+          <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--green)">${totalFin}</div><div style="font-size:.65rem;color:var(--t2)">FINALIZADO</div></div>
+          <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--t2)">${totalCanc}</div><div style="font-size:.65rem;color:var(--t2)">CANCELADO</div></div>
+        </div>
+      </div>`;
+
+  // Blocos por status (com detalhe)
+  STATUS_DETALHE.forEach(st => {
+    const ops_st = data.filter(o=>o.status===st);
+    if(!ops_st.length) return;
+
+    html += `
+      <div style="margin-bottom:12px">
+        <div style="background:var(--bg3);border-left:4px solid ${st==='TRAN'?'var(--blue)':st==='FIN'?'var(--green)':st==='AGUDESC'?'var(--purple)':st==='EMCARR'?'var(--orange)':st==='AGUCARR'?'var(--yellow)':st==='CANC'?'var(--t3)':'var(--red)'};padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:.8rem;color:var(--text)">${STATUS_LABELS[st]||st}</span>
+          <span style="font-size:.75rem;color:var(--t2);font-weight:600">${ops_st.length} viagem(s)</span>
+        </div>
+        <div style="border:1px solid var(--bd);border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+            <thead>
+              <tr style="background:var(--bg2);color:var(--t2);font-size:.65rem">
+                <th style="padding:6px 8px;text-align:left;font-weight:600">ID / SM</th>
+                <th style="padding:6px 8px;text-align:left;font-weight:600">Transportadora</th>
+                <th style="padding:6px 8px;text-align:left;font-weight:600">Motorista</th>
+                <th style="padding:6px 8px;text-align:left;font-weight:600">Placa</th>
+                <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.Apres → Real</th>
+                <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.Saída → Real</th>
+                <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.FC → Real</th>
+                <th style="padding:6px 8px;text-align:center;font-weight:600">Descarga</th>
+                <th style="padding:6px 8px;text-align:center;font-weight:600">SLA</th>
+                <th style="padding:6px 8px;text-align:left;font-weight:600">CAFs</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ops_st.map((o,i) => {
+                const sla = getSLA(o);
+                const slaHtml = sla==='ok'
+                  ? '<span style="color:var(--green);font-weight:700">✔ Prazo</span>'
+                  : sla==='late'
+                  ? '<span style="color:var(--red);font-weight:700">✘ Atraso</span>'
+                  : '<span style="color:var(--t2)">—</span>';
+                const dSaida = dMin(o.planSaida, o.realSaida);
+                const dFC = dMin(o.planChegFC, o.realChegFC);
+                const fmtDelta = d => d===null ? '' : d===0 ? '<span style="color:var(--green)">0</span>' : d>0 ? `<span style="color:var(--red)">+${d}min</span>` : `<span style="color:var(--green)">${d}min</span>`;
+                const fmtTime = (pl, rl) => {
+                  const p = pl||'—', r = rl||'—';
+                  return `<span style="color:var(--t2)">${p}</span> → <span style="font-weight:600;color:${rl?'var(--text)':'var(--t3)'}">${r}</span>`;
+                };
+                const cafsTxt = o.cafs?.length
+                  ? o.cafs.map(c=>`<span style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-size:.62rem;margin:1px;display:inline-block">${esc(c.num)}</span>`).join('')
+                  : '<span style="color:var(--t3)">—</span>';
+                return `<tr style="border-top:1px solid var(--bd);background:${i%2===0?'var(--bg1)':'var(--bg2)'}">
+                  <td style="padding:6px 8px">
+                    <div style="font-weight:700;color:var(--red);font-size:.68rem">${esc(o.id)}</div>
+                    ${o.sm?`<div style="color:var(--t2);font-size:.6rem">${esc(o.sm)}</div>`:''}
+                  </td>
+                  <td style="padding:6px 8px;color:var(--text)">${esc(o.transp||'—')}</td>
+                  <td style="padding:6px 8px;color:var(--text)">${esc((o.mot||'—').split(' ').slice(0,2).join(' '))}</td>
+                  <td style="padding:6px 8px;color:var(--text)">${esc(o.placa||'—')}</td>
+                  <td style="padding:6px 8px;text-align:center">${fmtTime(o.planApres,o.realApres)}</td>
+                  <td style="padding:6px 8px;text-align:center">${fmtTime(o.planSaida,o.realSaida)} ${fmtDelta(dSaida)}</td>
+                  <td style="padding:6px 8px;text-align:center">${fmtTime(o.planChegFC,o.realChegFC)} ${fmtDelta(dFC)}</td>
+                  <td style="padding:6px 8px;text-align:center;color:var(--text)">${esc(o.realDescarga||'—')}</td>
+                  <td style="padding:6px 8px;text-align:center">${slaHtml}</td>
+                  <td style="padding:6px 8px">${cafsTxt}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  });
+
+  // Bloco resumido: Finalizados e Cancelados (só contagem + listagem compacta)
+  ['FIN','CANC'].forEach(st => {
+    const ops_st = data.filter(o=>o.status===st);
+    if(!ops_st.length) return;
+    html += `
+      <div style="margin-bottom:12px;background:var(--bg2);border:1px solid var(--bd);border-left:4px solid ${st==='FIN'?'var(--green)':'var(--t3)'};border-radius:6px;padding:10px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-weight:700;font-size:.8rem;color:var(--text)">${STATUS_LABELS[st]}</span>
+          <span style="font-size:.75rem;color:var(--t2)">${ops_st.length} viagem(s)</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${ops_st.map(o=>`<span style="background:var(--bg3);border-radius:4px;padding:2px 8px;font-size:.65rem;color:var(--t2)" title="${esc(o.transp||'')} · ${esc(o.mot||'')}">${esc(o.id)}</span>`).join('')}
+        </div>
+      </div>`;
+  });
+
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+async function exportAmazonPDF(){
+  const fc = document.getElementById('amFC')?.value;
+  const dt = document.getElementById('amData')?.value || hojeLocal();
+  if(!fc){ showToast('Selecione um FC primeiro','err'); return; }
+  // Print CSS — esconde toolbar, mostra só o relatório
+  const style = document.createElement('style');
+  style.id = '_printAmazon';
+  style.textContent = `@media print{
+    .topbar,.tabs,.mobile-nav,.toolbar,#amazonToolbar,button{display:none!important}
+    .view{display:block!important;padding:0!important}
+    #amazonWrap{padding:0!important}
+    body{background:#fff!important;color:#000!important}
+    [style*="var(--bg"],[style*="var(--text"],[style*="var(--t2"],[style*="var(--red"],[style*="var(--green"]{color:#000!important}
+    table{page-break-inside:avoid}
+  }`;
+  document.head.appendChild(style);
+  document.body.classList.add('printing-fup');
+  window.print();
+  setTimeout(()=>{
+    document.head.removeChild(style);
+    document.body.classList.remove('printing-fup');
+  },1000);
 }
 
 loadTheme();
