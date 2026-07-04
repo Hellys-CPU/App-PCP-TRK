@@ -503,7 +503,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v90</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v92</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -551,18 +551,48 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div class="view" id="view-lista">
   <div class="toolbar">
     <input id="lQ" placeholder="🔍 ID, placa, motorista, SM..." oninput="renderList()" style="width:190px"/>
-    <select id="lFRo" onchange="renderList()"><option value="">Todas as Rotas</option></select>
-    <select id="lFSt" onchange="renderList()"><option value="">Todos os Status</option></select>
-    <select id="lFTr" onchange="renderList()"><option value="">Todas as Transportadoras</option></select>
-    <select id="lFTp" onchange="renderList()"><option value="">Todos os Tipos</option></select>
     <input type="date" id="lFData" onchange="renderList()" title="Filtrar por data"/>
     <div class="sp"></div>
+    <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
     <span id="listCnt" style="font-size:.68rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="clrFList()" style="font-size:.7rem">✕</button>
   </div>
   <div class="lt-wrap">
     <table>
-      <thead><tr><th style="width:30px;color:var(--t2)">#</th><th>ID</th><th>Data</th><th>Rota</th><th>Tipo</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th><th>Pl.Saída</th><th>Rl.Saída</th><th>Pl.FC</th><th>Rl.FC</th><th>Δ Saída</th><th>Δ FC</th><th>T.Doca</th><th>Status</th></tr></thead>
+      <thead>
+<tr>
+  <th style="width:28px;color:var(--t2);padding:4px 2px">#</th>
+  <th onclick="sortList('id')" style="cursor:pointer;user-select:none;white-space:nowrap">ID <span id="sl-id"></span></th>
+  <th onclick="sortList('dataOp')" style="cursor:pointer;user-select:none;white-space:nowrap">Data <span id="sl-dataOp"></span></th>
+  <th style="padding:2px">
+    <div onclick="sortList('rota')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Rota <span id="sl-rota"></span></div>
+    <select id="lFRo" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todas</option></select>
+  </th>
+  <th style="padding:2px">
+    <div onclick="sortList('tipoCarga')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Tipo <span id="sl-tipoCarga"></span></div>
+    <select id="lFTp" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
+  </th>
+  <th style="padding:2px">
+    <div onclick="sortList('transp')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Transportadora <span id="sl-transp"></span></div>
+    <select id="lFTr" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todas</option></select>
+  </th>
+  <th onclick="sortList('mot')" style="cursor:pointer;user-select:none;white-space:nowrap">Motorista <span id="sl-mot"></span></th>
+  <th onclick="sortList('placa')" style="cursor:pointer;user-select:none;white-space:nowrap">Placa <span id="sl-placa"></span></th>
+  <th onclick="sortList('sm')" style="cursor:pointer;user-select:none;white-space:nowrap">SM <span id="sl-sm"></span></th>
+  <th onclick="sortList('tms')" style="cursor:pointer;user-select:none;white-space:nowrap">TMS <span id="sl-tms"></span></th>
+  <th onclick="sortList('planSaida')" style="cursor:pointer;user-select:none;white-space:nowrap">Pl.Saída <span id="sl-planSaida"></span></th>
+  <th onclick="sortList('realSaida')" style="cursor:pointer;user-select:none;white-space:nowrap">Rl.Saída <span id="sl-realSaida"></span></th>
+  <th onclick="sortList('planChegFC')" style="cursor:pointer;user-select:none;white-space:nowrap">Pl.FC <span id="sl-planChegFC"></span></th>
+  <th onclick="sortList('realChegFC')" style="cursor:pointer;user-select:none;white-space:nowrap">Rl.FC <span id="sl-realChegFC"></span></th>
+  <th onclick="sortList('_dS')" style="cursor:pointer;user-select:none;white-space:nowrap">Δ Saída <span id="sl-_dS"></span></th>
+  <th onclick="sortList('_dC')" style="cursor:pointer;user-select:none;white-space:nowrap">Δ FC <span id="sl-_dC"></span></th>
+  <th onclick="sortList('_dDoc')" style="cursor:pointer;user-select:none;white-space:nowrap">T.Doca <span id="sl-_dDoc"></span></th>
+  <th style="padding:2px">
+    <div onclick="sortList('status')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Status <span id="sl-status"></span></div>
+    <select id="lFSt" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
+  </th>
+</tr>
+</thead>
       <tbody id="listBody"></tbody>
     </table>
   </div>
@@ -1942,7 +1972,21 @@ function buildListSels(){
 }
 function renderList(){
   buildListSels();
-  const data=getListFilt();
+  _buildListHeaderSels(ops); // popula selects inline do header
+  let data=getListFilt();
+  // ── Aplica ordenação ──
+  const sc=_listSort.col, sd=_listSort.dir==='asc'?1:-1;
+  data=[...data].sort((a,b)=>{
+    let va=a[sc],vb=b[sc];
+    if(sc==='_dS'){va=dMin(a.planSaida,a.realSaida);vb=dMin(b.planSaida,b.realSaida);}
+    if(sc==='_dC'){va=dMin(a.planChegFC,a.realChegFC);vb=dMin(b.planChegFC,b.realChegFC);}
+    if(sc==='_dDoc'){va=dMin(a.realChegFC,a.realDescarga);vb=dMin(b.realChegFC,b.realDescarga);}
+    if(va===null||va===undefined)return sd;
+    if(vb===null||vb===undefined)return -sd;
+    if(typeof va==='number'&&typeof vb==='number')return (va-vb)*sd;
+    return String(va).localeCompare(String(vb),'pt-BR',{numeric:true})*sd;
+  });
+  _listSortIndicators();
   const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=data.length+' op.';
   document.getElementById('listBody').innerHTML=data.map((op,i)=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
@@ -3044,6 +3088,41 @@ function buildCAFSelects(){
 
 // ── Ordenação da tabela CAFs ──
 let _cafSort={col:'criadoEm',dir:'desc'};
+
+// ── Sort da Lista ──
+let _listSort={col:'dataOp',dir:'desc'};
+function sortList(col){
+  if(_listSort.col===col){_listSort.dir=_listSort.dir==='asc'?'desc':'asc';}
+  else{_listSort={col,dir:'asc'};}
+  renderList();
+}
+function _listSortIndicators(){
+  ['id','dataOp','rota','tipoCarga','transp','mot','placa','sm','tms',
+   'planSaida','realSaida','planChegFC','realChegFC','_dS','_dC','_dDoc','status'].forEach(c=>{
+    const el=document.getElementById('sl-'+c);
+    if(el)el.textContent=_listSort.col===c?(_listSort.dir==='asc'?'▲':'▼'):'';
+  });
+}
+function _buildListHeaderSels(data){
+  // Popula os selects inline do header com valores únicos dos dados filtrados
+  const sels={
+    lFRo:{field:'rota',cur:document.getElementById('lFRo')?.value||''},
+    lFTp:{field:'tipoCarga',cur:document.getElementById('lFTp')?.value||''},
+    lFTr:{field:'transp',cur:document.getElementById('lFTr')?.value||''},
+    lFSt:{field:'status',cur:document.getElementById('lFSt')?.value||''},
+  };
+  // Para rotas/tipo/status usa lista global; pra transp usa dados reais
+  const allOps = ops; // todos, não filtrados, pra não perder opções
+  Object.entries(sels).forEach(([id,cfg])=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const vals=[...new Set(allOps.map(o=>o[cfg.field]).filter(Boolean))].sort();
+    const prev=cfg.cur;
+    el.innerHTML='<option value="">'+{lFRo:'Todas',lFTp:'Todos',lFTr:'Todas',lFSt:'Todos'}[id]+'</option>'+
+      vals.map(v=>`<option${v===prev?' selected':''}>${v}</option>`).join('');
+  });
+}
+
 function sortCAF(col){
   if(_cafSort.col===col){_cafSort.dir=_cafSort.dir==='asc'?'desc':'asc';}
   else{_cafSort={col,dir:'asc'};}
@@ -5245,7 +5324,11 @@ async function importarPlanilhaBase(event){
     });
 
     // ── Modal de preview ──
+    // Armazena em variável global — evita escaping de JSON em atributo onclick
+    window._importPreview = {novas, atualizadas};
+
     const modal = document.createElement('div');
+    modal.id='_importModal';
     modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
     modal.innerHTML=`
       <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">
@@ -5270,8 +5353,8 @@ async function importarPlanilhaBase(event){
         </div>
         ${novas.length===0&&atualizadas.length===0?'<p style="color:var(--green);text-align:center">✅ Banco já está atualizado!</p>':''}
         <div style="display:flex;gap:8px">
-          <button class="btn" style="flex:1;background:var(--red2);color:var(--red)" onclick="this.closest('[style*=fixed]').remove();document.getElementById('loadingOverlay').style.display='none'">Cancelar</button>
-          ${novas.length>0||atualizadas.length>0?`<button class="btn btn-p" style="flex:2" onclick="_confirmarImportPlanilha(${JSON.stringify(novas).replace(/'/g,"\'")},${JSON.stringify(atualizadas).replace(/'/g,"\'")},this.closest('[style*=fixed]'))">✅ Confirmar Importação</button>`:''}
+          <button class="btn" style="flex:1;background:var(--red2);color:var(--red)" onclick="document.getElementById('_importModal')?.remove();window._importPreview=null;">Cancelar</button>
+          ${novas.length>0||atualizadas.length>0?'<button class="btn btn-p" style="flex:2" onclick="_confirmarImportPlanilha()">✅ Confirmar Importação</button>':''}
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -5284,8 +5367,10 @@ async function importarPlanilhaBase(event){
   }
 }
 
-async function _confirmarImportPlanilha(novas, atualizadas, modal){
-  modal?.remove();
+async function _confirmarImportPlanilha(){
+  const {novas, atualizadas} = window._importPreview || {novas:[],atualizadas:[]};
+  document.getElementById('_importModal')?.remove();
+  window._importPreview = null;
   loading(true);
   let ok=0, erros=0;
 
