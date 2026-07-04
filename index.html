@@ -14,6 +14,7 @@
 <meta name="description" content="TRK PCP 2026 — Sistema Operacional Logístico Total Express"/>
 <title>TRK PCP 2026</title>
 <script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 // Carrega pptxgenjs com múltiplos CDNs de fallback
 (function(){
@@ -502,7 +503,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v89</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v90</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -561,7 +562,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
   <div class="lt-wrap">
     <table>
-      <thead><tr><th>ID</th><th>Data</th><th>Rota</th><th>Tipo</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th><th>Pl.Saída</th><th>Rl.Saída</th><th>Pl.FC</th><th>Rl.FC</th><th>Δ Saída</th><th>Δ FC</th><th>T.Doca</th><th>Status</th></tr></thead>
+      <thead><tr><th style="width:30px;color:var(--t2)">#</th><th>ID</th><th>Data</th><th>Rota</th><th>Tipo</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>SM</th><th>TMS</th><th>Pl.Saída</th><th>Rl.Saída</th><th>Pl.FC</th><th>Rl.FC</th><th>Δ Saída</th><th>Δ FC</th><th>T.Doca</th><th>Status</th></tr></thead>
       <tbody id="listBody"></tbody>
     </table>
   </div>
@@ -806,6 +807,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div style="position:relative">
           <button class="btn btn-g" style="font-size:.75rem;text-align:left;width:100%" onclick="document.getElementById('importFile').click()">📥 Importar backup (JSON)</button>
           <input type="file" id="importFile" accept=".json" style="display:none" onchange="importBackup(event)"/>
+        </div>
+        <div style="position:relative">
+          <button class="btn" style="font-size:.75rem;text-align:left;width:100%;background:var(--blue);color:#fff" onclick="document.getElementById('importXlsxFile').click()">📊 Importar Planilha BASE (.xlsb/.xlsx)</button>
+          <input type="file" id="importXlsxFile" accept=".xlsb,.xlsx,.xls" style="display:none" onchange="importarPlanilhaBase(event)"/>
         </div>
         <button class="btn btn-g" style="font-size:.75rem;text-align:left" onclick="exportCSV()">📊 Exportar operações (CSV)</button>
         <button class="btn btn-g" style="font-size:.75rem;text-align:left" onclick="exportHistorico()">📋 Exportar histórico completo</button>
@@ -1939,11 +1944,11 @@ function renderList(){
   buildListSels();
   const data=getListFilt();
   const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=data.length+' op.';
-  document.getElementById('listBody').innerHTML=data.map(op=>{
+  document.getElementById('listBody').innerHTML=data.map((op,i)=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
     const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
     return `<tr onclick="openEdit('${esc(op.id)}')">
-      <td style="color:var(--red);font-weight:700">${esc(op.id)}</td><td>${fmtD(op.dataOp)}</td>
+      <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}</td><td>${fmtD(op.dataOp)}</td>
       <td><span class="rota-cell">${esc(op.rota)}</span></td>
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
       <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
@@ -5073,6 +5078,249 @@ function escUrl(s){
   const u=String(s).trim();
   if(/^(javascript|data|vbscript):/i.test(u))return'#';
   return esc(u);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// IMPORTADOR DE PLANILHA BASE (.xlsb/.xlsx)
+// Lê a aba BASE, insere viagens novas e atualiza status
+// ════════════════════════════════════════════════════════════
+
+async function importarPlanilhaBase(event){
+  const file = event.target.files[0];
+  event.target.value = ''; // reseta input
+  if(!file) return;
+  if(!window.XLSX){ showToast('SheetJS não carregado — recarregue a página','err'); return; }
+  if(!supabaseOK){ showToast('Sem conexão com o servidor','err'); return; }
+  if(currentUser?.perfil !== 'ADMIN'){ showToast('Apenas ADMIN pode importar','err'); return; }
+
+  loading(true);
+  showToast('📊 Lendo planilha...','ok');
+
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:false});
+
+    if(!wb.SheetNames.includes('BASE')){
+      loading(false);
+      showToast('❌ Aba "BASE" não encontrada na planilha','err');
+      return;
+    }
+
+    const ws = wb.Sheets['BASE'];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+    if(!rows.length){ loading(false); showToast('Planilha vazia','err'); return; }
+
+    // ── Helpers ──
+    const excelDate = v => {
+      if(!v) return null;
+      const n = typeof v === 'number' ? v : parseFloat(v);
+      if(isNaN(n)||n<1) return null;
+      const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+      return d.toISOString().split('T')[0];
+    };
+    const excelTime = v => {
+      if(!v) return null;
+      const n = typeof v === 'number' ? v : parseFloat(v);
+      if(isNaN(n)) return null;
+      const frac = n % 1;
+      const mins = Math.round(frac * 1440);
+      const h = Math.floor(mins/60) % 24;
+      const m = mins % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    };
+    const cl = v => {
+      if(v===null||v===undefined) return null;
+      const s = String(v).trim().replace(/\t|\n/g,' ');
+      return ['','-','None','nan','NaN','0','0.0','False','false'].includes(s) ? null : s;
+    };
+    const stMap = s => {
+      if(!s) return 'PROG';
+      const u = String(s).trim().toUpperCase();
+      if(u.includes('FINALIZ')) return 'FIN';
+      if(u.includes('TRANSITO')||u.includes('TRÂNSITO')) return 'TRAN';
+      if(u.includes('EMCARR')||u.includes('EM CARR')) return 'EMCARR';
+      if(u.includes('CANCEL')) return 'CANC';
+      if(u.includes('RECUS')) return 'REC';
+      if(u.includes('PERNOITE')) return 'PERN';
+      if(u.includes('AGUARD')&&u.includes('DESC')) return 'AGUDESC';
+      if(u.includes('AGUARD')&&u.includes('CARR')) return 'AGUCARR';
+      if(u.includes('PROGRAM')) return 'PROG';
+      return 'PROG';
+    };
+    const transpFix = t => {
+      if(!t) return null;
+      const s = String(t).trim();
+      if(['0','0.0','-',''].includes(s)) return null;
+      const fix = {FRATELI:'FRATELLI','FULL FLEX':'FULLFLEX',GALEGO:'GALEGOS','BEM LOGISTICA':'BEM','Bem LOGISTICA':'BEM'};
+      return fix[s] || fix[s.toUpperCase()] || s.toUpperCase();
+    };
+    const tipoRota = r => {
+      if(!r) return 'Inbound';
+      const u = String(r).toUpperCase().trim();
+      if(u.endsWith('_EX')) return 'Extra';
+      if(u.includes('_LTL')) return 'LTL';
+      return 'Inbound';
+    };
+
+    // ── Processa linhas ──
+    const seen = {};
+    for(let i=1; i<rows.length; i++){
+      const v = rows[i];
+      if(!v||!v.slice(0,5).some(x=>x!==null)) continue;
+      const dt = excelDate(v[1]);
+      if(!dt||!dt.startsWith('2026')) continue;
+      const idRaw = v[0];
+      if(!idRaw) continue;
+      let num, tracking=null;
+      const idStr = String(idRaw).trim();
+      if(idStr.includes('/')){
+        const parts = idStr.split('/');
+        num = parseInt(parts[0].trim());
+        tracking = parts[1]?.trim()||null;
+      } else {
+        num = parseInt(parseFloat(idStr));
+      }
+      if(isNaN(num)) continue;
+      const opId = `OP-${num}`;
+
+      let rota = cl(v[2]);
+      if(rota){
+        rota = rota.split('/')[0].trim();
+        if(rota==='TZX_GRU8_LTL') rota='TZX_GR8_LTL';
+        if(rota==='TZX-GR8') rota='TZX_GR8';
+      }
+
+      const placaRaw = cl(v[6]);
+      let placa=null, placaCarreta=null;
+      if(placaRaw){ const pp=placaRaw.split('/'); placa=pp[0].trim(); placaCarreta=pp[1]?.trim()||null; }
+
+      const cafRaw = cl(v[7]);
+      const baixa = cl(v[26]);
+      const cafsList = [];
+      if(cafRaw){
+        cafRaw.replace(/\\/g,'/').split('/').forEach(c=>{
+          c = c.trim().split('  ')[0].trim().split('.')[0];
+          if(c&&c.length>=5&&!isNaN(parseFloat(c))){
+            let st='vinculada';
+            if(baixa&&['OK','SIM'].includes(baixa.toUpperCase())) st='entregue';
+            else if(baixa&&(baixa.toUpperCase().includes('PROCESSO')||['NÃO','NAO'].includes(baixa.toUpperCase()))) st='processo';
+            cafsList.push({num:c,status:st});
+          }
+        });
+      }
+
+      let mot=cl(v[5]);
+      if(mot&&['CANCELADA','0.0','0'].includes(mot.toUpperCase())) mot=null;
+
+      seen[opId]={
+        id:opId, data_prog:dt, data_op:dt,
+        rota, tipo_carga:tipoRota(rota),
+        tipologia:cl(v[3]), transportadora:transpFix(v[4]),
+        motorista:mot, placa, placa_carreta:placaCarreta,
+        sm:cl(v[13]), tms:tracking||cl(v[12]), isa:null,
+        plan_apres:excelTime(v[14]), plan_saida:excelTime(v[17]), plan_cheg_fc:excelTime(v[22]),
+        real_apres:excelTime(v[15]), real_saida:excelTime(v[18]),
+        real_cheg_fc:excelTime(v[23]), real_descarga:excelTime(v[24]),
+        status:stMap(v[27]), obs:cl(v[29]),
+        cafs:cafsList,
+        hist:[{t:new Date().toISOString().slice(0,19),txt:'Importado via planilha no app'}],
+        ocorr:[], doca:null, updated_by:currentUser?.nome||'Importação'
+      };
+    }
+
+    const planOps = Object.values(seen);
+    if(!planOps.length){ loading(false); showToast('Nenhuma viagem encontrada na planilha','err'); return; }
+
+    // ── Busca IDs existentes no banco ──
+    showToast(`📊 ${planOps.length} viagens na planilha. Comparando com banco...`,'ok');
+    const existing = {};
+    const dbData = await sbFetch(`${TABELA}?select=id,status,updated_at&limit=2000`);
+    (dbData||[]).forEach(r=>existing[r.id]={status:r.status,upd:r.updated_at});
+
+    const novas = planOps.filter(o=>!existing[o.id]);
+    const atualizadas = planOps.filter(o=>{
+      if(!existing[o.id]) return false;
+      return existing[o.id].status !== o.status;
+    });
+
+    // ── Modal de preview ──
+    const modal = document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999';
+    modal.innerHTML=`
+      <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">
+        <h3 style="margin:0 0 16px;color:var(--text)">📊 Preview da Importação</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:.8rem;color:var(--t2)">Total na planilha</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--text)">${planOps.length}</div>
+          </div>
+          <div style="background:var(--green2);border-radius:8px;padding:12px">
+            <div style="font-size:.8rem;color:var(--green3)">Novas viagens a inserir</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--green)">${novas.length}</div>
+          </div>
+          <div style="background:var(--blue2);border-radius:8px;padding:12px">
+            <div style="font-size:.8rem;color:var(--blue)">Status a atualizar</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--blue)">${atualizadas.length}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:.8rem;color:var(--t2)">Já atualizadas (sem mudança)</div>
+            <div style="font-size:1.4rem;font-weight:700;color:var(--t2)">${planOps.length-novas.length-atualizadas.length}</div>
+          </div>
+        </div>
+        ${novas.length===0&&atualizadas.length===0?'<p style="color:var(--green);text-align:center">✅ Banco já está atualizado!</p>':''}
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="flex:1;background:var(--red2);color:var(--red)" onclick="this.closest('[style*=fixed]').remove();document.getElementById('loadingOverlay').style.display='none'">Cancelar</button>
+          ${novas.length>0||atualizadas.length>0?`<button class="btn btn-p" style="flex:2" onclick="_confirmarImportPlanilha(${JSON.stringify(novas).replace(/'/g,"\'")},${JSON.stringify(atualizadas).replace(/'/g,"\'")},this.closest('[style*=fixed]'))">✅ Confirmar Importação</button>`:''}
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    loading(false);
+
+  }catch(e){
+    loading(false);
+    console.error('importarPlanilhaBase:',e);
+    showToast('❌ Erro ao ler planilha: '+e.message,'err');
+  }
+}
+
+async function _confirmarImportPlanilha(novas, atualizadas, modal){
+  modal?.remove();
+  loading(true);
+  let ok=0, erros=0;
+
+  // Insere novas em batches de 50
+  for(let i=0;i<novas.length;i+=50){
+    const batch = novas.slice(i,i+50);
+    try{
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/operacoes?on_conflict=id`,{
+        method:'POST',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(batch)
+      });
+      if(res.ok) ok+=batch.length; else erros+=batch.length;
+    }catch(e){erros+=batch.length;}
+    showToast(`⬆ Inserindo... ${Math.min(i+50,novas.length)}/${novas.length}`,'ok');
+  }
+
+  // Atualiza status
+  for(const op of atualizadas){
+    try{
+      await fetch(`${SUPABASE_URL}/rest/v1/operacoes?id=eq.${encodeURIComponent(op.id)}`,{
+        method:'PATCH',
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({status:op.status,updated_by:currentUser?.nome||'Importação'})
+      });
+      ok++;
+    }catch(e){erros++;}
+  }
+
+  await loadFromSupabase(true);
+  render(); renderFUP();
+  _publishAbly('ops_update',{action:'import'});
+  loading(false);
+  showToast(`✅ Importação concluída: ${ok} processadas${erros?', '+erros+' erros':''}`, erros?'err':'ok');
+  addActivityLog(`Planilha importada: ${novas.length} novas, ${atualizadas.length} atualizadas`);
 }
 
 loadTheme();
