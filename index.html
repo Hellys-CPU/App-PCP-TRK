@@ -502,7 +502,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v85</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v88</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -654,6 +654,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <option value="processo">Proc. Entrega</option>
       <option value="entregue">Entrega Realizada</option>
     </select>
+    <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.72rem;outline:none;"/>
+    <span style="font-size:.7rem;color:var(--t3)">até</span>
+    <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.72rem;outline:none;"/>
     <input id="cafBusca" placeholder="🔍 Nº CAF, destino..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:160px;"/>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
     <button class="btn btn-g" onclick="exportCAFs()" style="font-size:.72rem">📥 CSV</button>
@@ -662,8 +665,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
     <table>
       <thead><tr>
-        <th>Nº CAF</th><th>Destino (Rota)</th><th>Tipo</th><th>Volume</th><th>Pallets</th>
-        <th>Vencimento</th><th>Status</th><th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
+        <th onclick="sortCAF('num')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Nº CAF <span id="sc-num"></span></th>
+        <th onclick="sortCAF('rota')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Destino (Rota) <span id="sc-rota"></span></th>
+        <th onclick="sortCAF('tipo')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Tipo <span id="sc-tipo"></span></th>
+        <th onclick="sortCAF('vol')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Volume <span id="sc-vol"></span></th>
+        <th onclick="sortCAF('pallets')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Pallets <span id="sc-pallets"></span></th>
+        <th onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Data Criação <span id="sc-criadoEm"></span></th>
+        <th onclick="sortCAF('venc')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></th>
+        <th onclick="sortCAF('status')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Status <span id="sc-status"></span></th>
+        <th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
       </tr></thead>
       <tbody id="cafBody"></tbody>
     </table>
@@ -1211,7 +1221,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'D-1',massa:'Massa',fup:'FUP FC',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão Doca',massa:'Massa',fup:'FUP FC',caf:'CAFs',analise:'Análise',yard:'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -1414,6 +1424,8 @@ async function bootApp(){
     }catch(e){console.warn('timerTick:',e);}
   },60000);
   setTimeout(()=>{if(cafsDB.length){try{checkCAFsVencendo();checkCAFsSemBaixa();}catch(e){}}},5000);
+  // Presença: re-renderiza a cada 30s (cobre eventos Ably perdidos + fallback DB)
+  window._presenceTick=setInterval(()=>{try{_renderOnlinePresence();}catch(e){}},30000);
   // Revalida token a cada 5 min — estende sessão automaticamente (rolling 7 days)
   window._tokenRefresh=setInterval(async()=>{
     if(!currentUser?._token||!supabaseOK)return;
@@ -1447,7 +1459,7 @@ async function doLogout(){
   }catch(e){console.warn('revoke token:',e);}
   await unpingOnlineDB();
   localStorage.removeItem('trk_sess');currentUser=null;
-  clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);clearInterval(window._tokenRefresh);
+  clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);clearInterval(window._tokenRefresh);clearInterval(window._presenceTick);
   if(_ablyChannel){try{_ablyChannel.presence.leave();}catch(e){}}
   if(_ably){try{_ably.connection.close();}catch(e){}}
   if(realtimeWS)realtimeWS.close();
@@ -2699,7 +2711,7 @@ function setView(name){
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
   if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
-  curPage=name;pingOnlineDB();renderOnlineFromDB().catch(()=>{});
+  curPage=name;pingOnlineDB().then(()=>_renderOnlinePresence()).catch(()=>{});
 }
 
 setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=new Date().toLocaleTimeString('pt-BR');},1000);
@@ -2806,6 +2818,10 @@ function renderAnalise(){
   const rArr=Object.entries(byR).sort((a,b)=>a[0].localeCompare(b[0]));
   const bySt={};STS.forEach(s=>bySt[s.id]=0);data.forEach(o=>bySt[o.status]=(bySt[o.status]||0)+1);
   const stArr=STS.map(s=>({id:s.id,lb:s.lb,v:bySt[s.id]||0,cor:ST_COR[s.id]})).filter(s=>s.v>0);
+  // Distribuição por tipo de carga
+  const byTipo={};data.forEach(o=>{const t=o.tipoCarga||'Inbound';byTipo[t]=(byTipo[t]||0)+1;});
+  const TIPO_COR={Inbound:'var(--green)',Extra:'#8b5cf6',LTL:'var(--blue)',FLT:'#f59e0b'};
+  const tipoArr=Object.entries(byTipo).map(([lb,v])=>({lb,v,cor:TIPO_COR[lb]||'var(--t2)'})).sort((a,b)=>b.v-a.v);
   const hoje=hojeLocal();
   const ontemD=new Date();ontemD.setDate(ontemD.getDate()-1);const ontem=dateLocal(ontemD);
   const dias7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return dateLocal(d);});
@@ -2868,6 +2884,13 @@ function renderAnalise(){
   <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
     <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(stArr,total)}</svg>
     <div style="flex:1;min-width:120px">${stArr.map(s=>`<div class="pizza-row"><div class="pizza-dot" style="background:${s.cor}"></div><span class="pizza-lbl">${s.lb.replace('AGUARD. ','Ag.')}</span><span class="pizza-pct">${s.v}<span style="color:var(--t2);font-size:.6rem"> (${Math.round(s.v/total*100)}%)</span></span></div>`).join('')}</div>
+  </div>
+</div>
+<div class="an-card">
+  <h3>🚚 Distribuição por Tipo de Carga</h3>
+  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(tipoArr,total)}</svg>
+    <div style="flex:1;min-width:120px">${tipoArr.map(t=>`<div class="pizza-row"><div class="pizza-dot" style="background:${t.cor}"></div><span class="pizza-lbl">${t.lb}</span><span class="pizza-pct">${t.v}<span style="color:var(--t2);font-size:.6rem"> (${Math.round(t.v/total*100)}%)</span></span></div>`).join('')}</div>
   </div>
 </div>
 <div class="an-card">
@@ -3014,19 +3037,46 @@ function buildCAFSelects(){
   if(tSel&&tSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});}
 }
 
+// ── Ordenação da tabela CAFs ──
+let _cafSort={col:'criadoEm',dir:'desc'};
+function sortCAF(col){
+  if(_cafSort.col===col){_cafSort.dir=_cafSort.dir==='asc'?'desc':'asc';}
+  else{_cafSort={col,dir:'asc'};}
+  renderCAFs();
+}
+function _cafSortIndicators(){
+  ['num','rota','tipo','vol','pallets','criadoEm','venc','status'].forEach(c=>{
+    const el=document.getElementById('sc-'+c);
+    if(el)el.textContent=_cafSort.col===c?(_cafSort.dir==='asc'?'▲':'▼'):'';
+  });
+}
+
 function renderCAFs(){
   buildCAFSelects();
   const fRota=document.getElementById('cafFRota')?.value||'';
   const fTipo=document.getElementById('cafFTipo')?.value||'';
   const fStatus=document.getElementById('cafFStatus')?.value||'';
   const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
+  const fDataDe=document.getElementById('cafFDataDe')?.value||'';
+  const fDataAte=document.getElementById('cafFDataAte')?.value||'';
   const data=cafsDB.filter(c=>{
     if(fRota&&c.rota!==fRota)return false;
     if(fTipo&&c.tipo!==fTipo)return false;
     if(fStatus&&c.status!==fStatus)return false;
+    if(fDataDe&&(!c.criadoEm||c.criadoEm.slice(0,10)<fDataDe))return false;
+    if(fDataAte&&(!c.criadoEm||c.criadoEm.slice(0,10)>fDataAte))return false;
     if(q&&![c.num,c.rota,c.obs].join('|').toLowerCase().includes(q))return false;
     return true;
   });
+  // Ordenação pelo cabeçalho clicado
+  const sc=_cafSort.col, sd=_cafSort.dir==='asc'?1:-1;
+  data.sort((a,b)=>{
+    let va=a[sc],vb=b[sc];
+    if(sc==='vol'||sc==='pallets'){va=Number(va)||0;vb=Number(vb)||0;return (va-vb)*sd;}
+    va=String(va||'');vb=String(vb||'');
+    return va.localeCompare(vb,'pt-BR',{numeric:true})*sd;
+  });
+  _cafSortIndicators();
 
   // KPIs
   const kpiEl=document.getElementById('cafKPIBar');
@@ -3061,13 +3111,14 @@ function renderCAFs(){
       <td><span class="badge ${tCls(c.tipo)}">${esc(c.tipo)}</span></td>
       <td style="font-weight:600">${c.vol.toLocaleString('pt-BR')}</td>
       <td>${c.pallets}</td>
+      <td style="font-size:.72rem;color:var(--t2)">${c.criadoEm?new Date(c.criadoEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
       <td style="${vencCls(c)}">${vStr}</td>
       <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
       <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
       <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
     </tr>`;
-  }).join(''):`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
+  }).join(''):`<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
 }
 
 function openNewCAF(){
@@ -4867,19 +4918,30 @@ function _updateRTIndicator(){
 
 // Renderiza presença online a partir do Ably Presence (tempo real, sem custo de mensagens)
 async function _renderOnlinePresence(){
-  if(!_ablyChannel||!_ablyOK){renderOnlineFromDB().catch(()=>{});return;}
-  try{
-    const members=await _ablyChannel.presence.get();
-    const el=document.getElementById('onlineBar');
-    if(!el)return;
-    const uniq={};
-    (members||[]).forEach(m=>{const d=m.data||{};if(d.user)uniq[d.user]=d;});
-    const lista=Object.values(uniq);
-    if(!lista.length){el.innerHTML='';return;}
-    el.innerHTML='<span style="font-size:.62rem;color:var(--green);font-weight:700;margin-right:2px">●</span>'+
-      lista.slice(0,6).map(u=>`<div title="${u.nome||u.user} · ${u.pagina||''}" style="width:22px;height:22px;border-radius:50%;background:${u.cor||'#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;border:1.5px solid var(--bg);margin-left:-4px">${u.av||'?'}</div>`).join('')+
-      (lista.length>6?`<span style="font-size:.62rem;color:var(--t2);margin-left:4px">+${lista.length-6}</span>`:'');
-  }catch(e){renderOnlineFromDB().catch(()=>{});}
+  const el=document.getElementById('onlineBar');
+  if(!el)return;
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão Doca',massa:'Massa',fup:'FUP FC',caf:'CAFs',analise:'Análise',yard:'TV Yard',tv:'TV',admin:'Admin'};
+  let lista=[];
+  // 1ª fonte: Ably Presence (tempo real)
+  if(_ablyChannel&&_ablyOK){
+    try{
+      const members=await _ablyChannel.presence.get();
+      const uniq={};
+      (members||[]).forEach(m=>{const d=m.data||{};if(d.user)uniq[d.user]=d;});
+      lista=Object.values(uniq);
+    }catch(e){}
+  }
+  // Fallback/complemento: tabela sessoes (pings < 3min)
+  if(!lista.length&&supabaseOK){
+    try{
+      const cut=new Date(Date.now()-3*60*1000).toISOString();
+      const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${encodeURIComponent(cut)}`);
+      lista=(data||[]).map(u=>({user:u.usuario,nome:u.nome,av:u.avatar,cor:u.cor,pagina:u.pagina}));
+    }catch(e){}
+  }
+  if(!lista.length){el.innerHTML='';return;}
+  el.innerHTML=lista.slice(0,8).map(u=>`<div class="ob-item" title="${esc(u.nome||u.user)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor||'#666'}">${esc(u.av||'?')}<div class="ob-dot"></div></div><div><div class="ob-name">${esc((u.nome||u.user||'').split(' ')[0])}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('')+
+    (lista.length>8?`<span style="font-size:.62rem;color:var(--t2);margin-left:4px">+${lista.length-8}</span>`:'');
 }
 
 // ══════════════════════════════════════════════════════════════════
