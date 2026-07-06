@@ -521,7 +521,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v105</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v106</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -788,7 +788,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- ADMIN -->
 <div class="view" id="view-admin">
   <div class="admin-grid">
-    <div class="admin-card">
+    <div class="admin-card" id="adm-users">
       <h3>👥 Gestão de Usuários</h3>
       <div class="user-list" id="userList"></div>
       <button class="btn btn-p" style="font-size:.73rem;width:100%" onclick="openNewUser()">+ Criar Novo Usuário</button>
@@ -797,7 +797,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <h3>📊 Estatísticas</h3>
       <div class="stat-grid" id="statsGrid"></div>
     </div>
-    <div class="admin-card">
+    <div class="admin-card" id="adm-config">
       <h3>⚙️ Configurações</h3>
       <div class="config-row"><div><div class="config-label">Alertas de Atraso</div><div class="config-desc">Destacar cards com atraso</div></div><label class="toggle-sw"><input type="checkbox" id="cfgAlertas" checked onchange="saveConfig()"><span class="slider"></span></label></div>
       <div class="config-row"><div><div class="config-label">Timer ao Vivo</div><div class="config-desc">Tempo em trânsito nos cards</div></div><label class="toggle-sw"><input type="checkbox" id="cfgTimer" checked onchange="saveConfig()"><span class="slider"></span></label></div>
@@ -864,7 +864,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
     </div>
-    <div class="admin-card">
+    <div class="admin-card" id="adm-backup">
       <h3>💾 Backup & Dados</h3>
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="btn btn-g" style="font-size:.75rem;text-align:left" onclick="exportBackup()">📤 Exportar backup completo (JSON)</button>
@@ -884,7 +884,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </div>
       </div>
     </div>
-    <div class="admin-card">
+    <div class="admin-card" id="adm-rotas">
       <h3>🛣️ Rotas & Transportadoras</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div>
@@ -1478,7 +1478,7 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
-  if(currentUser.perfil==='ADMIN'){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';document.getElementById('tb-tv-yard').style.display='';}
+  if(['ADMIN','SUPERVISOR'].includes(currentUser.perfil)){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';document.getElementById('tb-tv-yard').style.display='';}
   loading(true);
   // Carrega dados — cada etapa protegida para nunca travar o boot
   try{
@@ -1576,11 +1576,11 @@ async function doLogout(){
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
   const pbCls={ADMIN:'pb-admin',OPERADOR:'pb-op',VISUALIZADOR:'pb-vis'};
-  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>${u.user!==currentUser?.user?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:'<span style="font-size:.66rem;color:var(--t2)">(você)</span>'}</div></div>`).join('');
+  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center">${currentUser?.perfil==='ADMIN'?`<button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>`:''}${u.user!==currentUser?.user&&currentUser?.perfil==='ADMIN'?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:u.user===currentUser?.user?'<span style="font-size:.66rem;color:var(--t2)">(você)</span>':''}</div></div>`).join('');
 }
 
 function openNewUser(){
-  if(currentUser?.perfil!=='ADMIN'){showToast('Apenas administradores podem criar usuários','err');return;}
+  if(!['ADMIN','SUPERVISOR'].includes(currentUser?.perfil)){showToast('Apenas ADMIN ou SUPERVISOR podem criar usuários','err');return;}
   document.getElementById('uNome').value='';document.getElementById('uUser').value='';
   document.getElementById('uSenha').value='';document.getElementById('uSenha2').value='';
   document.getElementById('uPerfil').value='OPERADOR';
@@ -2871,6 +2871,15 @@ function setView(name){
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
+  // Controle de visibilidade do Admin por perfil
+  if(name==='admin'&&currentUser){
+    const isAdmin=currentUser.perfil==='ADMIN';
+    // SUPERVISOR: vê users (criar sim, editar/deletar não), rotas, backup, SLA. Não vê docas.
+    // Esconde botões de editar/deletar user para SUPERVISOR
+    document.querySelectorAll('.btn-del,.btn[onclick*="openEditUser"]').forEach(el=>{
+      if(!isAdmin)el.style.display='none';
+    });
+  }
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
   if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
   if(name==='prog')renderProg();
@@ -5330,7 +5339,7 @@ async function importarPlanilhaBase(event){
   if(!file) return;
   if(!window.XLSX){ showToast('SheetJS não carregado — recarregue a página','err'); return; }
   if(!supabaseOK){ showToast('Sem conexão com o servidor','err'); return; }
-  if(currentUser?.perfil !== 'ADMIN'){ showToast('Apenas ADMIN pode importar','err'); return; }
+  if(!['ADMIN','SUPERVISOR'].includes(currentUser?.perfil)){ showToast('Apenas ADMIN ou SUPERVISOR pode importar','err'); return; }
 
   loading(true);
   showToast('📊 Lendo planilha...','ok');
