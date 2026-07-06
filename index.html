@@ -453,6 +453,24 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .admin-grid{padding:10px;padding-bottom:70px;}
   .fgrid.c3{grid-template-columns:1fr 1fr;}
   .col{width:240px;}
+  /* ── Mobile v103: usabilidade ── */
+  .toolbar{padding:6px 8px;gap:5px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+  .toolbar input,.toolbar select{font-size:16px;min-height:38px;} /* 16px evita zoom automático do iOS */
+  .toolbar input[type="date"]{min-width:130px;}
+  .btn{min-height:38px;} /* área de toque mínima 38px */
+  table{font-size:.68rem;}
+  th,td{padding:6px 4px!important;white-space:nowrap;}
+  .modal{max-width:96vw!important;margin:8px;max-height:92vh;overflow-y:auto;}
+  .mbody{padding:12px;}
+  .fgrid.c2,.fgrid.c3{grid-template-columns:1fr;} /* form em coluna única no celular */
+  .user-item{flex-wrap:wrap;gap:6px;}
+  .kpi-bar{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+  #amazonWrap{padding:8px!important;}
+  #amazonWrap table{font-size:.6rem;}
+  .mnav-btn{min-width:52px;font-size:.6rem;}
+  /* Cards do kanban ocupam largura útil */
+  .col{width:78vw;max-width:300px;}
+  .card{font-size:.72rem;}
 }
 
 /* PWA INSTALL */
@@ -503,7 +521,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v96</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v103</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -511,7 +529,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab" id="tb-amazon" onclick="setView('amazon')">📦 FUP Amazon</button>
-    <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a">📦 CAFs</button>
+    <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
     <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard')" style="color:#22c55e;display:none" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
     <button class="tab" id="tb-tv" onclick="setView('tv')" style="color:#0891b2;display:none" title="Modo TV - tela cheia para telão">📺 TV</button>
@@ -558,7 +576,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <input type="date" id="amData" onchange="renderAmazon()" title="Data da operação"/>
     <div class="sp"></div>
     <button class="btn btn-s" onclick="exportAmazonPDF()" style="font-size:.72rem">📄 Exportar PDF</button>
-    <button class="btn" onclick="window.print()" style="font-size:.72rem">🖨 Imprimir</button>
+    <button class="btn" onclick="exportAmazonPDF()" style="font-size:.72rem">🖨 Imprimir</button>
   </div>
   <div id="amazonWrap" style="padding:12px 16px 40px"></div>
 </div>
@@ -569,6 +587,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <input type="date" id="lFData" onchange="renderList()" title="Filtrar por data"/>
     <div class="sp"></div>
     <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
+    <button class="btn btn-g" onclick="exportListCSV()" style="font-size:.68rem;padding:4px 10px" title="Exporta a lista com os filtros aplicados">📥 CSV</button>
     <span id="listCnt" style="font-size:.68rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="clrFList()" style="font-size:.7rem">✕</button>
   </div>
@@ -949,6 +968,29 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 
+<!-- MODAL EDITAR USUÁRIO -->
+<div class="overlay" id="overlayEditUser">
+  <div class="modal" style="max-width:440px">
+    <div class="mhdr"><h2>✏️ Editar Usuário</h2><button class="mclose" onclick="closeEditUserModal()">✕</button></div>
+    <div class="mbody">
+      <div class="fgrid c1" style="gap:11px">
+        <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
+        <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
+        <div class="fg"><label>Perfil</label><select id="euPerfil">
+          <option>ADMIN</option><option>SUPERVISOR</option><option>OPERADOR</option><option>PORTARIA</option><option>VISUALIZADOR</option>
+        </select></div>
+        <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
+        <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
+        <div class="fg"><label>Cor do Avatar</label><div id="euCores" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
+      </div>
+    </div>
+    <div class="mftr">
+      <button class="btn" onclick="closeEditUserModal()">Cancelar</button>
+      <button class="btn btn-p" onclick="confirmEditUser()">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CAF -->
 <div class="overlay" id="overlayCAF">
   <div class="modal" style="max-width:560px">
@@ -1004,25 +1046,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 // que venha do usuário e seja inserido via innerHTML
 // ─────────────────────────────────────────────────────
 // ── Data local (Brasília) — resolve bug de UTC virando dia seguinte após 21h ──
-// ── Adiciona entrada no histórico com cap de 50 (evita JSONB infinito) ──
-// ── localStorage seguro: parse com validação + fallback ──
-function lsGet(key, fallback=null){
-  try{
-    const raw=localStorage.getItem(key);
-    if(!raw)return fallback;
-    const parsed=JSON.parse(raw);
-    return parsed!==null&&parsed!==undefined?parsed:fallback;
-  }catch(e){
-    console.warn('localStorage corrompido para',key,'— limpando');
-    localStorage.removeItem(key);
-    return fallback;
-  }
-}
-function lsSet(key, val){
-  try{localStorage.setItem(key, JSON.stringify(val));}
-  catch(e){console.warn('localStorage cheio ou erro:',key,e);}
-}
-
 function addHist(op, txt){
   if(!op.hist)op.hist=[];
   op.hist.push({t:ts(),txt});
@@ -1036,12 +1059,6 @@ function dateLocal(d){
 }
 
 function hojeLocal(){return dateLocal(new Date());}
-function agoraLocal(){
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'T'+
-    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
-}
-
 function esc(s){
   if(s===null||s===undefined)return '';
   return String(s)
@@ -1052,19 +1069,6 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-// Escapa para uso em atributos (ainda mais restritivo)
-function escAttr(s){
-  if(s===null||s===undefined)return '';
-  return String(s).replace(/[^\w\s.,\-@]/g,c=>'&#'+c.charCodeAt(0)+';');
-}
-// Sanitiza URL - previne javascript: e data: URIs
-function escUrl(s){
-  if(s===null||s===undefined)return '#';
-  const url=String(s).trim();
-  if(/^(javascript|data|vbscript|file):/i.test(url))return '#';
-  return esc(url);
-}
-
 const APP_VERSION='v67';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
@@ -1082,16 +1086,6 @@ async function sbUpsert(table,row){
   const hasId=row.id!==undefined&&row.id!==null;
   const prefer=hasId?'resolution=merge-duplicates,return=minimal':'return=minimal';
   const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':prefer},body:JSON.stringify(row)});
-  if(!res.ok)throw new Error(await res.text());
-}
-// INSERT sem upsert (para registros novos sem id, ex: CAFs)
-async function sbInsert(table,row){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)});
-  if(!res.ok)throw new Error(await res.text());
-}
-// UPDATE por id
-async function sbUpdate(table,id,row){
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)});
   if(!res.ok)throw new Error(await res.text());
 }
 async function sbDelete(table,col,val){
@@ -1267,12 +1261,28 @@ function initRealtime(){
 }
 
 // PRESENÇA
+// Entra na presença Ably (idempotente — enter com dados novos atualiza)
+function _ablyPresenceEnter(){
+  if(!_ablyChannel||!currentUser)return;
+  try{_ablyChannel.presence.enter({user:currentUser.user,nome:currentUser.nome,av:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel'});}catch(e){console.warn('presence.enter:',e);}
+}
+// Atualiza SÓ o Ably presence (zero custo Supabase) — usado pelo tick adaptativo
+function _ablyPresenceUpdate(){
+  if(_ablyChannel&&_ablyOK&&currentUser){
+    const data={user:currentUser.user,nome:currentUser.nome,av:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel'};
+    // update falha se não está "entered" (ex: pós-reconexão) — fallback pra enter
+    try{
+      _ablyChannel.presence.update(data).catch(()=>{try{_ablyChannel.presence.enter(data);}catch(e2){}});
+    }catch(e){
+      try{_ablyChannel.presence.enter(data);}catch(e2){}
+    }
+  }
+  pingOnlineLocal();
+}
 async function pingOnlineDB(){
   if(!currentUser||!supabaseOK)return;
   try{await sbUpsert(TABELA_SESS,{usuario:currentUser.user,nome:currentUser.nome,avatar:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel',ultimo_ping:new Date().toISOString()});}catch(e){}
-  // Presença em tempo real via Ably Presence API (não consome mensagens)
-  if(_ablyChannel&&_ablyOK&&currentUser){try{_ablyChannel.presence.update({user:currentUser.user,nome:currentUser.nome,av:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel'});}catch(e){}}
-  pingOnlineLocal();
+  _ablyPresenceUpdate();
 }
 async function unpingOnlineDB(){if(!currentUser)return;if(supabaseOK)try{await sbDelete(TABELA_SESS,'usuario',currentUser.user);}catch(e){}unpingOnlineLocal();}
 async function renderOnlineFromDB(){
@@ -1351,25 +1361,7 @@ async function loadUsers(){
   USERS=[...DEFAULT_USERS];
 }
 
-async function buildHashesLocal(){for(const u of USERS){if(u.pw&&!HASHES[u.user])HASHES[u.user]=await h256(u.pw);}}
 function saveUsersLocal(){try{localStorage.setItem('trk_users',JSON.stringify(USERS));}catch(e){}}
-function saveUsers(){saveUsersLocal();}
-
-async function syncUsersToSupabase(){
-  // Só sincroniza usuários que ainda não existem no banco
-  // NUNCA sobrescreve hashes de quem já tem senha configurada
-  if(!supabaseOK)return;
-  try{
-    const existing=await sbFetch(`${TABELA_USR}?select=usuario`);
-    const existingIds=new Set((existing||[]).map(r=>r.usuario));
-    for(const u of DEFAULT_USERS){
-      if(existingIds.has(u.user))continue; // já existe — não mexe
-      if(!u.pw)continue;                   // sem senha padrão — não cria
-      try{const hash=await h256(u.pw);await sbUpsert(TABELA_USR,{usuario:u.user,nome:u.nome,avatar:u.av,cor:u.cor,perfil:u.perfil,senha_hash:hash,ativo:true,criado_por:'Sistema'});HASHES[u.user]=hash;}catch(e){}
-    }
-  }catch(e){console.error('syncUsers error:',e);}
-}
-
 async function initAuth(){
   await checkSupabase();
   await loadUsers();
@@ -1424,8 +1416,41 @@ async function doLogin(){
         currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:r.token};
         // Salva APENAS o token no localStorage — sessão de verdade fica no Supabase (auth_tokens)
         localStorage.setItem('trk_sess',JSON.stringify({token:r.token}));
+        // Marca timestamp de login — ignora eventos session_revoked antigos por 10s
+        window._loginAt=Date.now();
         await bootApp();
+        // Se foi login forçado, avisa a máquina antiga via Ably (logout instantâneo lá)
+        if(window._forcedLogin){
+          window._forcedLogin=false;
+          _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
+        }
         return;
+      }
+      if(r&&r.erro==='sessao_existente'){
+        // Usuário já logado em outra máquina — pergunta se quer derrubar
+        if(confirm('⚠ Você já está conectado em OUTRO dispositivo.\n\nDeseja DESCONECTAR de lá e entrar aqui?\n\n(OK = desconecta a outra máquina e entra aqui / Cancelar = mantém a outra sessão)')){
+          window._forcedLogin=true;
+          // Refaz o login com p_forcar=true
+          const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
+            method:'POST',
+            headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+            body:JSON.stringify({p_usuario:user,p_senha_sha256:hash,p_forcar:true})
+          });
+          const r2=await res2.json();
+          if(r2&&r2.ok){
+            currentUser={user:r2.usuario,nome:r2.nome,av:r2.avatar,cor:r2.cor,perfil:r2.perfil,_token:r2.token};
+            localStorage.setItem('trk_sess',JSON.stringify({token:r2.token}));
+            window._loginAt=Date.now();
+            await bootApp();
+            _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
+            window._forcedLogin=false;
+            return;
+          }
+          err.textContent='Erro ao forçar login. Tente novamente.';
+          err.style.display='block';return;
+        }
+        err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
+        err.style.display='block';return;
       }
       if(r&&r.erro==='bloqueado'){
         err.textContent=`Muitas tentativas. Aguarde ${r.segundos||60}s para tentar novamente.`;
@@ -1468,9 +1493,18 @@ async function bootApp(){
   pingOnlineDB().catch(e=>console.warn('boot ping:',e));
   renderOnlineFromDB().catch(e=>console.warn('boot online:',e)); // fallback inicial; Ably Presence assume quando conecta
   // Intervalos periódicos
-  window._ping=setInterval(()=>{pingOnlineDB().catch(()=>{});renderOnlineFromDB().catch(()=>{});},60000);
+  window._pingTickCount=0;
+  window._ping=setInterval(()=>{
+    // Adaptativo: Ably OK → DB ping a cada 3 ticks (180s, só fallback). Ably caído → todo tick (60s).
+    window._pingTickCount=(window._pingTickCount||0)+1;
+    if(_ablyOK && window._pingTickCount%3!==0){_ablyPresenceUpdate&&_ablyPresenceUpdate();return;}
+    pingOnlineDB().catch(()=>{});renderOnlineFromDB().catch(()=>{});},60000);
+  window._syncTickCount=0;
   window._sync=setInterval(async()=>{
     if(!supabaseOK||!CFG.sync)return;
+    // Adaptativo: Ably conectado entrega realtime — sync é só rede de segurança (180s). Ably caído → 45s.
+    window._syncTickCount=(window._syncTickCount||0)+1;
+    if(_ablyOK && window._syncTickCount%4!==0)return;
     try{
       const hadChanges=await loadFromSupabase();
       if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
@@ -1485,7 +1519,13 @@ async function bootApp(){
   },60000);
   setTimeout(()=>{if(cafsDB.length){try{checkCAFsVencendo();checkCAFsSemBaixa();}catch(e){}}},5000);
   // Presença: re-renderiza a cada 30s (cobre eventos Ably perdidos + fallback DB)
-  window._presenceTick=setInterval(()=>{try{_renderOnlinePresence();}catch(e){}},30000);
+  window._presenceTick=setInterval(()=>{
+    try{_renderOnlinePresence();}catch(e){}
+    // Auto-refresh do FUP Amazon (usa dados em memória — custo zero)
+    try{if(curPage==='amazon')renderAmazon();}catch(e){}
+    // Badge de CAFs
+    try{_updateCAFBadge();}catch(e){}
+  },30000);
   // Revalida token a cada 5 min — estende sessão automaticamente (rolling 7 days)
   window._tokenRefresh=setInterval(async()=>{
     if(!currentUser?._token||!supabaseOK)return;
@@ -1502,7 +1542,7 @@ async function bootApp(){
         setTimeout(()=>{localStorage.removeItem('trk_sess');location.reload();},2000);
       }
     }catch(e){console.warn('tokenRefresh:',e);}
-  },5*60*1000);
+  },15*60*1000);
 }
 
 async function doLogout(){
@@ -1522,6 +1562,7 @@ async function doLogout(){
   clearInterval(window._ping);clearInterval(window._sync);clearInterval(window._timerTick);clearInterval(window._tokenRefresh);clearInterval(window._presenceTick);
   if(_ablyChannel){try{_ablyChannel.presence.leave();}catch(e){}}
   if(_ably){try{_ably.connection.close();}catch(e){}}
+  _ablyChannel=null;_ably=null;_ablyOK=false;window._ablySubscribed=false;
   if(realtimeWS)realtimeWS.close();
   document.getElementById('appRoot').style.display='none';
   document.getElementById('loginScreen').classList.add('show');
@@ -1549,6 +1590,64 @@ function openNewUser(){
 function closeUserModal(){document.getElementById('overlayUser').classList.remove('open');}
 function selColor(c){selectedColor=c;document.querySelectorAll('#colorPicker [data-color]').forEach(el=>{el.style.border=el.dataset.color===c?'2px solid #000':'2px solid transparent';el.style.transform=el.dataset.color===c?'scale(1.2)':'scale(1)';});}
 
+
+// ── EDIÇÃO DE USUÁRIO (ADMIN) ──
+let _editUserTarget=null, _editUserColor=null;
+function openEditUser(username){
+  const u=USERS.find(x=>x.user===username);
+  if(!u){showToast('Usuário não encontrado','err');return;}
+  _editUserTarget=username;
+  _editUserColor=u.cor;
+  document.getElementById('euNome').value=u.nome||'';
+  document.getElementById('euUser').value=u.user||'';
+  document.getElementById('euPerfil').value=u.perfil||'OPERADOR';
+  document.getElementById('euSenha').value='';
+  document.getElementById('euSenha2').value='';
+  // Paleta de cores
+  const cores=['#cc0000','#e74c3c','#e67e22','#f1c40f','#27ae60','#16a085','#2980b9','#8e44ad','#d81b60','#546e7a'];
+  document.getElementById('euCores').innerHTML=cores.map(c=>
+    `<div onclick="_editUserColor='${c}';document.querySelectorAll('#euCores>div').forEach(d=>d.style.outline='');this.style.outline='2px solid var(--text)'"
+      style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;${c===u.cor?'outline:2px solid var(--text)':''}"></div>`).join('');
+  document.getElementById('overlayEditUser').classList.add('show');
+}
+function closeEditUserModal(){
+  document.getElementById('overlayEditUser').classList.remove('show');
+  _editUserTarget=null;
+}
+async function confirmEditUser(){
+  if(!_editUserTarget)return;
+  const nome=document.getElementById('euNome').value.trim();
+  const novoLogin=document.getElementById('euUser').value.trim().toLowerCase().replace(/\s+/g,'.');
+  const perfil=document.getElementById('euPerfil').value;
+  const pw=document.getElementById('euSenha').value;
+  const pw2=document.getElementById('euSenha2').value;
+  if(!nome||!novoLogin){showToast('Nome e login são obrigatórios','err');return;}
+  if(pw&&pw!==pw2){showToast('Senhas não conferem','err');return;}
+  if(pw&&pw.length<6){showToast('Senha muito curta (mín. 6)','err');return;}
+
+  const trocouLogin=novoLogin!==_editUserTarget;
+  if(trocouLogin&&!confirm(`⚠ Trocar o login de @${_editUserTarget} para @${novoLogin}?\n\nA pessoa será DESLOGADA e precisará entrar com o novo login.`))return;
+
+  const parts=nome.split(' ');
+  const av=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'X')).toUpperCase();
+
+  const dados={usuario:_editUserTarget,nome,avatar:av,cor:_editUserColor,perfil};
+  if(pw)dados.senha_sha256=await h256(pw);
+  if(trocouLogin)dados.novo_login=novoLogin;
+
+  try{
+    const r=await _rpcGerenciarUsuario('editar',dados);
+    // Atualiza lista local
+    const u=USERS.find(x=>x.user===_editUserTarget);
+    if(u){u.nome=nome;u.av=av;u.cor=_editUserColor;u.perfil=perfil;if(trocouLogin)u.user=novoLogin;}
+    saveUsersLocal();renderUserList();
+    _publishAbly('cfg_update',{});
+    showToast(trocouLogin?`✅ Salvo! @${novoLogin} precisará fazer login novamente`:'✅ Usuário atualizado','ok');
+    addActivityLog(`Usuário @${_editUserTarget} editado por ${currentUser?.nome}`);
+    closeEditUserModal();
+  }catch(e){showToast('Erro: '+e.message,'err');}
+}
+
 async function saveUser(){
   const nome=document.getElementById('uNome').value.trim();
   const user=document.getElementById('uUser').value.trim().toLowerCase().replace(/\s+/g,'.');
@@ -1574,44 +1673,6 @@ async function saveUser(){
     renderUserList();renderStats();
   }catch(e){showToast('Erro: '+e.message,'err');}
 }
-
-async function confirmarEditUser(oldUsername){
-  const nome=(document.getElementById('_euNome')?.value||'').trim();
-  const novoLogin=(document.getElementById('_euLogin')?.value||'').trim().toLowerCase().replace(/\s+/g,'.');
-  const perfil=document.getElementById('_euPerfil')?.value||'OPERADOR';
-  const senha=document.getElementById('_euSenha')?.value||'';
-  const senha2=document.getElementById('_euSenha2')?.value||'';
-  if(!nome||!novoLogin){showToast('Nome e login são obrigatórios','err');return;}
-  if(senha&&senha.length<6){showToast('Senha muito curta (mín. 6 caracteres)','err');return;}
-  if(senha&&senha!==senha2){showToast('Senhas não conferem','err');return;}
-  if(novoLogin!==oldUsername&&USERS.find(u=>u.user===novoLogin)){showToast('Login já existe','err');return;}
-  loading(true);
-  const u=USERS.find(x=>x.user===oldUsername);if(!u){loading(false);return;}
-  const parts=nome.split(' ');
-  const av=(parts[0][0]+(parts[1]?parts[1][0]:parts[0][1]||'X')).toUpperCase();
-  const senhaHash=senha?await h256(senha):null;
-  try{
-    await _rpcGerenciarUsuario('editar',{
-      usuario:oldUsername,nome,avatar:av,cor:u.cor,perfil,
-      senha_sha256:senhaHash,
-      novo_login:novoLogin!==oldUsername?novoLogin:null
-    });
-    u.nome=nome;u.av=av;u.perfil=perfil;
-    const trocouLogin=novoLogin!==oldUsername;
-    if(trocouLogin)u.user=novoLogin;
-    saveUsersLocal();
-    if(trocouLogin){
-      showToast('✅ Login alterado para @'+novoLogin+'. O usuário precisará fazer login novamente.','ok');
-    }else{
-      showToast('✅ @'+novoLogin+' atualizado!','ok');
-    }
-    addActivityLog('Usuário @'+oldUsername+' editado por '+currentUser?.nome);
-    _publishAbly('cfg_update',{});
-    document.getElementById('_editUserModal')?.remove();
-    loading(false);renderUserList();renderStats();
-  }catch(e){loading(false);showToast('Erro: '+e.message,'err');}
-}
-
 
 async function deleteUser(username){
   if(username===currentUser?.user){showToast('Você não pode deletar sua própria conta','err');return;}
@@ -1656,15 +1717,6 @@ const pMin=t=>{if(!t)return null;const part=t.includes('T')?t.split('T')[1]:t;co
 const toTime=v=>v?(v.includes('T')?v.split('T')[1].substring(0,5):v.substring(0,5)):'';
 // Extrai só YYYY-MM-DD
 const toDate=v=>v?(v.includes('T')?v.split('T')[0]:null):null;
-// Formata datetime-local para exibição: mostra data se diferente de dataOp
-const fmtRT=(v,dataOp)=>{
-  if(!v)return'—';
-  const t=toTime(v);
-  const d=toDate(v);
-  if(d&&dataOp&&d!==dataOp)return`<span style="font-size:.58rem;color:var(--orange)">${new Date(d+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span> ${t}`;
-  return t;
-};
-
 const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);if(pa==null||pb==null)return null;let d=pb-pa;if(d<-720)d+=1440;if(d>720)d-=1440;return d;};
 const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
 const dCls=d=>d===null?'':d>(CFG.limiteAtraso||30)?'late':d>0?'warn':'ok';
@@ -1823,7 +1875,15 @@ function addActivityLog(msg){
 // ══════════════════════════════════════════════════════════════════
 // LOCAL STORAGE
 // ══════════════════════════════════════════════════════════════════
-function saveLocalOps(){try{localStorage.setItem('trk_ops',JSON.stringify(ops));localStorage.setItem('trk_seq',String(seq));}catch(e){}}
+function saveLocalOps(){try{
+  let json=JSON.stringify(ops);
+  // Proteção: localStorage tem limite 5MB. Se >4MB, salva só as 1000 ops mais recentes (por data)
+  if(json.length>4*1024*1024){
+    const sorted=[...ops].sort((a,b)=>(b.dataOp||'').localeCompare(a.dataOp||''));
+    json=JSON.stringify(sorted.slice(0,1000));
+  }
+  localStorage.setItem('trk_ops',json);localStorage.setItem('trk_seq',String(seq));
+}catch(e){/* quota exceeded — cache local indisponível, banco continua fonte de verdade */}}
 function loadLocalOps(){try{const s=localStorage.getItem('trk_seq');if(s)seq=parseInt(s);const d=localStorage.getItem('trk_ops');if(d&&JSON.parse(d).length){ops=JSON.parse(d);return true;}}catch(e){}return false;}
 
 // ══════════════════════════════════════════════════════════════════
@@ -1995,6 +2055,43 @@ function buildListSels(){
   const tpSel=document.getElementById('lFTp');
   if(tpSel&&tpSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tpSel.appendChild(o);});}
 }
+
+// Exporta a Lista (com filtros e ordenação atuais) para CSV compatível com Excel BR
+function exportListCSV(){
+  let data=getListFilt();
+  // Aplica a mesma ordenação da tela
+  const sc=_listSort.col, sd=_listSort.dir==='asc'?1:-1;
+  data=[...data].sort((a,b)=>{
+    let va=a[sc],vb=b[sc];
+    if(sc==='_dS'){va=dMin(a.planSaida,a.realSaida);vb=dMin(b.planSaida,b.realSaida);}
+    if(sc==='_dC'){va=dMin(a.planChegFC,a.realChegFC);vb=dMin(b.planChegFC,b.realChegFC);}
+    if(sc==='_dDoc'){va=dMin(a.realChegFC,a.realDescarga);vb=dMin(b.realChegFC,b.realDescarga);}
+    if(va===null||va===undefined)return sd;
+    if(vb===null||vb===undefined)return -sd;
+    if(typeof va==='number'&&typeof vb==='number')return (va-vb)*sd;
+    return String(va).localeCompare(String(vb),'pt-BR',{numeric:true})*sd;
+  });
+  if(!data.length){showToast('Nada para exportar com os filtros atuais','err');return;}
+  const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
+  const head=['ID','Data','Rota','Tipo','Transportadora','Motorista','Placa','Carreta','SM','TMS','Pl.Apres','Rl.Apres','Pl.Saida','Rl.Saida','Pl.FC','Rl.FC','Descarga','Delta Saida (min)','Delta FC (min)','Status','CAFs','Obs'];
+  const rows=data.map(o=>[
+    o.id,o.dataOp,o.rota,o.tipoCarga,o.transp||'',o.mot||'',o.placa||'',o.placaCarreta||'',
+    o.sm||'',o.tms||'',o.planApres||'',o.realApres||'',o.planSaida||'',o.realSaida||'',
+    o.planChegFC||'',o.realChegFC||'',o.realDescarga||'',
+    dMin(o.planSaida,o.realSaida)??'',dMin(o.planChegFC,o.realChegFC)??'',
+    stLb[o.status]||o.status,(o.cafs||[]).map(c=>c.num).join(' / '),(o.obs||'').replace(/[\r\n;]+/g,' ')
+  ]);
+  // ; como separador (Excel BR) + BOM UTF-8 (acentos corretos)
+  const csv='\ufeff'+[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`TRK_Lista_${hojeLocal()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`✅ ${data.length} operações exportadas`,'ok');
+}
+
 function renderList(){
   buildListSels();
   _buildListHeaderSels(ops); // popula selects inline do header
@@ -2068,6 +2165,11 @@ function renderProg(){
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
   const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
+  // ── Docas ocupadas (ops EM CARREGAMENTO com doca atribuída) ──
+  const DOCAS_TOTAL=(CFG.docas&&CFG.docas.length)||DOCAS_CONFIG?.total||8;
+  const docasOcupadas=ops.filter(o=>o.dataOp===yardDt&&o.status==='EMCARR'&&o.doca).map(o=>({doca:o.doca,id:o.id,placa:o.placa}));
+  const docasPct=Math.min(100,Math.round(docasOcupadas.length/DOCAS_TOTAL*100));
+  const docasCor=docasPct>=90?'var(--red)':docasPct>=70?'var(--yellow)':'var(--green)';
   const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
 
   // Atualiza barra de piso no toolbar
@@ -2090,6 +2192,14 @@ function renderProg(){
           </div>
           <span style="font-weight:700;color:${palCor}">${palCount}/${PAL_MAX}</span>
           ${palPct>=90?'<span style="font-size:.7rem">🔴</span>':palPct>=70?'<span style="font-size:.7rem">⚠️</span>':''}
+        </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:.68rem">
+          <span style="color:var(--t2);font-weight:600;min-width:32px">Docas</span>
+          <div style="background:var(--bg4);border-radius:4px;height:8px;width:100px;overflow:hidden">
+            <div style="height:100%;width:${docasPct}%;background:${docasCor};border-radius:4px;transition:width .4s"></div>
+          </div>
+          <span style="font-weight:700;color:${docasCor}" title="${docasOcupadas.map(d=>`Doca ${d.doca}: ${d.id}`).join(' · ')||'Nenhuma ocupada'}">${docasOcupadas.length}/${DOCAS_TOTAL}</span>
+          ${docasPct>=90?'<span style="font-size:.7rem">🔴</span>':''}
         </div>
       </div>`;
   }
@@ -3059,7 +3169,7 @@ async function loadCAFs(){
     }else{
       console.error('loadCAFs error:',e);
     }
-  }
+  }  _updateCAFBadge();
 }
 async function saveCAFToDB(caf){
   const now=new Date().toISOString();
@@ -3159,6 +3269,18 @@ function _cafSortIndicators(){
     const el=document.getElementById('sc-'+c);
     if(el)el.textContent=_cafSort.col===c?(_cafSort.dir==='asc'?'▲':'▼'):'';
   });
+}
+
+
+// Badge de alerta na aba CAFs: vencidas + vencendo em 2 dias (só status em aberto)
+function _updateCAFBadge(){
+  const el=document.getElementById('cafAlertBadge');
+  if(!el)return;
+  const hoje=hojeLocal();
+  const lim=dateLocal(new Date(Date.now()+2*86400000));
+  const n=cafsDB.filter(c=>c.venc&&c.venc<=lim&&!['entregue','fechada','cancelada'].includes(c.status)).length;
+  if(n>0){el.textContent=n;el.style.display='inline-block';}
+  else{el.style.display='none';}
 }
 
 function renderCAFs(){
@@ -3922,6 +4044,18 @@ function renderTV(){
     // Renderiza caminhões em cada posição
     function renderCaminhoes(posOps, posIdx){
       if(!posOps.length)return'';
+      // MODO COMPACTO: >6 veículos na mesma posição → mostra contagem agregada + até 3 ícones
+      if(posOps.length>6){
+        const atrasados=posOps.filter(o=>getSLA(o)==='late').length;
+        const cor=statusCor[posOps[0].status]||'#6b7280';
+        const icon=statusIcon[posOps[0].status]||'🚛';
+        return`<div title="${posOps.map(o=>o.id).join(' · ')}"
+          style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px">
+          <div style="font-size:1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
+          <div style="font-size:.6rem;color:${cor};font-weight:800">×${posOps.length}</div>
+          ${atrasados?`<div style="font-size:.5rem;color:var(--red)">⚠${atrasados}</div>`:''}
+        </div>`;
+      }
       return posOps.map(o=>{
         const cor=statusCor[o.status]||'#6b7280';
         const icon=statusIcon[o.status]||'🚛';
@@ -3939,10 +4073,11 @@ function renderTV(){
       }).join('');
     }
 
-    return`<div style="background:var(--bg);border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:12px;padding:14px;margin-bottom:12px">
+    const _compact=opsHoje.length>25;
+    return`<div style="background:var(--bg);border:1px solid ${corBorda}44;border-left:4px solid ${corBorda};border-radius:${_compact?'8px':'12px'};padding:${_compact?'8px 10px':'14px'};margin-bottom:${_compact?'6px':'12px'}">
       <!-- Rota header -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:1rem;font-weight:800;color:var(--text)">${rota}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${_compact?'4px':'12px'}">
+        <div style="font-size:${_compact?'.8rem':'1rem'};font-weight:800;color:var(--text)">${rota}</div>
         <div style="display:flex;gap:10px;align-items:center">
           <span style="font-size:.65rem;color:var(--t2)">${d.total} viagem${d.total>1?'s':''}</span>
           ${d.late?`<span style="font-size:.65rem;color:var(--red);font-weight:700">⚠ ${d.late} atrasada${d.late>1?'s':''}</span>`:''}
@@ -4279,11 +4414,6 @@ function checkCAFsVencendo(){
 // Já salvo em openEditCAF e saveCAF usando hist_caf na tabela
 // Implementação via campo obs enriquecido + log visual
 
-function _addCAFHist(caf,msg){
-  const entry='['+new Date().toLocaleString('pt-BR')+'] '+(currentUser?.nome||'Sistema')+': '+msg;
-  caf.obs=(caf.obs?caf.obs+'\n':'')+entry;
-}
-
 // ══════════════════════════════════════════════════════════════════
 // FEATURE: OCORRÊNCIAS ESTRUTURADAS
 // ══════════════════════════════════════════════════════════════════
@@ -4385,10 +4515,6 @@ function getSLAMeta(rota){
   return SLA_METAS[rota]||CFG.slaMeta||92;
 }
 
-function loadSLAMetas(){
-  try{const s=localStorage.getItem('trk_sla_metas');if(s)SLA_METAS=JSON.parse(s);}catch(e){}
-}
-
 function saveSLAMetas(){
   try{localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));}catch(e){}
 }
@@ -4482,6 +4608,11 @@ function renderTVYard(){
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
   const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
+  // Docas ocupadas
+  const DOCAS_TOTAL=DOCAS_CONFIG?.total||8;
+  const docasOcup=ops.filter(o=>o.dataOp===yDt&&o.status==='EMCARR'&&o.doca);
+  const docasPct=Math.min(100,Math.round(docasOcup.length/DOCAS_TOTAL*100));
+  const docasCor=docasPct>=90?'var(--red)':docasPct>=70?'var(--yellow)':'var(--green)';
   const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
 
   el.innerHTML=`
@@ -4505,10 +4636,14 @@ function renderTVYard(){
   </div>
 
   <!-- Ocupação de Piso KPI -->
-  <div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:12px;margin-bottom:14px;align-items:center">
+  <div style="display:grid;grid-template-columns:auto 1fr 1fr auto auto;gap:12px;margin-bottom:14px;align-items:center">
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 16px;text-align:center">
       <div style="font-size:2rem;font-weight:800;color:var(--text)">${opsYard.length}</div>
       <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase">No Pátio</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid ${docasCor}44;border-radius:10px;padding:10px 16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:${docasCor}">${docasOcup.length}<span style="font-size:1rem;color:var(--t2)">/${DOCAS_TOTAL}</span></div>
+      <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase">🚪 Docas Ocupadas</div>
     </div>
     <div style="background:var(--bg2);border:1px solid ${cafCor}44;border-radius:10px;padding:12px 16px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
@@ -4799,17 +4934,6 @@ function _renderMapaDoca(){
 
 // ══════════════════════════════════════════════════════════════════
 // MAPA DE DOCA — Config editável
-// ══════════════════════════════════════════════════════════════════
-function loadDocasConfig(){
-  try{
-    const s=localStorage.getItem('trk_docas');
-    if(s){
-      const d=JSON.parse(s);
-      DOCAS_CONFIG={total:d.total||8,prefix:d.prefix||'D',nomes:d.nomes||{}};
-    }
-  }catch(e){}
-}
-
 async function saveDocasConfig(){
   const total=parseInt(document.getElementById('cfgDocasTotal')?.value)||8;
   const prefix=(document.getElementById('cfgDocasPrefix')?.value||'D').trim()||'D';
@@ -4932,8 +5056,15 @@ function initAbly(){
     _ably.connection.on('connected',()=>{
       _ablyOK=true;
       console.log('Ably conectado ✅');
-      _subscribeAbly();
+      if(!window._ablySubscribed){
+        window._ablySubscribed=true;
+        _subscribeAbly();
+      }else{
+        // Reconexão: Ably perde presença se ficou >2min fora — re-entra sempre
+        _ablyPresenceEnter();
+      }
       _updateRTIndicator();
+      _renderOnlinePresence();
     });
     _ably.connection.on('disconnected',()=>{
       _ablyOK=false;
@@ -4953,6 +5084,18 @@ function initAbly(){
 function _subscribeAbly(){
   if(!_ably)return;
   _ablyChannel=_ably.channels.get('trk-pcp-ops');
+
+  // ── SESSÃO ÚNICA: outra máquina forçou login com meu usuário → logout instantâneo ──
+  _ablyChannel.subscribe('session_revoked',(msg)=>{
+    if(!currentUser)return;
+    if(msg.data?.user!==currentUser.user)return;
+    // Ignora o próprio evento (a máquina NOVA acabou de logar há <10s)
+    if(window._loginAt && (Date.now()-window._loginAt)<10000)return;
+    // Esta é a máquina ANTIGA — desloga imediatamente
+    alert('⚠ Sua conta foi conectada em outro dispositivo.\n\nEsta sessão será encerrada.');
+    localStorage.removeItem('trk_sess');
+    location.reload();
+  });
 
   // Operações criadas/editadas/movidas
   _ablyChannel.subscribe('ops_update',async(msg)=>{
@@ -5032,7 +5175,7 @@ function _updateRTIndicator(){
     el.style.background='rgba(249,115,22,.1)';
     el.querySelector('.rt-dot').style.background='#f97316';
     el.querySelector('span').textContent='Offline';
-    el.title='Realtime: Ably desconectado — sync a cada 60s';
+    el.title='Realtime: Ably desconectado — sync automático a cada 45s';
     el.style.display='flex';
   }
 }
@@ -5173,19 +5316,6 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-// Escapa atributo HTML (uso dentro de aspas duplas)
-function escAttr(s){
-  return esc(s);
-}
-// Sanitiza URL (evita javascript:, data:)
-function escUrl(s){
-  if(!s)return'';
-  const u=String(s).trim();
-  if(/^(javascript|data|vbscript):/i.test(u))return'#';
-  return esc(u);
-}
-
-
 // ════════════════════════════════════════════════════════════
 // IMPORTADOR DE PLANILHA BASE (.xlsb/.xlsx)
 // Lê a aba BASE, insere viagens novas e atualiza status
@@ -5439,16 +5569,34 @@ async function _confirmarImportPlanilha(){
 // FUP AMAZON — Relatório por FC para envio via WhatsApp/PDF
 // ════════════════════════════════════════════════════════════
 
+// Extrai o FC de destino da rota (agrupa TZX_GR8, TZX_GR8_LTL, TZX_GR8_EX → GR8)
+function _fcFromRota(rota){
+  if(!rota) return null;
+  // Remove prefixo TZX_ e sufixos _LTL, _EX, _WEPAY, etc
+  // Pega o segundo segmento (o FC de destino)
+  const parts = rota.split('_');
+  if(parts.length >= 2){
+    // primeiro parte é a origem (TZX, XC9, GR8...)
+    // segundo é o FC destino (GR8, XC9, GR9, GR5, JDU...)
+    return parts[1];
+  }
+  return rota;
+}
+
 function _initAmazonSelects(){
   const fcSel = document.getElementById('amFC');
   if(!fcSel) return;
   const cur = fcSel.value;
-  // Rotas disponíveis nos dados do dia
   const amData = document.getElementById('amData')?.value || hojeLocal();
-  const rotasDisponiveis = [...new Set(ops.filter(o=>!amData||o.dataOp===amData).map(o=>o.rota).filter(Boolean))].sort();
-  fcSel.innerHTML = '<option value="">Selecione o FC (Rota)</option>' +
-    rotasDisponiveis.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');
-  if(cur && rotasDisponiveis.includes(cur)) fcSel.value = cur;
+  // Agrupa por FC de destino (independente de sufixo LTL/EX/etc)
+  const fcsDisponiveis = [...new Set(
+    ops.filter(o=>!amData||o.dataOp===amData)
+       .map(o=>_fcFromRota(o.rota))
+       .filter(Boolean)
+  )].sort();
+  fcSel.innerHTML = '<option value="">Selecione o FC (Destino)</option>' +
+    fcsDisponiveis.map(fc=>`<option${fc===cur?' selected':''}>${fc}</option>`).join('');
+  if(cur && fcsDisponiveis.includes(cur)) fcSel.value = cur;
 }
 
 function renderAmazon(){
@@ -5466,7 +5614,7 @@ function renderAmazon(){
     return;
   }
 
-  const data = ops.filter(o => o.rota === fc && (!dataFiltro || o.dataOp === dataFiltro));
+  const data = ops.filter(o => _fcFromRota(o.rota) === fc && (!dataFiltro || o.dataOp === dataFiltro));
 
   if(!data.length){
     wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--t2)">Nenhuma operação encontrada para <b>${esc(fc)}</b> em ${fmtD(dataFiltro)}.</div>`;
@@ -5497,8 +5645,11 @@ function renderAmazon(){
       <!-- Cabeçalho -->
       <div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:1.1rem;font-weight:700;color:var(--red)">📦 FUP AMAZON — ${esc(fc)}</div>
-          <div style="font-size:.8rem;color:var(--t2);margin-top:2px">${fmtD(dataFiltro)} · Gerado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--red)">📦 FUP AMAZON — FC ${esc(fc)}</div>
+          <div style="font-size:.72rem;color:var(--t2);margin-top:2px">
+            Rotas: ${[...new Set(data.map(o=>o.rota).filter(Boolean))].sort().join(' · ')}
+          </div>
+          <div style="font-size:.8rem;color:var(--t2);margin-top:1px">${fmtD(dataFiltro)} · Gerado ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap">
           <div style="text-align:center"><div style="font-size:1.4rem;font-weight:700;color:var(--text)">${total}</div><div style="font-size:.65rem;color:var(--t2)">TOTAL</div></div>
@@ -5598,26 +5749,62 @@ function renderAmazon(){
 
 async function exportAmazonPDF(){
   const fc = document.getElementById('amFC')?.value;
-  const dt = document.getElementById('amData')?.value || hojeLocal();
   if(!fc){ showToast('Selecione um FC primeiro','err'); return; }
-  // Print CSS — esconde toolbar, mostra só o relatório
+
+  // Clona o relatório pra um div temporário no body — abordagem mais confiável
+  const content = document.getElementById('amazonReport');
+  if(!content){ showToast('Gere o relatório antes de exportar','err'); return; }
+
+  // Cria container temporário de impressão
+  const printDiv = document.createElement('div');
+  printDiv.id = '_amazonPrintRoot';
+  printDiv.innerHTML = content.outerHTML;
+  document.body.appendChild(printDiv);
+
+  // CSS: esconde tudo exceto o container temporário
   const style = document.createElement('style');
-  style.id = '_printAmazon';
-  style.textContent = `@media print{
-    .topbar,.tabs,.mobile-nav,.toolbar,#amazonToolbar,button{display:none!important}
-    .view{display:block!important;padding:0!important}
-    #amazonWrap{padding:0!important}
-    body{background:#fff!important;color:#000!important}
-    [style*="var(--bg"],[style*="var(--text"],[style*="var(--t2"],[style*="var(--red"],[style*="var(--green"]{color:#000!important}
-    table{page-break-inside:avoid}
-  }`;
+  style.id = '_printAmazonStyle';
+  style.textContent = `
+    @media print {
+      body > *:not(#_amazonPrintRoot) { display: none !important; }
+      #_amazonPrintRoot {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: #fff !important;
+        padding: 8mm !important;
+        z-index: 99999 !important;
+        overflow: visible !important;
+      }
+      /* Cores para impressão */
+      * { box-shadow: none !important; }
+      #_amazonPrintRoot * { background: #fff !important; color: #111 !important; border-color: #ccc !important; }
+      #_amazonPrintRoot [style*="--red"] { color: #b00 !important; }
+      #_amazonPrintRoot [style*="--green"] { color: #060 !important; }
+      #_amazonPrintRoot [style*="--blue"] { color: #00b !important; }
+      #_amazonPrintRoot [style*="--t2"] { color: #555 !important; }
+      #_amazonPrintRoot [style*="--bg3"] { background: #f5f5f5 !important; }
+      #_amazonPrintRoot span[style*="--green"][style*="font-weight:700"] { color: #060 !important; }
+      #_amazonPrintRoot span[style*="--red"][style*="font-weight:700"] { color: #b00 !important; }
+      /* Tabela compacta A4 landscape */
+      @page { size: A4 landscape; margin: 8mm; }
+      #_amazonPrintRoot table { width: 100% !important; border-collapse: collapse !important; font-size: 6.5pt !important; }
+      #_amazonPrintRoot th, #_amazonPrintRoot td { padding: 2px 4px !important; border: 0.4px solid #ccc !important; white-space: nowrap; }
+      #_amazonPrintRoot thead tr { background: #eee !important; }
+      #_amazonPrintRoot div[style*="border-left"] { border: 1px solid #ccc !important; border-left-width: 3px !important; }
+      #_amazonPrintRoot div[style*="border:2px solid"] { border: 1.5px solid #b00 !important; }
+      #_amazonPrintRoot .rota-cell { background: #eee !important; padding: 1px 4px; border-radius: 3px; }
+    }
+  `;
   document.head.appendChild(style);
-  document.body.classList.add('printing-fup');
+
   window.print();
+
+  // Remove após impressão
   setTimeout(()=>{
+    document.body.removeChild(printDiv);
     document.head.removeChild(style);
-    document.body.classList.remove('printing-fup');
-  },1000);
+  }, 1500);
 }
 
 loadTheme();
