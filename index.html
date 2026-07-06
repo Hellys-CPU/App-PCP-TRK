@@ -521,7 +521,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v103</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v105</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1184,13 +1184,16 @@ async function saveToSupabase(op){
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
-    // Lock otimista: verifica se outro usuário alterou desde a última leitura
+    // Lock otimista: verifica se OUTRO usuário alterou desde a última leitura
     if(op.updatedAt){
       const check=await sbFetch(`${TABELA}?id=eq.${encodeURIComponent(op.id)}&select=updated_at,updated_by`);
       if(check&&check[0]&&check[0].updated_at&&check[0].updated_at>op.updatedAt){
         const quem=check[0].updated_by||'outro usuário';
-        if(!confirm(`⚠ ${quem} alterou esta operação enquanto você editava.\n\nSalvar mesmo assim sobrescreve as mudanças dele.\n\nDeseja salvar?`)){
-          showToast('⚠ Salvar cancelado — recarregue para ver a versão atual','err');return;
+        // Ignora se foi o próprio usuário (sync ou outra aba)
+        if(quem!==currentUser?.nome&&quem!==currentUser?.user){
+          if(!confirm(`⚠ ${quem} alterou esta operação enquanto você editava.\n\nSalvar mesmo assim sobrescreve as mudanças dele.\n\nDeseja salvar?`)){
+            showToast('⚠ Salvar cancelado — recarregue para ver a versão atual','err');return;
+          }
         }
       }
     }
@@ -1608,10 +1611,10 @@ function openEditUser(username){
   document.getElementById('euCores').innerHTML=cores.map(c=>
     `<div onclick="_editUserColor='${c}';document.querySelectorAll('#euCores>div').forEach(d=>d.style.outline='');this.style.outline='2px solid var(--text)'"
       style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;${c===u.cor?'outline:2px solid var(--text)':''}"></div>`).join('');
-  document.getElementById('overlayEditUser').classList.add('show');
+  document.getElementById('overlayEditUser').classList.add('open');
 }
 function closeEditUserModal(){
-  document.getElementById('overlayEditUser').classList.remove('show');
+  document.getElementById('overlayEditUser').classList.remove('open');
   _editUserTarget=null;
 }
 async function confirmEditUser(){
