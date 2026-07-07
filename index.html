@@ -1589,7 +1589,9 @@ async function doLogin(){
         body:JSON.stringify({p_usuario:user,p_senha_sha256:hash})
       });
       const r=await res.json();
-      const loginErro=String((r&&(r.erro||r.error))||'').toLowerCase().trim();
+      const loginErroBruto=(r&&(r.erro||r.error||r.message||r.msg))||'';
+      const loginErro=String(loginErroBruto).toLowerCase().trim();
+      console.log('[LOGIN RPC]', { status: res.status, ok: res.ok, body: r, loginErro });
       if(r&&r.ok){
         currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:r.token};
         // Salva APENAS o token no localStorage — sessão de verdade fica no Supabase (auth_tokens)
@@ -1604,9 +1606,23 @@ async function doLogin(){
         }
         return;
       }
-      if(loginErro==='sessao_existente' || loginErro==='sessaoexistente'){
+      if(
+        loginErro==='sessao_existente' ||
+        loginErro==='sessaoexistente' ||
+        loginErro.includes('sessao_existente') ||
+        loginErro.includes('sessao existente') ||
+        loginErro.includes('sessão existente') ||
+        loginErro.includes('ja existe sessao') ||
+        loginErro.includes('já existe sessão') ||
+        loginErro.includes('outro dispositivo')
+      ){
         let quer=false;
         try{
+          const ov=document.getElementById('overlaySessaoExistente');
+          if(ov){
+            ov.style.display='block';
+            ov.classList.add('open');
+          }
           quer=await _confirmarSessaoExistente();
         }catch(e){
           console.warn('Falha ao abrir modal de sessão existente:',e);
