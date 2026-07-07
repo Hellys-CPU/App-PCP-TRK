@@ -1560,6 +1560,10 @@ function _confirmarSessaoExistente(){
   return new Promise(resolve=>{
     const ov=document.getElementById('overlaySessaoExistente');
     const bF=document.getElementById('btnSessaoForcar'), bC=document.getElementById('btnSessaoCancelar');
+    if(!ov||!bF||!bC){
+      resolve(confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?'));
+      return;
+    }
     const cleanup=(v)=>{ov.classList.remove('open');bF.onclick=null;bC.onclick=null;resolve(v);};
     bF.onclick=()=>cleanup(true);
     bC.onclick=()=>cleanup(false);
@@ -1585,6 +1589,7 @@ async function doLogin(){
         body:JSON.stringify({p_usuario:user,p_senha_sha256:hash})
       });
       const r=await res.json();
+      const loginErro=String((r&&(r.erro||r.error))||'').toLowerCase().trim();
       if(r&&r.ok){
         currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:r.token};
         // Salva APENAS o token no localStorage — sessão de verdade fica no Supabase (auth_tokens)
@@ -1599,9 +1604,14 @@ async function doLogin(){
         }
         return;
       }
-      if(r&&r.erro==='sessao_existente'){
-        // Usuário já logado em outra máquina — pergunta se quer derrubar (modal próprio, mais confiável que confirm() nativo em PWA/mobile)
-        const quer=await _confirmarSessaoExistente();
+      if(loginErro==='sessao_existente' || loginErro==='sessaoexistente'){
+        let quer=false;
+        try{
+          quer=await _confirmarSessaoExistente();
+        }catch(e){
+          console.warn('Falha ao abrir modal de sessão existente:',e);
+          quer=confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?');
+        }
         if(quer){
           window._forcedLogin=true;
           // Refaz o login com p_forcar=true
@@ -1626,7 +1636,7 @@ async function doLogin(){
         err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
         err.style.display='block';return;
       }
-      if(r&&r.erro==='bloqueado'){
+      if(loginErro==='bloqueado'){
         err.textContent=`Muitas tentativas. Aguarde ${r.segundos||60}s para tentar novamente.`;
         err.style.display='block';document.getElementById('lPass').value='';return;
       }
