@@ -1016,6 +1016,22 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
 
+<div class="overlay" id="overlaySessaoExistente">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr" style="border-top-color:var(--red)">
+      <h2 style="color:var(--red)">⚠ Sessão já ativa</h2>
+    </div>
+    <div class="mbody">
+      <p style="font-size:.8rem;color:var(--gray2);line-height:1.5">Este usuário já está conectado em <strong>outro dispositivo</strong>.</p>
+      <p style="font-size:.78rem;color:var(--t2);margin-top:8px">Deseja desconectar o outro dispositivo e entrar aqui agora?</p>
+    </div>
+    <div class="mfoot">
+      <button class="btn" id="btnSessaoCancelar">Cancelar</button>
+      <button class="btn btn-p" id="btnSessaoForcar">Desconectar e entrar aqui</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlayCAF">
   <div class="modal" style="max-width:560px">
     <div class="mhdr" style="border-top-color:var(--green)">
@@ -1540,6 +1556,16 @@ async function initAuth(){
 }
 
 let _loginAttempts=0,_loginBlock=0;
+function _confirmarSessaoExistente(){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('overlaySessaoExistente');
+    const bF=document.getElementById('btnSessaoForcar'), bC=document.getElementById('btnSessaoCancelar');
+    const cleanup=(v)=>{ov.classList.remove('open');bF.onclick=null;bC.onclick=null;resolve(v);};
+    bF.onclick=()=>cleanup(true);
+    bC.onclick=()=>cleanup(false);
+    ov.classList.add('open');
+  });
+}
 async function doLogin(){
   const user=(document.getElementById('lUser').value||'').trim().toLowerCase();
   const pass=document.getElementById('lPass').value;
@@ -1574,8 +1600,9 @@ async function doLogin(){
         return;
       }
       if(r&&r.erro==='sessao_existente'){
-        // Usuário já logado em outra máquina — pergunta se quer derrubar
-        if(confirm('⚠ Você já está conectado em OUTRO dispositivo.\n\nDeseja DESCONECTAR de lá e entrar aqui?\n\n(OK = desconecta a outra máquina e entra aqui / Cancelar = mantém a outra sessão)')){
+        // Usuário já logado em outra máquina — pergunta se quer derrubar (modal próprio, mais confiável que confirm() nativo em PWA/mobile)
+        const quer=await _confirmarSessaoExistente();
+        if(quer){
           window._forcedLogin=true;
           // Refaz o login com p_forcar=true
           const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
@@ -2222,9 +2249,9 @@ function exportListCSV(){
   });
   if(!data.length){showToast('Nada para exportar com os filtros atuais','err');return;}
   const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
-  const head=['ID','Data','Rota','Tipo','Transportadora','Motorista','Placa','Carreta','SM','TMS','Pl.Apres','Rl.Apres','Pl.Saida','Rl.Saida','Pl.FC','Rl.FC','Descarga','Delta Saida (min)','Delta FC (min)','Status','CAFs','Obs'];
+  const head=['ID','Código Curto','Data','Rota','Tipo','Transportadora','Motorista','Placa','Carreta','SM','TMS','Pl.Apres','Rl.Apres','Pl.Saida','Rl.Saida','Pl.FC','Rl.FC','Descarga','Delta Saida (min)','Delta FC (min)','Status','CAFs','Obs'];
   const rows=data.map(o=>[
-    o.id,o.dataOp,o.rota,o.tipoCarga,o.transp||'',o.mot||'',o.placa||'',o.placaCarreta||'',
+    o.id,o.codigoCurto||'',o.dataOp,o.rota,o.tipoCarga,o.transp||'',o.mot||'',o.placa||'',o.placaCarreta||'',
     o.sm||'',o.tms||'',o.planApres||'',o.realApres||'',o.planSaida||'',o.realSaida||'',
     o.planChegFC||'',o.realChegFC||'',o.realDescarga||'',
     dMin(o.planSaida,o.realSaida)??'',dMin(o.planChegFC,o.realChegFC)??'',
@@ -3713,8 +3740,8 @@ async function _vincularCAF(cafId,op){
 }
 
 function exportCAFs(){
-  const rows=[['Nº CAF','Rota','Tipo','Volume','Pallets','Vencimento','Status','Op. Vinculada','Criado por','Criado em']];
-  cafsDB.forEach(c=>rows.push([c.num,c.rota,c.tipo,c.vol,c.pallets,c.venc||'',c.status,c.opId||'',c.criadoPor,c.criadoEm]));
+  const rows=[['Nº CAF','Código Curto','Rota','Tipo','Volume','Pallets','Vencimento','Status','Op. Vinculada','Criado por','Criado em']];
+  cafsDB.forEach(c=>rows.push([c.num,c.codigoCurto||'',c.rota,c.tipo,c.vol,c.pallets,c.venc||'',c.status,c.opId||'',c.criadoPor,c.criadoEm]));
   dlCSV(rows,'CAFs_TRK');showToast('📥 CAFs exportadas','ok');
 }
 
