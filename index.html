@@ -371,6 +371,8 @@ body.dark .fup-sep td{color:#e6edf3;}
 .pb-admin{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
 .pb-op{background:var(--blue2);color:var(--blue);border:1px solid #93c5fd;}
 .pb-vis{background:var(--green2);color:var(--green3);border:1px solid #86efac;}
+.pb-doca{background:var(--orange2);color:var(--orange);border:1px solid #fdba74;}
+.pb-supervisor{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
 .config-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd);}
 .config-row:last-child{border-bottom:none;}
 .config-label{font-size:.78rem;font-weight:600;color:var(--gray2);}
@@ -540,6 +542,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div id="rtIndicator" style="display:none;margin-right:6px" class="rt-badge"><div class="rt-dot"></div><span>Live</span></div>
     <div class="dbs" style="margin-right:4px"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
     <span class="clock" id="clock"></span>
+    <span id="statusOperador" style="display:none;font-size:.68rem;color:var(--t2);margin-right:6px;white-space:nowrap"></span>
+    <button class="btn btn-g" id="btnTrocarOperador" onclick="trocarOperador()" style="display:none;font-size:.65rem;padding:3px 8px;margin-right:4px">🔄 Trocar operador</button>
     <div class="uchip" onclick="doLogout()"><div class="uav" id="uAv">?</div><span class="uname" id="uName">...</span><span class="uout">sair</span></div>
     <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
     <button class="btn btn-g" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)" style="font-size:.85rem">🔍</button>
@@ -714,7 +718,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <select id="cafFStatus" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;">
       <option value="">Todos os Status</option>
       <option value="aberta">Em Produção</option>
-      <option value="vinculada">Disponível p/ Embarque</option>
+      <option value="vinculada">Produzida</option>
       <option value="fechada">Vinculada a Veículo</option>
       <option value="processo">Proc. Entrega</option>
       <option value="entregue">Entrega Realizada</option>
@@ -738,6 +742,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <th onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Data Criação <span id="sc-criadoEm"></span></th>
         <th onclick="sortCAF('venc')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></th>
         <th onclick="sortCAF('status')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Status <span id="sc-status"></span></th>
+        <th>Rua</th>
         <th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
       </tr></thead>
       <tbody id="cafBody"></tbody>
@@ -939,9 +944,12 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Confirmar Senha</label><input id="uSenha2" type="password" placeholder="senha@2026"></div>
         <div class="fg"><label>Perfil</label>
           <select id="uPerfil">
-            <option value="OPERADOR">Operador — criar e editar operações</option>
-            <option value="VISUALIZADOR">Visualizador — somente leitura</option>
-            <option value="ADMIN">Admin — acesso total</option>
+            <option value="operador_caf">Operador CAF — login compartilhado, gerencia CAFs</option>
+            <option value="doca">Doca — gestão de doca/pátio</option>
+            <option value="torre_controle">Torre de Controle — opera viagens e CAFs</option>
+            <option value="visualizador">Visualizador — somente leitura</option>
+            <option value="supervisor">Supervisor — quase acesso total</option>
+            <option value="admin">Admin — acesso total</option>
           </select>
         </div>
         <div class="fg"><label>Cor do Avatar</label><div id="colorPicker" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:4px"></div></div>
@@ -977,7 +985,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
         <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
         <div class="fg"><label>Perfil</label><select id="euPerfil">
-          <option>ADMIN</option><option>SUPERVISOR</option><option>OPERADOR</option><option>PORTARIA</option><option>VISUALIZADOR</option>
+          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option>
         </select></div>
         <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
@@ -992,6 +1000,22 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 <!-- MODAL CAF -->
+<div class="overlay" id="overlayTurno">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr" style="border-top-color:var(--blue)">
+      <h2 style="color:var(--blue)">🕒 Quem está operando?</h2>
+    </div>
+    <div class="mbody">
+      <p style="font-size:.78rem;color:var(--t2);margin-bottom:10px">Login compartilhado. Informe o nome de quem está no turno.</p>
+      <div class="fg"><label>Turno atual</label><input id="turnoAtual" disabled></div>
+      <div class="fg"><label>Nome do operador</label><input id="turnoNome" placeholder="Ex: João Silva"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" id="btnConfirmarTurno" onclick="confirmarTurno()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlayCAF">
   <div class="modal" style="max-width:560px">
     <div class="mhdr" style="border-top-color:var(--green)">
@@ -1010,7 +1034,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Status da CAF</label>
           <select id="cafStatus">
             <option value="aberta">Em Produção</option>
-            <option value="vinculada">Disponível p/ Embarque</option>
+            <option value="vinculada">Produzida</option>
             <option value="fechada">Vinculada a Veículo</option>
             <option value="processo">Proc. de Entrega</option>
             <option value="entregue">Entrega Realizada</option>
@@ -1018,6 +1042,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </div>
         <div class="fg"><label>Destino (Rota)</label>
           <select id="cafRota"><option value="">Selecione a rota</option></select>
+        </div>
+        <div class="fg">
+          <label>Rua</label>
+          <select id="cafRua"><option value="">Nenhuma</option></select>
+          <small style="font-size:.63rem;color:var(--t2)">Uma CAF por Rua. Libera automaticamente quando a CAF entra em trânsito.</small>
         </div>
         <div class="fg"><label>Vencimento</label><input id="cafVenc" type="date"></div>
         <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0"></div>
@@ -1074,8 +1103,123 @@ console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`)
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
-const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs';
+const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas';
 let supabaseOK=false,realtimeWS=null;
+
+// ── Status de CAF: código interno usado em toda a UI  ⇄  valor real no banco ──
+const CAF_STATUS_CODE2DB={aberta:'Em Produção',vinculada:'Produzida',fechada:'Vinculada a Veículo',processo:'Processo de Entrega',entregue:'Entrega Realizada',cancelada:'cancelada'};
+const CAF_STATUS_DB2CODE={'Em Produção':'aberta','Produzida':'vinculada','Vinculada a Veículo':'fechada','Processo de Entrega':'processo','Entrega Realizada':'entregue','cancelada':'cancelada'};
+
+// ── Perfis reais do banco (tabela usuarios.perfil) ──
+// admin | supervisor | torre_controle | doca | operador_caf | visualizador
+function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
+function isReadOnly(){return _perfil()==='visualizador';}
+function _cafStatusPermitido(perfilRaw){
+  const p=(perfilRaw||'').toLowerCase();
+  if(['admin','supervisor'].includes(p))return['aberta','vinculada','fechada','processo','entregue','cancelada'];
+  if(p==='operador_caf')return['aberta','vinculada'];
+  if(p==='torre_controle')return['processo','entregue'];
+  return[];
+}
+
+// ── Genérico: chama uma função RPC do Supabase autenticada pelo token de sessão ──
+async function _rpc(fn,params){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(params)});
+  const txt=await res.text();
+  let data=null;try{data=txt?JSON.parse(txt):null;}catch(e){}
+  if(!res.ok)throw new Error((data&&data.message)||txt||'Erro RPC');
+  return data;
+}
+
+// ── Controle de visibilidade de menus/abas por perfil ──
+function aplicarPermissoesUI(perfilRaw){
+  const p=(perfilRaw||'').toLowerCase();
+  const ids={
+    painel:['tb-painel','mn-painel'], lista:['tb-lista','mn-lista'],
+    prog:['tb-prog','mn-prog'], massa:['tb-massa','mn-massa'],
+    fup:['tb-fup','mn-fup'], amazon:['tb-amazon','mn-amazon'],
+    caf:['tb-caf','mn-caf'], analise:['tb-analise','mn-analise'],
+    tvyard:['tb-tv-yard'], tv:['tb-tv'], admin:['tb-admin','mn-admin'],
+  };
+  const set=(keys,visivel)=>keys.forEach(k=>(ids[k]||[]).forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display=visivel?'':'none';
+  }));
+  // Esconde tudo, depois libera por perfil
+  set(Object.keys(ids),false);
+  switch(p){
+    case 'admin':
+    case 'supervisor':
+      set(['painel','lista','prog','massa','fup','amazon','caf','analise','tvyard','tv','admin'],true);
+      break;
+    case 'torre_controle':
+      set(['painel','lista','prog','massa','fup','amazon','caf','analise','tvyard','tv'],true);
+      break;
+    case 'doca':
+      set(['painel','lista','prog','tvyard','tv'],true);
+      break;
+    case 'operador_caf':
+      set(['painel','lista','caf'],true);
+      break;
+    case 'visualizador':
+    default:
+      set(['painel','lista','caf','analise','tvyard','tv'],true);
+  }
+  // Botão de exportar PPTX é exclusivo do admin (regra do backend: validar_permissao/exportar_pptx)
+  document.querySelectorAll('.btn-exportar-pptx').forEach(el=>el.style.display=(p==='admin')?'':'none');
+}
+
+// ── Turno de operador (logins compartilhados: operador_caf e doca) ──
+function _turnoAtualLabel(){
+  const hStr=new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo',hour:'2-digit',hour12:false});
+  const h=parseInt(hStr,10);
+  if(h>=6&&h<14)return'T1 — 06:00 a 14:20';
+  if(h>=14&&h<22)return'T2 — 14:20 a 22:00';
+  return'T3 — 22:00 a 06:00';
+}
+async function exigirTurnoOperador(perfilRaw){
+  const p=(perfilRaw||'').toLowerCase();
+  const elOv=document.getElementById('overlayTurno');
+  const elStatus=document.getElementById('statusOperador');
+  const btnTrocar=document.getElementById('btnTrocarOperador');
+  if(!elOv||!elStatus||!btnTrocar)return;
+  if(!['operador_caf','doca'].includes(p)){
+    elOv.classList.remove('open');elStatus.style.display='none';btnTrocar.style.display='none';
+    return;
+  }
+  btnTrocar.style.display='';
+  try{
+    const r=await _rpc('gerenciar_turno',{p_token:currentUser._token,p_acao:'consultar'});
+    if(r&&r.ok&&r.nome){
+      elStatus.style.display='';elStatus.textContent=`Operando: ${r.nome} (${r.turno})`;
+      elOv.classList.remove('open');
+      return;
+    }
+  }catch(e){console.warn('consultar turno:',e);}
+  document.getElementById('turnoAtual').value=_turnoAtualLabel();
+  document.getElementById('turnoNome').value='';
+  elStatus.style.display='none';
+  elOv.classList.add('open');
+}
+async function confirmarTurno(){
+  const nome=(document.getElementById('turnoNome').value||'').trim();
+  if(!nome){showToast('⚠ Informe o nome do operador','err');return;}
+  try{
+    const r=await _rpc('gerenciar_turno',{p_token:currentUser._token,p_acao:'iniciar',p_nome_operador:nome});
+    if(r&&r.ok){
+      document.getElementById('overlayTurno').classList.remove('open');
+      const elStatus=document.getElementById('statusOperador');
+      elStatus.style.display='';elStatus.textContent=`Operando: ${r.nome} (${r.turno})`;
+      showToast('✅ Turno iniciado','ok');
+    }else{
+      showToast('❌ '+((r&&r.erro)||'Erro ao iniciar turno'),'err');
+    }
+  }catch(e){console.error(e);showToast('❌ Erro ao iniciar turno','err');}
+}
+async function trocarOperador(){
+  if(!confirm('Encerrar turno atual e trocar de operador?'))return;
+  try{await _rpc('gerenciar_turno',{p_token:currentUser._token,p_acao:'encerrar'});}catch(e){console.warn(e);}
+  exigirTurnoOperador(currentUser?.perfil);
+}
 
 async function sbFetch(path,opts={}){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},...opts});
@@ -1334,11 +1478,11 @@ const HASHES={};
 let currentUser=null,selectedColor='#cc0000';
 
 const DEFAULT_USERS=[
-  {user:'hellys',        nome:'Hellys',        av:'HE',cor:'#cc0000',perfil:'ADMIN',   pw:null},
-  {user:'bianca.xavier', nome:'Bianca Xavier', av:'BX',cor:'#7c3aed',perfil:'OPERADOR',pw:null},
-  {user:'pedro.arthur',  nome:'Pedro Arthur',  av:'PA',cor:'#16a34a',perfil:'OPERADOR',pw:null},
-  {user:'vitor.vitorio', nome:'Vitor Vitório', av:'VV',cor:'#c2410c',perfil:'OPERADOR',pw:null},
-  {user:'admin',         nome:'Admin',         av:'AD',cor:'#374151',perfil:'ADMIN',   pw:null},
+  {user:'hellys',        nome:'Hellys',        av:'HE',cor:'#cc0000',perfil:'admin',   pw:null},
+  {user:'bianca.xavier', nome:'Bianca Xavier', av:'BX',cor:'#7c3aed',perfil:'torre_controle',pw:null},
+  {user:'pedro.arthur',  nome:'Pedro Arthur',  av:'PA',cor:'#16a34a',perfil:'torre_controle',pw:null},
+  {user:'vitor.vitorio', nome:'Vitor Vitório', av:'VV',cor:'#c2410c',perfil:'torre_controle',pw:null},
+  {user:'admin',         nome:'Admin',         av:'AD',cor:'#374151',perfil:'admin',   pw:null},
 ];
 
 async function h256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
@@ -1478,7 +1622,7 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
-  if(['ADMIN','SUPERVISOR'].includes(currentUser.perfil)){document.getElementById('tb-admin').style.display='';document.getElementById('mn-admin').style.display='';document.getElementById('tb-tv').style.display='';document.getElementById('tb-tv-yard').style.display='';}
+  aplicarPermissoesUI(currentUser.perfil);
   loading(true);
   // Carrega dados — cada etapa protegida para nunca travar o boot
   try{
@@ -1486,6 +1630,8 @@ async function bootApp(){
   }catch(e){console.error('boot loadFromSupabase:',e);loadLocalOps();}
   try{await loadConfig();}catch(e){console.error('boot loadConfig:',e);}
   try{await loadCAFs();}catch(e){console.error('boot loadCAFs:',e);}
+  try{await loadRuas();}catch(e){console.error('boot loadRuas:',e);}
+  try{await exigirTurnoOperador(currentUser.perfil);}catch(e){console.error('boot turno:',e);}
   loading(false);
   // RENDERIZA IMEDIATAMENTE — antes de qualquer realtime/presença
   _setFiltrosHoje(); // preenche filtros de data com hoje por padrão
@@ -1575,15 +1721,15 @@ async function doLogout(){
 // GESTÃO DE USUÁRIOS (Admin)
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
-  const pbCls={ADMIN:'pb-admin',OPERADOR:'pb-op',VISUALIZADOR:'pb-vis'};
-  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center">${currentUser?.perfil==='ADMIN'?`<button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>`:''}${u.user!==currentUser?.user&&currentUser?.perfil==='ADMIN'?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:u.user===currentUser?.user?'<span style="font-size:.66rem;color:var(--t2)">(você)</span>':''}</div></div>`).join('');
+  const pbCls={admin:'pb-admin',supervisor:'pb-supervisor',torre_controle:'pb-op',doca:'pb-doca',operador_caf:'pb-op',visualizador:'pb-vis'};
+  el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center">${_perfil()==='admin'?`<button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>`:''}${u.user!==currentUser?.user&&_perfil()==='admin'?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:u.user===currentUser?.user?'<span style="font-size:.66rem;color:var(--t2)">(você)</span>':''}</div></div>`).join('');
 }
 
 function openNewUser(){
-  if(!['ADMIN','SUPERVISOR'].includes(currentUser?.perfil)){showToast('Apenas ADMIN ou SUPERVISOR podem criar usuários','err');return;}
+  if(!['admin','supervisor'].includes(_perfil())){showToast('Apenas Admin ou Supervisor podem criar usuários','err');return;}
   document.getElementById('uNome').value='';document.getElementById('uUser').value='';
   document.getElementById('uSenha').value='';document.getElementById('uSenha2').value='';
-  document.getElementById('uPerfil').value='OPERADOR';
+  document.getElementById('uPerfil').value='operador_caf';
   const colors=['#cc0000','#7c3aed','#16a34a','#c2410c','#1d4ed8','#374151','#0891b2','#9f1239'];
   const cp=document.getElementById('colorPicker');cp.innerHTML='';
   colors.forEach(c=>{const d=document.createElement('div');d.style.cssText=`width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:2px solid transparent;transition:.15s`;d.dataset.color=c;d.onclick=()=>selColor(c);cp.appendChild(d);});
@@ -1603,7 +1749,7 @@ function openEditUser(username){
   _editUserColor=u.cor;
   document.getElementById('euNome').value=u.nome||'';
   document.getElementById('euUser').value=u.user||'';
-  document.getElementById('euPerfil').value=u.perfil||'OPERADOR';
+  document.getElementById('euPerfil').value=u.perfil||'operador_caf';
   document.getElementById('euSenha').value='';
   document.getElementById('euSenha2').value='';
   // Paleta de cores
@@ -1956,7 +2102,7 @@ function renderKPIs(){
 function _quickStatusBtns(op){
   const next={'PROG':[{s:'AGUCARR',l:'→ Ag. Carr.'}],'AGUCARR':[{s:'EMCARR',l:'→ Carreg.'}],'EMCARR':[{s:'TRAN',l:'→ Trânsito'}],'TRAN':[{s:'AGUDESC',l:'→ Ag. Desc.'}],'AGUDESC':[{s:'FIN',l:'✅ Fin.'}]};
   const btns=next[op.status];
-  if(!btns||currentUser?.perfil==='VISUALIZADOR')return'';
+  if(!btns||isReadOnly())return'';
   const id=op.id;
   let html='<div class="quick-btns">';
   btns.forEach(b=>{html+='<button class="quick-btn" onclick="quickStatus(this.dataset.id,this.dataset.s,event)" data-id="'+id+'" data-s="'+b.s+'">'+b.l+'</button>';});
@@ -2283,7 +2429,7 @@ function renderProg(){
         <!-- Doca -->
         <div style="margin-bottom:8px">
           <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">🚪 Doca</div>
-          ${op.status==='EMCARR'&&currentUser?.perfil!=='VISUALIZADOR'?`
+          ${op.status==='EMCARR'&&!isReadOnly()?`
             <select onchange="atribuirDocaRapido('${esc(op.id)}',this.value)" onclick="event.stopPropagation()"
               style="background:var(--bg2);border:1.5px solid ${op.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
               <option value="">— selecione a doca —</option>
@@ -2402,7 +2548,7 @@ function dStart(e,id){dragged=id;setTimeout(()=>{const el=document.querySelector
 async function onDrop(e,sid){
   e.preventDefault();e.currentTarget.classList.remove('dov');
   if(!dragged)return;
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para mover operações','err');dragged=null;return;}
+  if(isReadOnly()){showToast('⛔ Sem permissão para mover operações','err');dragged=null;return;}
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
     const prevStatus=op.status;
@@ -2430,11 +2576,11 @@ async function onDrop(e,sid){
 // MODAL OPERAÇÃO
 // ══════════════════════════════════════════════════════════════════
 function openNew(){editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;const isViz=currentUser?.perfil==='VISUALIZADOR';document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;const isViz=isReadOnly();document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para deletar','err');return;}
+  if(isReadOnly()){showToast('⛔ Sem permissão para deletar','err');return;}
   if(!editId)return;
   if(!confirm(`Deletar ${editId}?`))return;
   loading(true);ops=ops.filter(o=>o.id!==editId);
@@ -2634,7 +2780,7 @@ function cafR(c,i){return `<div class="caf-row" id="cr-${i}"><div class="fg"><la
 function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
 
 async function saveCard(){
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para salvar operações','err');return;}
+  if(isReadOnly()){showToast('⛔ Sem permissão para salvar operações','err');return;}
   if(!validarDoca())return;
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   // Validação de campos obrigatórios
@@ -2873,7 +3019,7 @@ function setView(name){
   if(name==='analise')renderAnalise();
   // Controle de visibilidade do Admin por perfil
   if(name==='admin'&&currentUser){
-    const isAdmin=currentUser.perfil==='ADMIN';
+    const isAdmin=_perfil()==='admin';
     // SUPERVISOR: vê users (criar sim, editar/deletar não), rotas, backup, SLA. Não vê docas.
     // Esconde botões de editar/deletar user para SUPERVISOR
     document.querySelectorAll('.btn-del,.btn[onclick*="openEditUser"]').forEach(el=>{
@@ -2881,7 +3027,7 @@ function setView(name){
     });
   }
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
-  if(name==='caf'){buildCAFSelects();loading(true);loadCAFs().then(()=>{loading(false);renderCAFs();});}
+  if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
     renderTVYard();
@@ -3157,7 +3303,17 @@ document.getElementById('sQ').addEventListener('input',()=>{clearTimeout(_sQTime
 // ══════════════════════════════════════════════════════════════════
 // MÓDULO CAF
 // ══════════════════════════════════════════════════════════════════
-let cafsDB=[],editCAFId=null;
+let cafsDB=[],editCAFId=null,ruasDB=[];
+
+// Supabase Ruas (uma CAF por rua; libera automaticamente quando a CAF entra em trânsito — trigger fn_libera_rua_transito no banco)
+async function loadRuas(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_RUAS}?order=numero.asc`);
+    if(Array.isArray(data))ruasDB=data;
+  }catch(e){console.error('loadRuas error:',e);}
+}
+function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
 
 // Supabase CAF CRUD
 async function loadCAFs(){
@@ -3168,9 +3324,10 @@ async function loadCAFs(){
       cafsDB=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
         rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
-        venc:r.vencimento||'',status:r.status||'aberta',
+        venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'aberta',
         opId:r.op_id||'',obs:r.obs||'',
-        criadoPor:r.criado_por||'',criadoEm:r.criado_em||''
+        criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
+        ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||''
       }));
     }
   }catch(e){
@@ -3188,10 +3345,11 @@ async function saveCAFToDB(caf){
   const row={
     num_caf:caf.num, tipo:caf.tipo, rota:caf.rota,
     volume:caf.vol||0, pallets:caf.pallets||0,
-    vencimento:caf.venc||null, status:caf.status,
+    vencimento:caf.venc||null, status:CAF_STATUS_CODE2DB[caf.status]||caf.status,
     op_id:caf.opId||null, obs:caf.obs||'',
     criado_por:caf.criadoPor,
     criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
+    rua_id:caf.ruaId||null,
   };
   try{
     await sbUpsert(TABELA_CAF, caf.id?{...row,id:caf.id}:row);
@@ -3339,7 +3497,7 @@ function renderCAFs(){
 
   // Table
   const stCls={aberta:'b-ext',vinculada:'b-inb',processo:'b-flt',entregue:'b-ltl',fechada:'b-prod'};
-  const stLbl={aberta:'Em Produção',vinculada:'Disponível',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
+  const stLbl={aberta:'Em Produção',vinculada:'Produzida',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
   const vencCls=c=>{if(!c.venc)return'';if(['entregue','fechada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -3358,11 +3516,38 @@ function renderCAFs(){
       <td style="font-size:.72rem;color:var(--t2)">${c.criadoEm?new Date(c.criadoEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
       <td style="${vencCls(c)}">${vStr}</td>
       <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
+      <td>${ruaNumeroDe(c.ruaId)?`<span style="font-weight:700;color:var(--blue)">Rua ${ruaNumeroDe(c.ruaId)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
       <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
     </tr>`;
-  }).join(''):`<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
+  }).join(''):`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
+}
+
+// Popula o <select> de Rua: uma CAF por rua, desabilita ruas ocupadas por outra CAF
+function popularSelectRua(cafAtualId,ruaIdAtual){
+  const sel=document.getElementById('cafRua');if(!sel)return;
+  sel.innerHTML='<option value="">Nenhuma</option>';
+  ruasDB.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.id;
+    const ocupadaPorOutra=r.ocupada&&r.caf_id&&r.caf_id!==cafAtualId;
+    opt.textContent=`Rua ${r.numero} (${r.capacidade_pallets} pal.)`+(ocupadaPorOutra?' — ocupada':'');
+    opt.disabled=ocupadaPorOutra;
+    sel.appendChild(opt);
+  });
+  sel.value=ruaIdAtual||'';
+}
+// Trava as opções de status permitidas pelo perfil logado (espelha validar_permissao/caf_alterar_status no backend)
+function aplicarPermissaoStatusCAF(){
+  const sel=document.getElementById('cafStatus');if(!sel)return;
+  const permitidos=_cafStatusPermitido(currentUser?.perfil);
+  Array.from(sel.options).forEach(o=>{o.disabled=!permitidos.includes(o.value);});
+  const ruaSel=document.getElementById('cafRua');
+  if(ruaSel){
+    const podeRua=['admin','supervisor','operador_caf'].includes(_perfil());
+    ruaSel.disabled=!podeRua;
+  }
 }
 
 function openNewCAF(){
@@ -3376,6 +3561,8 @@ function openNewCAF(){
   document.getElementById('cafTipo').value='Inbound'; // default mais comum; muda conforme rota
   const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='aberta';
   document.getElementById('cafRota').value='';
+  popularSelectRua(null,null);
+  aplicarPermissaoStatusCAF();
   // Quando rota mudar, atualiza tipo automaticamente
   const rotaSel=document.getElementById('cafRota');
   if(rotaSel&&!rotaSel._tipoListener){
@@ -3396,7 +3583,7 @@ function openEditCAF(id){
   editCAFId=id;
   buildCAFSelects();
   document.getElementById('cafMTitle').textContent='📦 Editar CAF — '+c.num;
-  document.getElementById('cafBtnDel').style.display='';
+  document.getElementById('cafBtnDel').style.display=['admin','supervisor'].includes(_perfil())?'':'none';
   document.getElementById('cafNum').value=c.num;
   document.getElementById('cafTipo').value=c.tipo;
   document.getElementById('cafRota').value=c.rota;
@@ -3405,6 +3592,8 @@ function openEditCAF(id){
   document.getElementById('cafPal').value=c.pallets||'';
   document.getElementById('cafObs').value=c.obs||'';
   const cafSt=document.getElementById('cafStatus');if(cafSt)cafSt.value=c.status||'aberta';
+  popularSelectRua(c.id,c.ruaId);
+  aplicarPermissaoStatusCAF();
   const vincEl=document.getElementById('cafOpVinc');
   if(c.opId){
     const op=ops.find(o=>o.id===c.opId);
@@ -3419,21 +3608,26 @@ function openEditCAF(id){
 function closeCAFModal(){document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;}
 
 async function saveCAF(){
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
+  const perfilPermitido=['admin','supervisor','operador_caf','torre_controle'].includes(_perfil());
+  if(!perfilPermitido){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
   const num=(document.getElementById('cafNum')?.value||'').trim();
   const rota=document.getElementById('cafRota')?.value||'';
+  const statusEscolhido=document.getElementById('cafStatus')?.value||'aberta';
+  if(!_cafStatusPermitido(currentUser?.perfil).includes(statusEscolhido)){showToast('⛔ Seu perfil não pode definir este status de CAF','err');return;}
   if(!num){showToast('⚠ Informe o número da CAF','err');return;}
   if(!rota){showToast('⚠ Selecione a rota de destino','err');return;}
   // Verifica duplicata
   const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
   if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
+  const ruaEscolhida=document.getElementById('cafRua')?.value||'';
   const who=currentUser?.nome||'Sistema';
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
     pallets:parseFloat(document.getElementById('cafPal')?.value||0)||0,
     venc:document.getElementById('cafVenc')?.value||'',
-    status:document.getElementById('cafStatus')?.value||'aberta',
+    status:statusEscolhido,
+    ruaId:ruaEscolhida?Number(ruaEscolhida):null,
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
     criadoPor:who,
@@ -3442,19 +3636,21 @@ async function saveCAF(){
   loading(true);
   const ok=await saveCAFToDB(caf);
   await loadCAFs();
+  await loadRuas();
   loading(false);
   if(ok){showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
   else showToast('❌ Erro ao salvar CAF','err');
 }
 
 async function deleteCAF(){
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
+  if(!['admin','supervisor'].includes(_perfil())){showToast('⛔ Sem permissão','err');return;}
   if(!editCAFId)return;
   const c=cafsDB.find(x=>x.id===editCAFId);
   if(!confirm(`Excluir CAF ${c?.num}?`))return;
   loading(true);
   await deleteCAFFromDB(editCAFId);
   await loadCAFs();
+  await loadRuas();
   loading(false);
   closeCAFModal();renderCAFs();
   showToast('🗑 CAF excluída','ok');
@@ -4436,7 +4632,7 @@ function _initOcorrBuf(op){
 }
 
 function addOcorr(){
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
+  if(isReadOnly()){showToast('⛔ Sem permissão','err');return;}
   const tipo=document.getElementById('fOcorrTipo')?.value||'';
   const desc=(document.getElementById('fOcorrDesc')?.value||'').trim();
   if(!tipo)return;
@@ -4536,7 +4732,7 @@ function saveSLAMetas(){
 // ══════════════════════════════════════════════════════════════════
 function quickStatus(opId, newStatus, event){
   event.stopPropagation();
-  if(currentUser?.perfil==='VISUALIZADOR'){showToast('⛔ Sem permissão','err');return;}
+  if(isReadOnly()){showToast('⛔ Sem permissão','err');return;}
   const op=ops.find(o=>o.id===opId);if(!op)return;
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
@@ -5339,7 +5535,7 @@ async function importarPlanilhaBase(event){
   if(!file) return;
   if(!window.XLSX){ showToast('SheetJS não carregado — recarregue a página','err'); return; }
   if(!supabaseOK){ showToast('Sem conexão com o servidor','err'); return; }
-  if(!['ADMIN','SUPERVISOR'].includes(currentUser?.perfil)){ showToast('Apenas ADMIN ou SUPERVISOR pode importar','err'); return; }
+  if(!['admin','supervisor'].includes(_perfil())){ showToast('Apenas Admin ou Supervisor pode importar','err'); return; }
 
   loading(true);
   showToast('📊 Lendo planilha...','ok');
