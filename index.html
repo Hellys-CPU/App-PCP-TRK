@@ -1148,6 +1148,13 @@ async function _rpc(fn,params){
 }
 
 // ── Controle de visibilidade de menus/abas por perfil ──
+function _perfil(){return String(currentUser?.perfil||'').toLowerCase().trim();}
+function _canEditOps(){return ['admin','supervisor','torre_controle','doca'].includes(_perfil());}
+function _canCreateOps(){return ['admin','supervisor','torre_controle','doca'].includes(_perfil());}
+function _canDeleteOps(){return ['admin','supervisor'].includes(_perfil());}
+function _canManageUsers(){return ['admin'].includes(_perfil());}
+function _canEditCAFs(){return ['admin','supervisor','operador_caf','torre_controle'].includes(_perfil());}
+
 function aplicarPermissoesUI(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
   const ids={
@@ -1399,13 +1406,13 @@ async function deleteFromSupabase(id){
   }catch(e){console.error('deleteFromSupabase:',e);throw e;}
 }
 
-async function saveOp(op){
+async async function saveOp(op){
+  if(!_canEditOps()){showToast('⛔ Sem permissão para salvar operações','err');return;}
   if(supabaseOK){
     await saveToSupabase(op);
     const idx=ops.findIndex(o=>o.id===op.id);
     if(idx>=0)ops[idx]=op;
     _lastSyncAt=Date.now()-5000;
-    // Notifica outros usuários via Ably (instantâneo)
     _publishAbly('ops_update',{id:op.id,status:op.status,action:editId?'update':'insert'});
   }else{saveLocalOps();}
   render();renderFUP();
@@ -1585,9 +1592,6 @@ async function doLogin(){
         body:JSON.stringify({p_usuario:user,p_senha_sha256:hash})
       });
       const r=await res.json();
-      const loginErroBruto=(r&&(r.erro||r.error||r.message||r.msg))||'';
-      const loginErro=String(loginErroBruto).toLowerCase().trim();
-      console.log('[LOGIN RPC]', { status: res.status, ok: res.ok, body: r, loginErro });
       if(r&&r.ok){
         currentUser={user:r.usuario,nome:r.nome,av:r.avatar,cor:r.cor,perfil:r.perfil,_token:r.token};
         // Salva APENAS o token no localStorage — sessão de verdade fica no Supabase (auth_tokens)
@@ -1602,41 +1606,31 @@ async function doLogin(){
         }
         return;
       }
-      if(
-        loginErro==='sessao_existente' ||
-        loginErro==='sessaoexistente' ||
-        loginErro.includes('sessao_existente') ||
-        loginErro.includes('sessao existente') ||
-        loginErro.includes('sessão existente') ||
-        loginErro.includes('ja existe sessao') ||
-        loginErro.includes('já existe sessão') ||
-        loginErro.includes('outro dispositivo')
-      ){
-        const quer=confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?');
-
-        if(!quer){
-          err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
+      if(r&&r.erro==='sessao_existente'){
+        // Usuário já logado em outra máquina — pergunta se quer derrubar (modal próprio, mais confiável que confirm() nativo em PWA/mobile)
+        const quer=await _confirmarSessaoExistente();
+        if(quer){
+          window._forcedLogin=true;
+          // Refaz o login com p_forcar=true
+          const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
+            method:'POST',
+            headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+            body:JSON.stringify({p_usuario:user,p_senha_sha256:hash,p_forcar:true})
+          });
+          const r2=await res2.json();
+          if(r2&&r2.ok){
+            currentUser={user:r2.usuario,nome:r2.nome,av:r2.avatar,cor:r2.cor,perfil:r2.perfil,_token:r2.token};
+            localStorage.setItem('trk_sess',JSON.stringify({token:r2.token}));
+            window._loginAt=Date.now();
+            await bootApp();
+            _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
+            window._forcedLogin=false;
+            return;
+          }
+          err.textContent='Erro ao forçar login. Tente novamente.';
           err.style.display='block';return;
         }
-
-        window._forcedLogin=true;
-
-        const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
-          method:'POST',
-          headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
-          body:JSON.stringify({p_usuario:user,p_senha_sha256:hash,p_forcar:true})
-        });
-        const r2=await res2.json();
-        if(r2&&r2.ok){
-          currentUser={user:r2.usuario,nome:r2.nome,av:r2.avatar,cor:r2.cor,perfil:r2.perfil,_token:r2.token};
-          localStorage.setItem('trk_sess',JSON.stringify({token:r2.token}));
-          window._loginAt=Date.now();
-          await bootApp();
-          _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
-          window._forcedLogin=false;
-          return;
-        }
-        err.textContent='Erro ao forçar login. Tente novamente.';
+        err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
         err.style.display='block';return;
       }
       if(r&&r.erro==='bloqueado'){
@@ -2615,12 +2609,18 @@ async function onDrop(e,sid){
 // ══════════════════════════════════════════════════════════════════
 // MODAL OPERAÇÃO
 // ══════════════════════════════════════════════════════════════════
-function openNew(){editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id+(op.codigoCurto?'  ['+op.codigoCurto+']':'');const isViz=isReadOnly();document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+function openNew(){
+  if(!_canCreateOps()){showToast('⛔ Sem permissão para criar operações','err');return;}
+  editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
+
+function openEdit(id){
+  if(!_canEditOps()){showToast('⛔ Sem permissão para editar operações','err');return;}
+  editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id+(op.codigoCurto?'  ['+op.codigoCurto+']':'');const isViz=!_canEditOps();document.getElementById('btnDeletar').style.display=_canDeleteOps()?'':'none';document.getElementById('btnDuplicar').style.display=_canCreateOps()?'':'none';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
-  if(isReadOnly()){showToast('⛔ Sem permissão para deletar','err');return;}
+  if(!_canDeleteOps()){showToast('⛔ Sem permissão para deletar','err');return;}
   if(!editId)return;
   if(!confirm(`Deletar ${editId}?`))return;
   loading(true);ops=ops.filter(o=>o.id!==editId);
