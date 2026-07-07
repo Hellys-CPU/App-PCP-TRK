@@ -1261,7 +1261,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''});
+      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -1291,7 +1291,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||''}));
+      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -2129,7 +2129,7 @@ function cardHTML(op){
   const lim=CFG.limiteAtraso||30;
   const rc=CFG.alertas?(dC>lim||dS>lim?'r-late':dC>0||dS>0?'r-warn':''):'';
   return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
-    <div class="card-top"><span class="card-id">${esc(op.id)}${op.sm?' · '+op.sm:''}</span><span class="card-rota-badge">${esc(op.rota)}</span></div>
+    <div class="card-top"><span class="card-id">${esc(op.id)}${op.sm?' · '+op.sm:''}${op.codigoCurto?` <span style="font-weight:600;color:var(--t2);font-size:.62rem" title="Código curto">[${esc(op.codigoCurto)}]</span>`:''}</span><span class="card-rota-badge">${esc(op.rota)}</span></div>
     <div class="card-badges">
       <span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span>
       ${op.cafs.length?`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd)">${op.cafs.length} CAF${op.cafs.length>1?'s':''}</span>`:''}
@@ -2263,7 +2263,7 @@ function renderList(){
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
     const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
     return `<tr onclick="openEdit('${esc(op.id)}')">
-      <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}</td><td>${fmtD(op.dataOp)}</td>
+      <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}${op.codigoCurto?`<div style="color:var(--t2);font-weight:600;font-size:.6rem">${esc(op.codigoCurto)}</div>`:''}</td><td>${fmtD(op.dataOp)}</td>
       <td><span class="rota-cell">${esc(op.rota)}</span></td>
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
       <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
@@ -2501,7 +2501,7 @@ function fupRow(op){
   const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC);
   const slaCell=sla==='ok'?'<span class="sla-ok">✔ No Prazo</span>':sla==='late'?'<span class="sla-late">✘ Atraso</span>':'<span class="sla-nd">—</span>';
   return `<tr class="${fupRowCls(op)}" onclick="openEdit('${esc(op.id)}')" style="cursor:pointer">
-    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}</td>
+    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}${op.codigoCurto?`<div style="font-size:.58rem;color:var(--t2);font-weight:600">${esc(op.codigoCurto)}</div>`:''}</td>
     <td><span class="rota-cell">${esc(op.rota)}</span></td>
     <td>${esc(op.transp)}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${esc(op.mot)}</td>
     <td><strong>${esc(op.placa)}</strong></td>
@@ -2576,7 +2576,7 @@ async function onDrop(e,sid){
 // MODAL OPERAÇÃO
 // ══════════════════════════════════════════════════════════════════
 function openNew(){editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id;const isViz=isReadOnly();document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
+function openEdit(id){editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id+(op.codigoCurto?'  ['+op.codigoCurto+']':'');const isViz=isReadOnly();document.getElementById('btnDeletar').style.display=isViz?'none':'';document.getElementById('btnDuplicar').style.display=isViz?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
@@ -2611,7 +2611,7 @@ function imprimirCard(){
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Operação ${esc(op.id)}</title>
   <style>body{font-family:'Segoe UI',sans-serif;padding:20px;font-size:12px;}h1{color:#cc0000;font-size:16px;margin-bottom:4px;}h2{font-size:11px;color:#666;margin-bottom:16px;font-weight:400;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}th{background:#f0f0f0;padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#666;}td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;}.ok{color:#16a34a;font-weight:700;}.late{color:#cc0000;font-weight:700;}.nd{color:#999;}@media print{body{padding:10px;}}</style>
   </head><body>
-  <h1>🚛 Operação ${esc(op.id)}</h1>
+  <h1>🚛 Operação ${esc(op.id)}${op.codigoCurto?' · '+esc(op.codigoCurto):''}</h1>
   <h2>${esc(op.rota)} · ${esc(op.tipoCarga)} · ${fmtD(op.dataOp)}</h2>
   <table><tr><th colspan="2">Identificação</th></tr>
   <tr><td>SM</td><td>${op.sm||'—'}</td></tr>
@@ -3508,7 +3508,7 @@ function renderCAFs(){
     const alertaTran=op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
     const rowStyle=alertaTran?'cursor:pointer;background:rgba(251,191,36,.08);border-left:3px solid #f59e0b':'cursor:pointer';
     return`<tr onclick="openEditCAF('${c.id}')" style="${rowStyle}">
-      <td><strong style="color:var(--green)">${esc(c.num)}</strong>${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
+      <td><strong style="color:var(--green)">${esc(c.num)}</strong>${c.codigoCurto?`<div style="font-size:.6rem;color:var(--t2);font-weight:600">${esc(c.codigoCurto)}</div>`:''}${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
       <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
       <td><span class="badge ${tCls(c.tipo)}">${esc(c.tipo)}</span></td>
       <td style="font-weight:600">${c.vol.toLocaleString('pt-BR')}</td>
@@ -3582,7 +3582,7 @@ function openEditCAF(id){
   const c=cafsDB.find(x=>x.id===id);if(!c)return;
   editCAFId=id;
   buildCAFSelects();
-  document.getElementById('cafMTitle').textContent='📦 Editar CAF — '+c.num;
+  document.getElementById('cafMTitle').textContent='📦 Editar CAF — '+c.num+(c.codigoCurto?'  ['+c.codigoCurto+']':'');
   document.getElementById('cafBtnDel').style.display=['admin','supervisor'].includes(_perfil())?'':'none';
   document.getElementById('cafNum').value=c.num;
   document.getElementById('cafTipo').value=c.tipo;
