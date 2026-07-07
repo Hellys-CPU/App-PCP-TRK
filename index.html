@@ -1560,10 +1560,6 @@ function _confirmarSessaoExistente(){
   return new Promise(resolve=>{
     const ov=document.getElementById('overlaySessaoExistente');
     const bF=document.getElementById('btnSessaoForcar'), bC=document.getElementById('btnSessaoCancelar');
-    if(!ov||!bF||!bC){
-      resolve(confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?'));
-      return;
-    }
     const cleanup=(v)=>{ov.classList.remove('open');bF.onclick=null;bC.onclick=null;resolve(v);};
     bF.onclick=()=>cleanup(true);
     bC.onclick=()=>cleanup(false);
@@ -1616,43 +1612,34 @@ async function doLogin(){
         loginErro.includes('já existe sessão') ||
         loginErro.includes('outro dispositivo')
       ){
-        let quer=false;
-        try{
-          const ov=document.getElementById('overlaySessaoExistente');
-          if(ov){
-            ov.style.display='block';
-            ov.classList.add('open');
-          }
-          quer=await _confirmarSessaoExistente();
-        }catch(e){
-          console.warn('Falha ao abrir modal de sessão existente:',e);
-          quer=confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?');
-        }
-        if(quer){
-          window._forcedLogin=true;
-          // Refaz o login com p_forcar=true
-          const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
-            method:'POST',
-            headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
-            body:JSON.stringify({p_usuario:user,p_senha_sha256:hash,p_forcar:true})
-          });
-          const r2=await res2.json();
-          if(r2&&r2.ok){
-            currentUser={user:r2.usuario,nome:r2.nome,av:r2.avatar,cor:r2.cor,perfil:r2.perfil,_token:r2.token};
-            localStorage.setItem('trk_sess',JSON.stringify({token:r2.token}));
-            window._loginAt=Date.now();
-            await bootApp();
-            _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
-            window._forcedLogin=false;
-            return;
-          }
-          err.textContent='Erro ao forçar login. Tente novamente.';
+        const quer=confirm('Este usuário já está conectado em outro dispositivo. Deseja desconectar o outro dispositivo e entrar aqui agora?');
+
+        if(!quer){
+          err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
           err.style.display='block';return;
         }
-        err.textContent='Login cancelado — sessão ativa mantida no outro dispositivo.';
+
+        window._forcedLogin=true;
+
+        const res2=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fazer_login`,{
+          method:'POST',
+          headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+          body:JSON.stringify({p_usuario:user,p_senha_sha256:hash,p_forcar:true})
+        });
+        const r2=await res2.json();
+        if(r2&&r2.ok){
+          currentUser={user:r2.usuario,nome:r2.nome,av:r2.avatar,cor:r2.cor,perfil:r2.perfil,_token:r2.token};
+          localStorage.setItem('trk_sess',JSON.stringify({token:r2.token}));
+          window._loginAt=Date.now();
+          await bootApp();
+          _publishAbly('session_revoked',{user:currentUser.user,at:Date.now()});
+          window._forcedLogin=false;
+          return;
+        }
+        err.textContent='Erro ao forçar login. Tente novamente.';
         err.style.display='block';return;
       }
-      if(loginErro==='bloqueado'){
+      if(r&&r.erro==='bloqueado'){
         err.textContent=`Muitas tentativas. Aguarde ${r.segundos||60}s para tentar novamente.`;
         err.style.display='block';document.getElementById('lPass').value='';return;
       }
