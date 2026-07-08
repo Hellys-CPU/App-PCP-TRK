@@ -713,21 +713,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div class="view" id="view-caf">
   <div style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span style="font-size:.8rem;font-weight:700;color:var(--green)">📦 Banco de CAFs</span>
+    <input id="cafBusca" placeholder="🔍 CAF, destino, operação, placa, motorista..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:230px;"/>
     <div class="sp"></div>
-    <select id="cafFRota" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todas as Rotas</option></select>
-    <select id="cafFTipo" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todos os Tipos</option></select>
-    <select id="cafFStatus" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;">
-      <option value="">Todos os Status</option>
-      <option value="Em Produção">Em Produção</option>
-      <option value="Produzida">Produzida</option>
-      <option value="Vinculada a Veículo">Vinculada a Veículo</option>
-      <option value="Processo de Entrega">Proc. Entrega</option>
-      <option value="Entrega Realizada">Entrega Realizada</option>
-    </select>
-    <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.72rem;outline:none;"/>
-    <span style="font-size:.7rem;color:var(--t3)">até</span>
-    <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.72rem;outline:none;"/>
-    <input id="cafBusca" placeholder="🔍 Nº CAF, destino..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:160px;"/>
+    <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
     <button class="btn btn-g" onclick="exportCAFs()" style="font-size:.72rem">📥 CSV</button>
   </div>
@@ -735,17 +723,54 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
     <table>
       <thead><tr>
-        <th onclick="sortCAF('num')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Nº CAF <span id="sc-num"></span></th>
-        <th onclick="sortCAF('rota')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Destino (Rota) <span id="sc-rota"></span></th>
-        <th onclick="sortCAF('tipo')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Tipo <span id="sc-tipo"></span></th>
-        <th onclick="sortCAF('vol')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Volume <span id="sc-vol"></span></th>
-        <th onclick="sortCAF('pallets')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Pallets <span id="sc-pallets"></span></th>
-        <th onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Data Criação <span id="sc-criadoEm"></span></th>
-        <th onclick="sortCAF('venc')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></th>
-        <th onclick="sortCAF('status')" style="cursor:pointer;user-select:none" title="Clique para ordenar">Status <span id="sc-status"></span></th>
-        <th>Rua</th>
-        <th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
-      </tr></thead>
+  <th style="padding:2px;min-width:150px">
+    <div onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Data Criação <span id="sc-criadoEm"></span></div>
+    <div style="display:flex;gap:2px;align-items:center">
+      <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
+      <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
+    </div>
+  </th>
+  <th style="padding:2px">
+    <div onclick="sortCAF('tipo')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Tipo <span id="sc-tipo"></span></div>
+    <select id="cafFTipo" onchange="renderCAFs()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
+  </th>
+  <th style="padding:2px">
+    <div onclick="sortCAF('rota')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Destino <span id="sc-rota"></span></div>
+    <select id="cafFRota" onchange="renderCAFs()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todas</option></select>
+  </th>
+  <th onclick="sortCAF('num')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">CAF <span id="sc-num"></span></th>
+  <th style="padding:2px;position:relative">
+    <div onclick="sortCAF('status')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Status <span id="sc-status"></span></div>
+    <button type="button" onclick="event.stopPropagation();toggleCafStatusFiltro()" id="cafFStatusBtn"
+      style="width:100%;font-size:.62rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:2px 4px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Todos ▾</button>
+    <div id="cafFStatusPanel" style="display:none;position:absolute;top:100%;left:0;z-index:50;background:var(--bg2);border:1.5px solid var(--bd);border-radius:6px;padding:6px;margin-top:2px;min-width:170px;box-shadow:var(--sh3)">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Em Produção" onchange="renderCAFs()"> Em Produção
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Produzida" onchange="renderCAFs()"> Produzida
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Vinculada a Veículo" onchange="renderCAFs()"> Vinculada a Veículo
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Processo de Entrega" onchange="renderCAFs()"> Proc. Entrega
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Entrega Realizada" onchange="renderCAFs()"> Entrega Realizada
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--bd);margin-top:3px;padding-top:5px">
+        <input type="checkbox" class="cafFStatusChk" value="cancelada" onchange="renderCAFs()"> Cancelada
+      </label>
+      <button type="button" onclick="event.stopPropagation();_limparCafStatusFiltro()" class="btn btn-g" style="width:100%;font-size:.6rem;margin-top:5px;padding:3px">✕ Limpar seleção</button>
+    </div>
+  </th>
+  <th onclick="sortCAF('vol')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Volume <span id="sc-vol"></span></th>
+  <th onclick="sortCAF('pallets')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Pallets <span id="sc-pallets"></span></th>
+  <th onclick="sortCAF('venc')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></th>
+  <th>Rua</th>
+  <th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
+</tr></thead>
       <tbody id="cafBody"></tbody>
     </table>
   </div>
@@ -1088,6 +1113,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="sec" style="margin-top:0">🔗 Operação Vinculada</div>
         <div id="cafOpVincInfo" style="font-size:.78rem;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:8px 10px"></div>
         <button class="btn btn-del" style="margin-top:6px;font-size:.7rem" onclick="desvincularCAF()">✕ Desvincular da operação</button>
+      </div>
+      <div id="cafHistWrap" style="margin-top:11px;display:none">
+        <div class="sec" style="margin-top:0">🕘 Histórico</div>
+        <div id="cafHistList" style="font-size:.72rem;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:8px 10px;max-height:160px;overflow-y:auto"></div>
       </div>
     </div>
     <div class="mfoot">
@@ -3427,6 +3456,47 @@ async function loadRuas(){
     if(Array.isArray(data))ruasDB=data;
   }catch(e){console.error('loadRuas error:',e);}
 }
+// Extrai o nome de quem está operando (login compartilhado) do elemento #statusOperador
+// Formato esperado: "Operando: NOME (TURNO)". Fallback: currentUser.nome || 'Sistema'
+function _nomeOperadorAtual(){
+  try{
+    const el=document.getElementById('statusOperador');
+    if(el&&el.textContent){
+      const m=el.textContent.match(/Operando:\s*(.+?)\s*\(/);
+      if(m&&m[1])return m[1].trim();
+    }
+  }catch(e){}
+  return currentUser?.nome||'Sistema';
+}
+// ── Filtro multi-status da tabela CAFs (checkbox) ──
+function toggleCafStatusFiltro(){
+  const panel=document.getElementById('cafFStatusPanel');
+  if(!panel)return;
+  panel.style.display=panel.style.display==='none'?'block':'none';
+}
+function _limparCafStatusFiltro(){
+  document.querySelectorAll('.cafFStatusChk').forEach(c=>c.checked=false);
+  renderCAFs();
+}
+function _cafStatusSelecionados(){
+  return Array.from(document.querySelectorAll('.cafFStatusChk:checked')).map(c=>c.value);
+}
+function _atualizaCafStatusBtnLabel(){
+  const sel=_cafStatusSelecionados();
+  const btn=document.getElementById('cafFStatusBtn');
+  if(!btn)return;
+  if(!sel.length){btn.textContent='Todos ▾';return;}
+  if(sel.length===1){btn.textContent=sel[0]+' ▾';return;}
+  btn.textContent=sel.length+' selecionados ▾';
+}
+// Fecha o painel ao clicar fora
+document.addEventListener('click',(e)=>{
+  const panel=document.getElementById('cafFStatusPanel');
+  const btn=document.getElementById('cafFStatusBtn');
+  if(!panel||panel.style.display==='none')return;
+  if(panel.contains(e.target)||e.target===btn)return;
+  panel.style.display='none';
+});
 function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
 
 // Supabase CAF CRUD
@@ -3441,7 +3511,8 @@ async function loadCAFs(){
         venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
         opId:r.op_id||'',obs:r.obs||'',
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
-        ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||''
+        ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',
+        hist:Array.isArray(r.hist)?r.hist:[]
       }));
     }
   }catch(e){
@@ -3464,6 +3535,7 @@ async function saveCAFToDB(caf){
     criado_por:caf.criadoPor,
     criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
     rua_id:caf.ruaId||null,
+    hist:caf.hist||[],
   };
   try{
     await sbUpsert(TABELA_CAF, caf.id?{...row,id:caf.id}:row);
@@ -3571,17 +3643,22 @@ function renderCAFs(){
   buildCAFSelects();
   const fRota=document.getElementById('cafFRota')?.value||'';
   const fTipo=document.getElementById('cafFTipo')?.value||'';
-  const fStatus=document.getElementById('cafFStatus')?.value||'';
+  const fStatusList=_cafStatusSelecionados();
+  _atualizaCafStatusBtnLabel();
   const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
   const fDataDe=document.getElementById('cafFDataDe')?.value||'';
   const fDataAte=document.getElementById('cafFDataAte')?.value||'';
   const data=cafsDB.filter(c=>{
     if(fRota&&c.rota!==fRota)return false;
     if(fTipo&&c.tipo!==fTipo)return false;
-    if(fStatus&&c.status!==fStatus)return false;
+    if(fStatusList.length&&!fStatusList.includes(c.status))return false;
     if(fDataDe&&(!c.criadoEm||c.criadoEm.slice(0,10)<fDataDe))return false;
     if(fDataAte&&(!c.criadoEm||c.criadoEm.slice(0,10)>fDataAte))return false;
-    if(q&&![c.num,c.rota,c.obs].join('|').toLowerCase().includes(q))return false;
+    if(q){
+      const op=c.opId?ops.find(o=>o.id===c.opId):null;
+      const hay=[c.num,c.rota,c.obs,op?.id,op?.codigoCurto,op?.placa,op?.mot,op?.sm,op?.tms,op?.transp].filter(Boolean).join('|').toLowerCase();
+      if(!hay.includes(q))return false;
+    }
     return true;
   });
   // Ordenação pelo cabeçalho clicado
@@ -3622,14 +3699,14 @@ function renderCAFs(){
     const alertaTran=op&&op.status==='TRAN'&&!['Processo de Entrega','Entrega Realizada'].includes(c.status);
     const rowStyle=alertaTran?'cursor:pointer;background:rgba(251,191,36,.08);border-left:3px solid #f59e0b':'cursor:pointer';
     return`<tr onclick="openEditCAF('${c.id}')" style="${rowStyle}">
-      <td><strong style="color:var(--green);font-size:.95rem">${esc(c.num)}</strong>${c.codigoCurto?`<div style="font-size:.6rem;color:var(--t2);font-weight:600">${esc(c.codigoCurto)}</div>`:''}${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
-      <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
+      <td style="font-size:.72rem;color:var(--t2)">${c.criadoEm?new Date(c.criadoEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
       <td><span class="badge ${tCls(c.tipo)}">${esc(c.tipo)}</span></td>
+      <td><span style="color:var(--red);font-weight:700">${c.rota||'—'}</span></td>
+      <td><strong style="color:var(--green);font-size:.95rem">${esc(c.num)}</strong>${c.codigoCurto?`<div style="font-size:.6rem;color:var(--t2);font-weight:600">${esc(c.codigoCurto)}</div>`:''}${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
+      <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
       <td style="font-weight:600">${c.vol.toLocaleString('pt-BR')}</td>
       <td>${c.pallets}</td>
-      <td style="font-size:.72rem;color:var(--t2)">${c.criadoEm?new Date(c.criadoEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
       <td style="${vencCls(c)}">${vStr}</td>
-      <td><span class="badge ${stCls[c.status]||'b-ltl'}">${stLbl[c.status]||c.status}</span></td>
       <td>${ruaNumeroDe(c.ruaId)?`<span style="font-weight:700;color:var(--blue)">Rua ${ruaNumeroDe(c.ruaId)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
@@ -3672,6 +3749,7 @@ function openNewCAF(){
   document.getElementById('cafMTitle').textContent='📦 Nova CAF';
   document.getElementById('cafBtnDel').style.display='none';
   document.getElementById('cafOpVinc').style.display='none';
+  const histWrap0=document.getElementById('cafHistWrap');if(histWrap0)histWrap0.style.display='none';
   ['cafNum','cafVol','cafPal','cafObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cafVenc').value='';
   document.getElementById('cafTipo').value='Inbound'; // default mais comum; muda conforme rota
@@ -3718,6 +3796,15 @@ function openEditCAF(id){
       ?`<strong style="color:var(--red)">${esc(op.id)}</strong> · ${esc(op.rota)} · ${esc(op.transp)||'—'} · ${fmtD(op.dataOp)}`
       :`Operação ${c.opId} (não encontrada no período atual)`;
   }else{vincEl.style.display='none';}
+  // Histórico
+  const histWrap=document.getElementById('cafHistWrap'), histList=document.getElementById('cafHistList');
+  if(histWrap&&histList){
+    histWrap.style.display='';
+    const hist=Array.isArray(c.hist)?[...c.hist].reverse():[];
+    histList.innerHTML=hist.length
+      ?hist.map(h=>`<div style="padding:3px 0;border-bottom:1px solid var(--bd)"><span style="color:var(--t2)">${h.t?new Date(h.t).toLocaleString('pt-BR'):''}</span> — ${esc(h.txt||'')}</div>`).join('')
+      :'<span style="color:var(--t3)">Sem histórico ainda.</span>';
+  }
   document.getElementById('overlayCAF').classList.add('open');
 }
 
@@ -3736,7 +3823,21 @@ async function saveCAF(){
   const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
   if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
   const ruaEscolhida=document.getElementById('cafRua')?.value||'';
- const who=currentUser?.nome||'Sistema';
+  const who=_nomeOperadorAtual();
+  const existente=editCAFId?cafsDB.find(c=>c.id===editCAFId):null;
+  const statusAnterior=existente?existente.status:null;
+  const hist=existente&&Array.isArray(existente.hist)?[...existente.hist]:[];
+  const nowIso=new Date().toISOString();
+  if(!editCAFId){
+    hist.push({t:nowIso,txt:`[${who}] CAF criada (status: ${statusEscolhido})`});
+  }else{
+    if(statusAnterior&&statusAnterior!==statusEscolhido){
+      hist.push({t:nowIso,txt:`[${who}] Status alterado: ${statusAnterior} → ${statusEscolhido}`});
+    }else{
+      hist.push({t:nowIso,txt:`[${who}] CAF editada`});
+    }
+  }
+  if(hist.length>50)hist.splice(0,hist.length-50);
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
@@ -3746,8 +3847,9 @@ async function saveCAF(){
     ruaId:ruaEscolhida?Number(ruaEscolhida):null,
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
-    criadoPor:who,
+    criadoPor:existente?existente.criadoPor:who,
     criadoEm:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.criadoEm||new Date().toISOString()):new Date().toISOString(),
+    hist,
   };
   loading(true);
   const ok=await saveCAFToDB(caf);
@@ -3793,7 +3895,7 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
-  if(c.status!=='Produzida'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+({'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Em processo de entrega','Entrega Realizada':'Já entregue'}[c.status]||c.status)+')', 'err');return;}
+  if(c.status!=='Produzida'){showToast(`⛔ CAF ${c.num} só pode ser vinculada quando estiver com status "Produzida" (status atual: ${c.status})`, 'err');return;}
   const opsRota=ops.filter(o=>o.rota===c.rota&&['PROG','AGUCARR','EMCARR'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${esc(c.rota)}`,'err');return;}
   // Modal inline sem prompt()
@@ -3821,16 +3923,30 @@ function vincularCAFDialog(cafId){
 
 async function _vincularCAF(cafId,op){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  const who=_nomeOperadorAtual();
   // Adiciona à op se ainda não está
   if(!op.cafs.find(x=>x.num===c.num)){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
     await saveOp(op);
   }
-  c.opId=op.id;c.status='Vinculada a Veículo'; // fechada = vinculada a veículo
-  await saveCAFToDB(c);await loadCAFs();
+  // Libera a rua ocupada por esta CAF (se houver) — a rua fica disponível imediatamente
+  const ruaAnterior=c.ruaId?ruaNumeroDe(c.ruaId):null;
+  if(c.ruaId){
+    try{await sbUpsert(TABELA_RUAS,{id:c.ruaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');}
+    catch(e){console.warn('liberar rua ao vincular:',e);}
+  }
+  c.opId=op.id;
+  c.status='Vinculada a Veículo';
+  c.ruaId=null;
+  if(!Array.isArray(c.hist))c.hist=[];
+  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id}${ruaAnterior?` — Rua ${ruaAnterior} liberada`:''}`});
+  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+  await saveCAFToDB(c);
+  await loadCAFs();
+  await loadRuas();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
-  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
+  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}${ruaAnterior?` — Rua ${ruaAnterior} liberada`:''}`,'ok');
 }
 
 function exportCAFs(){
