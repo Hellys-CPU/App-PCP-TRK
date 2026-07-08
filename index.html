@@ -2567,7 +2567,7 @@ function renderProg(){
 
         <!-- Doca -->
         <div style="margin-bottom:8px">
-          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">🚪 Doca</div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">🚪 Doca</div>
           ${op.status==='EMCARR'&&!isReadOnly()?`
             <select onchange="atribuirDocaRapido('${esc(op.id)}',this.value)" onclick="event.stopPropagation()"
               style="background:var(--bg2);border:1.5px solid ${op.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
@@ -2580,16 +2580,16 @@ function renderProg(){
               }).join('')}
             </select>
             ${!op.doca?'<div style="font-size:.6rem;color:var(--red);margin-top:2px;font-weight:700">⚠ Doca obrigatória</div>':''}
-          `:`<div style="font-weight:800;font-size:1.15rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border:1.5px solid ${op.doca?'var(--green)':'var(--bd)'};border-radius:var(--rs);padding:8px 12px;display:block;text-align:center;letter-spacing:.3px">
+          `:`<div style="font-weight:700;font-size:.68rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border-radius:3px;padding:2px 6px;display:inline-block">
             ${op.doca||'Não vinculada'}
           </div>`}
         </div>
 
         <!-- CAFs -->
         <div style="border-top:1px solid var(--bd);padding-top:7px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:.62rem;font-weight:700;color:var(--t2);text-transform:uppercase">📦 CAFs (${cafsDaOp.length})</span>
-            ${volTotal?`<span style="font-size:.6rem;color:var(--t3)">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span style="font-size:.78rem;font-weight:800;color:var(--text);text-transform:uppercase">📦 CAFs (${cafsDaOp.length})</span>
+            ${volTotal?`<span style="font-size:.65rem;color:var(--t2);font-weight:600">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
@@ -2597,8 +2597,8 @@ function renderProg(){
               const bg=c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
               const ruaN=ruaNumeroDe(c.ruaId);
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
-                style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;gap:4px">
-                ${esc(c.num)}${ruaN?`<span style="background:${cor}22;border-radius:3px;padding:0 4px;font-size:.58rem">Rua ${ruaN}</span>`:''}
+                style="background:${bg};color:${cor};border:1.5px solid ${cor};border-radius:6px;padding:6px 10px;font-size:.85rem;font-weight:800;display:inline-flex;align-items:center;gap:6px">
+                ${esc(c.num)}${ruaN?`<span style="background:${cor}33;border-radius:4px;padding:2px 6px;font-size:.68rem;font-weight:700">Rua ${ruaN}</span>`:''}
               </div>`;
             }).join('')}
           </div>`:`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
