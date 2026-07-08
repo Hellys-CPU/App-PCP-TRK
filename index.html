@@ -3736,7 +3736,7 @@ async function saveCAF(){
   const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
   if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
   const ruaEscolhida=document.getElementById('cafRua')?.value||'';
-  const who=_nomeOperadorAtual();
+ const who=currentUser?.nome||'Sistema';
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
