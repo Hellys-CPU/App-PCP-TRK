@@ -3793,7 +3793,7 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
-  if(c.status!=='Vinculada a Veículo'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+({'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Em processo de entrega','Entrega Realizada':'Já entregue'}[c.status]||c.status)+')', 'err');return;}
+  if(c.status!=='Produzida'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+({'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Em processo de entrega','Entrega Realizada':'Já entregue'}[c.status]||c.status)+')', 'err');return;}
   const opsRota=ops.filter(o=>o.rota===c.rota&&['PROG','AGUCARR','EMCARR'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${esc(c.rota)}`,'err');return;}
   // Modal inline sem prompt()
@@ -3826,7 +3826,7 @@ async function _vincularCAF(cafId,op){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
     await saveOp(op);
   }
-  c.opId=op.id;c.status='Entrega Realizada'; // fechada = vinculada a veículo
+  c.opId=op.id;c.status='Vinculada a Veículo'; // fechada = vinculada a veículo
   await saveCAFToDB(c);await loadCAFs();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
