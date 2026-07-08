@@ -1163,8 +1163,8 @@ function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
 function isReadOnly(){return _perfil()==='visualizador';}
 function _cafStatusPermitido(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada'];
-  if(p==='operador_caf')return['Em Produção','Vinculada a Veículo'];
+  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada','Produzida'];
+  if(p==='operador_caf')return['Em Produção','Produzida'];
   if(p==='torre_controle')return['Processo de Entrega','Entrega Realizada'];
   return[];
 }
