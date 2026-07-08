@@ -523,7 +523,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v108</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v202</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -538,7 +538,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
   <div class="topbar-r">
-    <div id="onlineBar" style="display:flex;gap:4px;align-items:center;margin-right:4px"></div>
+    <div id="onlineBar" style="display:none" style="display:flex;gap:4px;align-items:center;margin-right:4px"></div>
     <div id="rtIndicator" style="display:none;margin-right:6px" class="rt-badge"><div class="rt-dot"></div><span>Live</span></div>
     <div class="dbs" style="margin-right:4px"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
     <span class="clock" id="clock"></span>
@@ -602,6 +602,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <th style="width:28px;color:var(--t2);padding:4px 2px">#</th>
   <th onclick="sortList('id')" style="cursor:pointer;user-select:none;white-space:nowrap">ID <span id="sl-id"></span></th>
   <th onclick="sortList('dataOp')" style="cursor:pointer;user-select:none;white-space:nowrap">Data <span id="sl-dataOp"></span></th>
+  <th onclick="sortList('planApres')" style="cursor:pointer;user-select:none;white-space:nowrap">Pl.Apres <span id="sl-planApres"></span></th>
   <th style="padding:2px">
     <div onclick="sortList('rota')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Rota <span id="sl-rota"></span></div>
     <select id="lFRo" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todas</option></select>
@@ -1154,7 +1155,7 @@ let supabaseOK=false,realtimeWS=null;
 
 // ── Status de CAF: código interno usado em toda a UI  ⇄  valor real no banco ──
 const CAF_STATUS_CODE2DB={aberta:'Em Produção',vinculada:'Produzida',fechada:'Vinculada a Veículo',processo:'Processo de Entrega',entregue:'Entrega Realizada',cancelada:'cancelada'};
-const CAF_STATUS_DB2CODE={'Em Produção':'aberta','Produzida':'vinculada','Vinculada a Veículo':'fechada','Processo de Entrega':'processo','Entrega Realizada':'entregue','cancelada':'cancelada'};
+const CAF_STATUS_DB2CODE={'Em Produção':'Em Produção','Produzida':'Vinculada a Veículo','Vinculada a Veículo':'Entrega Realizada','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
 
 // ── Perfis reais do banco (tabela usuarios.perfil) ──
 // admin | supervisor | torre_controle | doca | operador_caf | visualizador
@@ -1162,9 +1163,9 @@ function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
 function isReadOnly(){return _perfil()==='visualizador';}
 function _cafStatusPermitido(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  if(['admin','supervisor'].includes(p))return['aberta','vinculada','fechada','processo','entregue','cancelada'];
-  if(p==='operador_caf')return['aberta','vinculada'];
-  if(p==='torre_controle')return['processo','entregue'];
+  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada'];
+  if(p==='operador_caf')return['Em Produção','Vinculada a Veículo'];
+  if(p==='torre_controle')return['Processo de Entrega','Entrega Realizada'];
   return[];
 }
 
@@ -1307,7 +1308,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -1337,7 +1338,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -1627,6 +1628,19 @@ async function doLogin(){
         // Marca timestamp de login — ignora eventos session_revoked antigos por 10s
         window._loginAt=Date.now();
         await bootApp();
+        // Login compartilhado: pede nome do operador do turno
+        if(r.requer_turno){
+          const nome=prompt('👤 Informe seu NOME para este turno:');
+          if(nome&&nome.trim()){
+            try{
+              await fetch(`${SUPABASE_URL}/rest/v1/rpc/gerenciar_turno`,{
+                method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+                body:JSON.stringify({p_token:r.token,p_acao:'iniciar',p_nome_operador:nome.trim()})
+              });
+              window._turnoNome=nome.trim();
+            }catch(e){}
+          }
+        }
         // Se foi login forçado, avisa a máquina antiga via Ably (logout instantâneo lá)
         if(window._forcedLogin){
           window._forcedLogin=false;
@@ -1694,6 +1708,25 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
+  // ═══ VISIBILIDADE POR PERFIL ═══
+  const _p=currentUser.perfil;
+  const _abasVisiveis={
+    admin:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','admin'],
+    supervisor:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','admin'],
+    torre_controle:['painel','lista','prog','massa','fup','amazon','caf','analise','tv'],
+    doca:['painel','lista','prog','tv'],
+    operador_caf:['painel','lista','caf'],
+    visualizador:['painel','lista','fup','amazon','caf','analise','tv'],
+  }[_p]||['painel','lista'];
+  document.querySelectorAll('.tab[id^="tb-"]').forEach(el=>{
+    const aba=el.id.replace('tb-','');
+    el.style.display=_abasVisiveis.includes(aba)?'':'none';
+  });
+  document.querySelectorAll('.mnav-btn[id^="mn-"]').forEach(el=>{
+    const aba=el.id.replace('mn-','');
+    el.style.display=_abasVisiveis.includes(aba)?'':'none';
+  });
+
   aplicarPermissoesUI(currentUser.perfil);
   loading(true);
   // Carrega dados — cada etapa protegida para nunca travar o boot
@@ -2186,12 +2219,12 @@ function _cafAlertBadge(op){
   if(!cafsDaOp.length)return'';
   // Em trânsito: alerta CAF sem processo de entrega
   if(op.status==='TRAN'){
-    const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
+    const semProcesso=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
     if(semProcesso.length)return'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>';
   }
   // Finalizado: alerta CAF sem baixa (entrega realizada)
   if(op.status==='FIN'){
-    const semBaixa=cafsDaOp.filter(c=>!['entregue','fechada'].includes(c.status));
+    const semBaixa=cafsDaOp.filter(c=>!['Entrega Realizada','Entrega Realizada'].includes(c.status));
     if(semBaixa.length)return'<span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;animation:pulse 1.5s infinite">⚠️ CAF s/ baixa</span>';
   }
   return'';
@@ -2214,6 +2247,7 @@ function cardHTML(op){
       ${op.tms?`<div class="row"><span class="lbl">TMS</span><span class="val">${esc(op.tms)}</span></div>`:''}
     </div>
     <div class="ct">
+      <div class="tb"><div class="tl">Apres.Plan.</div><div class="tv">${op.planApres||'—'}</div></div>
       <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}</div></div>
       <div class="tb"><div class="tl">Saída Real</div><div class="tv ${tvCls(dS)}">${toTime(op.realSaida)||'—'}</div></div>
       <div class="tb"><div class="tl">FC Plan.</div><div class="tv tv-p">${op.planChegFC||'—'}</div></div>
@@ -2371,7 +2405,7 @@ function renderProg(){
   // = CAFs disponíveis (vinculada) + CAFs já vinculadas a veículo (fechada)
   // dentro das ops do dia selecionado que ainda estão no pátio
   const cafsDia=cafsDB.filter(c=>{
-    if(!['vinculada','fechada'].includes(c.status))return false;
+    if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
     if(c.opId){
       const op=ops.find(o=>o.id===c.opId);
       // Se tem op: considera se a op é do dia e ainda no pátio
@@ -2430,8 +2464,8 @@ function renderProg(){
     ?dataOrd.map(op=>{
       // CAFs desta operação
       const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-      const cafsPend=cafsDaOp.filter(c=>['aberta','vinculada'].includes(c.status));
-      const cafsSemProc=cafsDaOp.filter(c=>!['processo','entregue','fechada'].includes(c.status));
+      const cafsPend=cafsDaOp.filter(c=>['Em Produção','Vinculada a Veículo'].includes(c.status));
+      const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada','Entrega Realizada'].includes(c.status));
       // Atraso
       let atraso='';
       if(op.planSaida&&op.dataOp){
@@ -2526,8 +2560,8 @@ function renderProg(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
-              const cor=c.status==='aberta'?'var(--t3)':c.status==='vinculada'?'var(--green)':c.status==='fechada'?'var(--orange)':c.status==='processo'?'var(--blue)':'var(--t3)';
-              const bg=c.status==='aberta'?'var(--bg4)':c.status==='vinculada'?'var(--green2)':c.status==='fechada'?'rgba(249,115,22,.1)':c.status==='processo'?'var(--blue2)':'var(--bg4)';
+              const cor=c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
+              const bg=c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal."
                 style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700">
                 ${esc(c.num)}
@@ -2734,8 +2768,8 @@ function buildForm(op){
   <div class="fg"><label>ID</label><input id="fId" value="${o.id}" placeholder="Auto" ${op&&op.id?'readonly':''}></div>
   <div class="fg"><label>Data Prog.</label><input id="fDP" type="date" value="${o.dataProg}"></div>
   <div class="fg"><label>Data Op.</label><input id="fDO" type="date" value="${o.dataOp}"></div>
-  <div class="fg"><label>SM</label><input id="fSM" value="${o.sm}" placeholder="Nº SM"></div>
-  <div class="fg"><label>ID TMS</label><input id="fTMS" value="${o.tms}" placeholder="ID TMS"></div>
+  <div class="fg"><label>SM</label><input id="fSM" value="${o.sm}" placeholder="Nº SM" type="number" inputmode="numeric" pattern="[0-9]*"></div>
+  <div class="fg"><label>ID TMS</label><input id="fTMS" value="${o.tms}" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="ID TMS"></div>
   <div class="fg"><label>ISA</label><input id="fISA" value="${o.isa}" placeholder="ISA"></div>
 </div>
 <div class="sec">🗺️ Rota & Carga</div>
@@ -2805,7 +2839,7 @@ function buildForm(op){
       <label>CAF disponível</label>
       <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
         <option value="">— selecione uma CAF —</option>
-        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='vinculada'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
+        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='Vinculada a Veículo'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
       </select>
     </div>
     <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
@@ -2999,8 +3033,8 @@ function renderMassa(){
       <td style="padding:3px 4px"><input class="mi" style="width:128px" placeholder="Motorista" value="${r.mot}" oninput="mRows[${i}].mot=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="Placa trator" value="${r.placa}" oninput="mRows[${i}].placa=this.value"></td>
       <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=this.value">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
-      <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" oninput="mRows[${i}].sm=this.value"></td>
-      <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" oninput="mRows[${i}].tms=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" type="number" inputmode="numeric" oninput="mRows[${i}].sm=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" type="number" inputmode="numeric" oninput="mRows[${i}].tms=this.value"></td>
       <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value" id="mApres_${i}"></td>
       <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planSaida}" oninput="mRows[${i}].planSaida=this.value" id="mSaida_${i}"></td>
       <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planChegFC}" id="mFC_${i}" oninput="mRows[${i}].planChegFC=this.value;autoHoraMassa(${i},this.value)"></td>
@@ -3400,7 +3434,7 @@ async function loadCAFs(){
       cafsDB=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
         rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
-        venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'aberta',
+        venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
         opId:r.op_id||'',obs:r.obs||'',
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
         ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||''
@@ -3479,7 +3513,7 @@ function sortList(col){
   renderList();
 }
 function _listSortIndicators(){
-  ['id','dataOp','rota','tipoCarga','transp','mot','placa','sm','tms',
+  ['id','dataOp','planApres','rota','tipoCarga','transp','mot','placa','sm','tms',
    'planSaida','realSaida','planChegFC','realChegFC','_dS','_dC','_dDoc','status'].forEach(c=>{
     const el=document.getElementById('sl-'+c);
     if(el)el.textContent=_listSort.col===c?(_listSort.dir==='asc'?'▲':'▼'):'';
@@ -3524,7 +3558,7 @@ function _updateCAFBadge(){
   if(!el)return;
   const hoje=hojeLocal();
   const lim=dateLocal(new Date(Date.now()+2*86400000));
-  const n=cafsDB.filter(c=>c.venc&&c.venc<=lim&&!['entregue','fechada','cancelada'].includes(c.status)).length;
+  const n=cafsDB.filter(c=>c.venc&&c.venc<=lim&&!['Entrega Realizada','cancelada'].includes(c.status)).length;
   if(n>0){el.textContent=n;el.style.display='inline-block';}
   else{el.style.display='none';}
 }
@@ -3559,11 +3593,11 @@ function renderCAFs(){
   // KPIs
   const kpiEl=document.getElementById('cafKPIBar');
   if(kpiEl){
-    const abertas=data.filter(c=>c.status==='aberta').length;
-    const vinc=data.filter(c=>c.status==='vinculada').length;
-    const fech=data.filter(c=>c.status==='fechada').length;
+    const abertas=data.filter(c=>c.status==='Em Produção').length;
+    const vinc=data.filter(c=>c.status==='Vinculada a Veículo').length;
+    const fech=data.filter(c=>c.status==='Entrega Realizada').length;
     const hoje=hojeLocal();
-    const venc=data.filter(c=>c.venc&&c.venc<hoje&&!['fechada','entregue','cancelada'].includes(c.status)).length;
+    const venc=data.filter(c=>c.venc&&c.venc<hoje&&!['Entrega Realizada','cancelada'].includes(c.status)).length;
     kpiEl.innerHTML=[
       {v:data.length,l:'Total',c:'var(--text)'},{v:abertas,l:'Abertas',c:'var(--blue)'},
       {v:vinc,l:'Vinculadas',c:'var(--green)'},{v:fech,l:'Fechadas',c:'var(--gray)'},
@@ -3574,14 +3608,14 @@ function renderCAFs(){
   // Table
   const stCls={aberta:'b-ext',vinculada:'b-inb',processo:'b-flt',entregue:'b-ltl',fechada:'b-prod'};
   const stLbl={aberta:'Em Produção',vinculada:'Produzida',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
-  const vencCls=c=>{if(!c.venc)return'';if(['entregue','fechada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
+  const vencCls=c=>{if(!c.venc)return'';if(['Entrega Realizada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
   body.innerHTML=data.length?data.map(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     const vStr=c.venc?new Date(c.venc+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
     // Alerta: CAF vinculada a op EM TRÂNSITO mas sem "Processo de Entrega"
-    const alertaTran=op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
+    const alertaTran=op&&op.status==='TRAN'&&!['Processo de Entrega','Entrega Realizada'].includes(c.status);
     const rowStyle=alertaTran?'cursor:pointer;background:rgba(251,191,36,.08);border-left:3px solid #f59e0b':'cursor:pointer';
     return`<tr onclick="openEditCAF('${c.id}')" style="${rowStyle}">
       <td><strong style="color:var(--green)">${esc(c.num)}</strong>${c.codigoCurto?`<div style="font-size:.6rem;color:var(--t2);font-weight:600">${esc(c.codigoCurto)}</div>`:''}${alertaTran?'<span style="font-size:.6rem;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px">⚠️ Em trânsito</span>':''}</td>
@@ -3637,7 +3671,7 @@ function openNewCAF(){
   ['cafNum','cafVol','cafPal','cafObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cafVenc').value='';
   document.getElementById('cafTipo').value='Inbound'; // default mais comum; muda conforme rota
-  const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='aberta';
+  const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='Em Produção';
   document.getElementById('cafRota').value='';
   popularSelectRua(null,null);
   aplicarPermissaoStatusCAF();
@@ -3669,7 +3703,7 @@ function openEditCAF(id){
   document.getElementById('cafVol').value=c.vol||'';
   document.getElementById('cafPal').value=c.pallets||'';
   document.getElementById('cafObs').value=c.obs||'';
-  const cafSt=document.getElementById('cafStatus');if(cafSt)cafSt.value=c.status||'aberta';
+  const cafSt=document.getElementById('cafStatus');if(cafSt)cafSt.value=c.status||'Em Produção';
   popularSelectRua(c.id,c.ruaId);
   aplicarPermissaoStatusCAF();
   const vincEl=document.getElementById('cafOpVinc');
@@ -3690,7 +3724,7 @@ async function saveCAF(){
   if(!perfilPermitido){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
   const num=(document.getElementById('cafNum')?.value||'').trim();
   const rota=document.getElementById('cafRota')?.value||'';
-  const statusEscolhido=document.getElementById('cafStatus')?.value||'aberta';
+  const statusEscolhido=document.getElementById('cafStatus')?.value||'Em Produção';
   if(!_cafStatusPermitido(currentUser?.perfil).includes(statusEscolhido)){showToast('⛔ Seu perfil não pode definir este status de CAF','err');return;}
   if(!num){showToast('⚠ Informe o número da CAF','err');return;}
   if(!rota){showToast('⚠ Selecione a rota de destino','err');return;}
@@ -3744,7 +3778,7 @@ async function desvincularCAF(){
     const op=ops.find(o=>o.id===c.opId);
     if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
   }
-  c.opId='';c.status='vinculada'; // volta para disponível p/ embarque
+  c.opId='';c.status='Vinculada a Veículo'; // volta para disponível p/ embarque
   await saveCAFToDB(c);await loadCAFs();
   renderCAFs();closeCAFModal();
   showToast('✅ CAF desvinculada','ok');
@@ -3753,8 +3787,8 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
-  if(c.status!=='vinculada'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+{aberta:'Em Produção',fechada:'Já vinculada a veículo',processo:'Em processo de entrega',entregue:'Já entregue'}[c.status]+')', 'err');return;}
-  const opsRota=ops.filter(o=>o.rota===c.rota&&!['FIN','CANC','REC'].includes(o.status));
+  if(c.status!=='Vinculada a Veículo'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+{aberta:'Em Produção',fechada:'Já vinculada a veículo',processo:'Em processo de entrega',entregue:'Já entregue'}[c.status]+')', 'err');return;}
+  const opsRota=ops.filter(o=>o.rota===c.rota&&['PROG','AGUCARR','EMCARR'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${esc(c.rota)}`,'err');return;}
   // Modal inline sem prompt()
   const existing=document.getElementById('_cafVincModal');
@@ -3767,7 +3801,7 @@ function vincularCAFDialog(cafId){
     <div class="fg" style="margin-bottom:12px"><label>Selecione a operação</label>
       <select id="_cafVincSel" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px;font-size:.82rem;width:100%;outline:none">
         <option value="">— escolha uma operação —</option>
-        ${opsRota.map(o=>`<option value="${o.id}">${o.id} · ${o.rota} · ${o.transp||'—'} · ${fmtD(o.dataOp)}</option>`).join('')}
+        ${opsRota.map(o=>`<option value="${o.id}">${o.codigoCurto||o.id} · ${o.rota} · ${o.transp||'—'} · ${o.mot||'—'} · ${fmtD(o.dataOp)}</option>`).join('')}
       </select>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -3786,7 +3820,7 @@ async function _vincularCAF(cafId,op){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
     await saveOp(op);
   }
-  c.opId=op.id;c.status='fechada'; // fechada = vinculada a veículo
+  c.opId=op.id;c.status='Entrega Realizada'; // fechada = vinculada a veículo
   await saveCAFToDB(c);await loadCAFs();
   renderCAFs();
   showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
@@ -4003,12 +4037,12 @@ async function exportRD(){
     // ── SLIDE 7 — CAFs ──
     {
       const s=pptx.addSlide();addBase(s,'CAFs — Painel de Status','Volume e status das CAFs do período');
-      const abertas=cafsDB.filter(c=>c.status==='aberta').length;
-      const vinc=cafsDB.filter(c=>c.status==='vinculada').length;
-      const proc=cafsDB.filter(c=>c.status==='processo').length;
-      const entr=cafsDB.filter(c=>c.status==='entregue').length;
+      const abertas=cafsDB.filter(c=>c.status==='Em Produção').length;
+      const vinc=cafsDB.filter(c=>c.status==='Vinculada a Veículo').length;
+      const proc=cafsDB.filter(c=>c.status==='Processo de Entrega').length;
+      const entr=cafsDB.filter(c=>c.status==='Entrega Realizada').length;
       const hoje2=hojeLocal();
-      const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&!['entregue','fechada','cancelada'].includes(c.status)).length;
+      const venc2=cafsDB.filter(c=>c.venc&&c.venc<hoje2&&!['Entrega Realizada','cancelada'].includes(c.status)).length;
       const volTotal=cafsDB.reduce((sv,c)=>sv+(c.vol||0),0);
       const cafKpis=[
         {l:'Abertas',v:abertas,c:BLUE},{l:'Vinculadas',v:vinc,c:'7C3AED'},
@@ -4075,14 +4109,14 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
   // TRAN: NÃO muda — alerta visual no card até mudança manual
   // FIN: NÃO muda — Entrega Realizada deve ser dado manualmente na aba CAF
   // CANC/REC: CAFs voltam para "aberta" automaticamente (libera para outra viagem)
-  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='vinculada'; // volta para disponível
+  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='Vinculada a Veículo'; // volta para disponível
 
   if(!novoStatusCAF)return;
 
   for(const c of cafsDaOp){
     if(c.status===novoStatusCAF)continue;
     c.status=novoStatusCAF;
-    if(novoStatusCAF==='vinculada'){c.opId='';}
+    if(novoStatusCAF==='Vinculada a Veículo'){c.opId='';}
     await saveCAFToDB(c);
   }
   await loadCAFs();
@@ -4093,7 +4127,7 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
 function alertaCAFsTransito(op){
   if(!cafsDB.length||!op.cafs.length)return;
   const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-  const semProcesso=cafsDaOp.filter(c=>!['processo','entregue'].includes(c.status));
+  const semProcesso=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
   if(semProcesso.length){
     const nums=semProcesso.map(c=>c.num).join(', ');
     showToast(`⚠️ CAF(s) sem Proc. Entrega: ${nums}`, 'err');
@@ -4111,10 +4145,10 @@ async function autoVincularCAFs(op){
     const c=cafsDB.find(x=>x.num===cafRef.num);
     if(!c)continue; // CAF manual (não está no banco de CAFs)
     // Só atualiza se ainda não vinculada a esta op
-    if(c.opId===op.id&&c.status==='vinculada')continue;
+    if(c.opId===op.id&&c.status==='Vinculada a Veículo')continue;
     c.opId=op.id;
     // Só muda para vinculada se estiver aberta
-    if(c.status==='vinculada')c.status='fechada'; // disponível → vinculada a veículo
+    if(c.status==='Vinculada a Veículo')c.status='Entrega Realizada'; // disponível → vinculada a veículo
     await saveCAFToDB(c);
     changed=true;
   }
@@ -4130,15 +4164,15 @@ function _renderCAFPanel(data){
     return !op||data.includes(op);
   });
   const tot=cafPeriodo.length;
-  const abertas=cafPeriodo.filter(c=>c.status==='aberta').length;
-  const vinc=cafPeriodo.filter(c=>c.status==='vinculada').length;
-  const proc=cafPeriodo.filter(c=>c.status==='processo').length;
-  const entr=cafPeriodo.filter(c=>c.status==='entregue').length;
+  const abertas=cafPeriodo.filter(c=>c.status==='Em Produção').length;
+  const vinc=cafPeriodo.filter(c=>c.status==='Vinculada a Veículo').length;
+  const proc=cafPeriodo.filter(c=>c.status==='Processo de Entrega').length;
+  const entr=cafPeriodo.filter(c=>c.status==='Entrega Realizada').length;
   const hoje=hojeLocal();
-  const venc=cafPeriodo.filter(c=>c.venc&&c.venc<hoje&&!['entregue','fechada','cancelada'].includes(c.status)).length;
+  const venc=cafPeriodo.filter(c=>c.venc&&c.venc<hoje&&!['Entrega Realizada','cancelada'].includes(c.status)).length;
   const alertas=cafPeriodo.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    return op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
+    return op&&op.status==='TRAN'&&!['Processo de Entrega','Entrega Realizada'].includes(c.status);
   }).length;
   const volTotal=cafPeriodo.reduce((s,c)=>s+(c.vol||0),0);
   const palTotal=cafPeriodo.reduce((s,c)=>s+(c.pallets||0),0);
@@ -4299,7 +4333,7 @@ function renderTV(){
 
   const cafAlert=cafsDB.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    return op&&op.status==='TRAN'&&!['processo','entregue'].includes(c.status);
+    return op&&op.status==='TRAN'&&!['Processo de Entrega','Entrega Realizada'].includes(c.status);
   }).length;
 
   // Mapa de status para posição na estrada (0=início, 4=fim)
@@ -4348,8 +4382,8 @@ function renderTV(){
         const cor=statusCor[o.status]||'#6b7280';
         const icon=statusIcon[o.status]||'🚛';
         const atrasado=getSLA(o)==='late';
-        const semBaixa=o.status==='FIN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['entregue','fechada'].includes(c.status));
-        const semProc=o.status==='TRAN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['processo','entregue'].includes(c.status));
+        const semBaixa=o.status==='FIN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Entrega Realizada','Entrega Realizada'].includes(c.status));
+        const semProc=o.status==='TRAN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Processo de Entrega','Entrega Realizada'].includes(c.status));
         return`<div title="${o.id} · ${o.transp||'—'} · ${toTime(o.planChegFC)||'—'}"
           style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px;cursor:default">
           <div style="font-size:1.1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
@@ -4464,7 +4498,7 @@ function renderTV(){
   ${(()=>{
     const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
     const cafsPatio=cafsDB.filter(c=>{
-      if(!['vinculada','fechada'].includes(c.status))return false;
+      if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
       if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
       return true;
     });
@@ -4676,7 +4710,7 @@ function checkCAFsSemBaixa(){
   if(!cafsDB.length)return;
   // Ops finalizadas com CAFs ainda sem entregue
   const cafsPendentes=cafsDB.filter(c=>{
-    if(['entregue','fechada','aberta'].includes(c.status))return false;
+    if(['Entrega Realizada','Entrega Realizada','Em Produção'].includes(c.status))return false;
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     return op&&op.status==='FIN';
   });
@@ -4690,7 +4724,7 @@ function checkCAFsVencendo(){
   const hoje=new Date();
   const em3dias=dateLocal(new Date(hoje.getTime()+3*86400000));
   const hojeStr=dateLocal(hoje);
-  const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['entregue','fechada','cancelada'].includes(c.status));
+  const vencendo=cafsDB.filter(c=>c.venc&&c.venc>=hojeStr&&c.venc<=em3dias&&!['Entrega Realizada','cancelada'].includes(c.status));
   if(vencendo.length&&curPage!=='caf'){
     showToast(`📦 ${vencendo.length} CAF(s) vencendo nos próximos 3 dias!`,'info');
   }
@@ -4888,7 +4922,7 @@ function renderTVYard(){
   // Ocupação de piso
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   const cafsPatio=cafsDB.filter(c=>{
-    if(!['vinculada','fechada'].includes(c.status))return false;
+    if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
     if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
     return true;
   });
@@ -4963,7 +4997,7 @@ function renderTVYard(){
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">
     ${opsYard.length?opsYard.map(op=>{
       const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-      const cafsSemProc=cafsDaOp.filter(c=>!['processo','entregue','fechada'].includes(c.status));
+      const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada','Entrega Realizada'].includes(c.status));
       const agora=new Date();
       const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
       const stCors={PROG:'#6b7280',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)'};
@@ -5001,8 +5035,8 @@ function renderTVYard(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
-              const cor2=c.status==='aberta'?'var(--blue)':c.status==='vinculada'?'#bc8cff':c.status==='processo'?'var(--green)':'var(--t3)';
-              const alerta=!['processo','entregue','fechada'].includes(c.status);
+              const cor2=c.status==='Em Produção'?'var(--blue)':c.status==='Vinculada a Veículo'?'#bc8cff':c.status==='Processo de Entrega'?'var(--green)':'var(--t3)';
+              const alerta=!['Processo de Entrega','Entrega Realizada','Entrega Realizada'].includes(c.status);
               return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${esc(c.num)}</span>`;
             }).join('')}
           </div>`:'<span style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</span>'}
@@ -5725,9 +5759,9 @@ async function importarPlanilhaBase(event){
         cafRaw.replace(/\\/g,'/').split('/').forEach(c=>{
           c = c.trim().split('  ')[0].trim().split('.')[0];
           if(c&&c.length>=5&&!isNaN(parseFloat(c))){
-            let st='vinculada';
-            if(baixa&&['OK','SIM'].includes(baixa.toUpperCase())) st='entregue';
-            else if(baixa&&(baixa.toUpperCase().includes('PROCESSO')||['NÃO','NAO'].includes(baixa.toUpperCase()))) st='processo';
+            let st='Vinculada a Veículo';
+            if(baixa&&['OK','SIM'].includes(baixa.toUpperCase())) st='Entrega Realizada';
+            else if(baixa&&(baixa.toUpperCase().includes('PROCESSO')||['NÃO','NAO'].includes(baixa.toUpperCase()))) st='Processo de Entrega';
             cafsList.push({num:c,status:st});
           }
         });
