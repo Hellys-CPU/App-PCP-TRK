@@ -2555,13 +2555,13 @@ function renderProg(){
         <!-- Horários -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;background:var(--bg3);border-radius:var(--rs);padding:7px">
           <div style="text-align:center">
-            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
-            <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
-          </div>
-          <div style="text-align:center">
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosta até</div>
             <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
             ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
+          </div>
+          <div style="text-align:center">
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
+            <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
           </div>
         </div>
 
@@ -2873,7 +2873,7 @@ function buildForm(op){
       <label>CAF disponível</label>
       <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
         <option value="">— selecione uma CAF —</option>
-        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='Vinculada a Veículo'&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
+        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='Produzida'&&!c.opId&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
       </select>
     </div>
     <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
@@ -4005,7 +4005,7 @@ function vincularCAFDialog(cafId){
     <div class="fg" style="margin-bottom:12px"><label>Selecione a operação</label>
       <select id="_cafVincSel" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px;font-size:.82rem;width:100%;outline:none">
         <option value="">— escolha uma operação —</option>
-        ${opsRota.map(o=>`<option value="${o.id}">${o.codigoCurto||o.id} · ${o.rota} · ${o.transp||'—'} · ${o.mot||'—'} · ${fmtD(o.dataOp)}</option>`).join('')}
+        ${opsRota.map(o=>`<option value="${o.id}">${o.codigoCurto||o.id} · ${o.rota} · ${o.transp||'—'} · ${o.mot||'—'} · ${fmtD(o.dataOp)} · Cheg.FC ${o.planChegFC||'—'}</option>`).join('')}
       </select>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -4019,6 +4019,12 @@ function vincularCAFDialog(cafId){
 
 async function _vincularCAF(cafId,op){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  // Checagem final de segurança — evita vínculo duplo por concorrência entre PCs
+  if(c.status!=='Produzida'||(c.opId&&c.opId!==op.id)){
+    showToast(`⛔ CAF ${c.num} já foi vinculada a outra viagem enquanto você selecionava`,'err');
+    await loadCAFs();renderCAFs();
+    return;
+  }
   const who=_nomeOperadorAtual();
   // Adiciona à op se ainda não está
   if(!op.cafs.find(x=>x.num===c.num)){
@@ -4298,9 +4304,15 @@ function adicionarCAFdoBanco(){
   const sel=document.getElementById('fCafSelect');
   if(!sel||!sel.value){showToast('Selecione uma CAF','err');return;}
   const[num,tipo,qtd]=sel.value.split('|');
-  // Verifica se já não está na lista
+  // Verifica se já não está na lista desta viagem
   const existing=[...document.querySelectorAll('#cafList .caf-row')].map(r=>r.querySelector('.cn')?.value||'');
   if(existing.includes(num)){showToast(`CAF ${num} já adicionada`,'err');return;}
+  // Defesa extra: revalida no banco local se a CAF ainda está livre (Produzida, sem opId)
+  const cRef=cafsDB.find(c=>c.num===num);
+  if(cRef&&(cRef.status!=='Produzida'||cRef.opId)){
+    showToast(`⛔ CAF ${num} não está mais disponível (já vinculada a ${cRef.opId||'outra viagem'})`,'err');
+    return;
+  }
   const d=document.createElement('div');
   d.innerHTML=cafR({num,tipo,qtd},++cafIdx);
   document.getElementById('cafList').appendChild(d.firstChild);
@@ -4354,12 +4366,19 @@ async function autoVincularCAFs(op){
   if(!supabaseOK||!op.cafs.length)return;
   const who=_nomeOperadorAtual?_nomeOperadorAtual():(currentUser?.nome||'Sistema');
   let changed=false;
+  const bloqueadas=[];
   for(const cafRef of op.cafs){
     if(!cafRef.num)continue;
     const c=cafsDB.find(x=>x.num===cafRef.num);
     if(!c)continue; // CAF manual (não está no banco de CAFs)
-    // Só atualiza se ainda não vinculada a esta op
+    // Já vinculada a esta mesma op — nada a fazer
     if(c.opId===op.id&&c.status==='Vinculada a Veículo')continue;
+    // ── BLOQUEIO: CAF já vinculada a OUTRA viagem — nunca sobrescreve ──
+    if(c.opId&&c.opId!==op.id&&c.status!=='Produzida'){
+      bloqueadas.push(c.num);
+      op.cafs=op.cafs.filter(x=>x.num!==c.num); // remove da viagem atual — não pode ficar "fantasma"
+      continue;
+    }
     c.opId=op.id;
     // Só muda para Vinculada a Veículo se estava Produzida (disponível para embarque)
     // A rua NÃO é liberada aqui — só quando o status avançar para "Processo de Entrega"
@@ -4371,6 +4390,10 @@ async function autoVincularCAFs(op){
     }
     await saveCAFToDB(c);
     changed=true;
+  }
+  if(bloqueadas.length){
+    await saveOp(op); // persiste a remoção das CAFs bloqueadas da lista da viagem
+    showToast(`⛔ CAF(s) ${bloqueadas.join(', ')} já vinculada(s) a outra viagem — removida(s) desta`,'err');
   }
   if(changed){await loadCAFs();if(curPage==='caf')renderCAFs();}
 }
