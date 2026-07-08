@@ -718,11 +718,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <select id="cafFTipo" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;"><option value="">Todos os Tipos</option></select>
     <select id="cafFStatus" onchange="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;">
       <option value="">Todos os Status</option>
-      <option value="aberta">Em Produção</option>
-      <option value="vinculada">Produzida</option>
-      <option value="fechada">Vinculada a Veículo</option>
-      <option value="processo">Proc. Entrega</option>
-      <option value="entregue">Entrega Realizada</option>
+      <option value="Em Produção">Em Produção</option>
+      <option value="Produzida">Produzida</option>
+      <option value="Vinculada a Veículo">Vinculada a Veículo</option>
+      <option value="Processo de Entrega">Proc. Entrega</option>
+      <option value="Entrega Realizada">Entrega Realizada</option>
     </select>
     <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.72rem;outline:none;"/>
     <span style="font-size:.7rem;color:var(--t3)">até</span>
@@ -1064,11 +1064,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </div>
         <div class="fg"><label>Status da CAF</label>
           <select id="cafStatus">
-            <option value="aberta">Em Produção</option>
-            <option value="vinculada">Produzida</option>
-            <option value="fechada">Vinculada a Veículo</option>
-            <option value="processo">Proc. de Entrega</option>
-            <option value="entregue">Entrega Realizada</option>
+            <option value="Em Produção">Em Produção</option>
+            <option value="Produzida">Produzida</option>
+            <option value="Vinculada a Veículo">Vinculada a Veículo</option>
+            <option value="Processo de Entrega">Proc. de Entrega</option>
+            <option value="Entrega Realizada">Entrega Realizada</option>
           </select>
         </div>
         <div class="fg"><label>Destino (Rota)</label>
@@ -1153,9 +1153,9 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas';
 let supabaseOK=false,realtimeWS=null;
 
-// ── Status de CAF: código interno usado em toda a UI  ⇄  valor real no banco ──
-const CAF_STATUS_CODE2DB={aberta:'Em Produção',vinculada:'Produzida',fechada:'Vinculada a Veículo',processo:'Processo de Entrega',entregue:'Entrega Realizada',cancelada:'cancelada'};
-const CAF_STATUS_DB2CODE={'Em Produção':'Em Produção','Produzida':'Vinculada a Veículo','Vinculada a Veículo':'Entrega Realizada','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
+// ── Status de CAF: agora o valor usado na UI é sempre o mesmo texto do banco (mapas mantidos como identidade por compatibilidade) ──
+const CAF_STATUS_CODE2DB={'Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
+const CAF_STATUS_DB2CODE={'Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
 
 // ── Perfis reais do banco (tabela usuarios.perfil) ──
 // admin | supervisor | torre_controle | doca | operador_caf | visualizador
@@ -3610,8 +3610,8 @@ function renderCAFs(){
   }
 
   // Table
-  const stCls={aberta:'b-ext',vinculada:'b-inb',processo:'b-flt',entregue:'b-ltl',fechada:'b-prod'};
-  const stLbl={aberta:'Em Produção',vinculada:'Produzida',processo:'Proc. Entrega',entregue:'Entrega Realizada',fechada:'Vinculada a Veículo'};
+  const stCls={'Em Produção':'b-ext','Produzida':'b-inb','Processo de Entrega':'b-flt','Entrega Realizada':'b-ltl','Vinculada a Veículo':'b-prod','cancelada':'b-flt'};
+  const stLbl={'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Proc. Entrega','Entrega Realizada':'Entrega Realizada','Vinculada a Veículo':'Vinculada a Veículo','cancelada':'Cancelada'};
   const vencCls=c=>{if(!c.venc)return'';if(['Entrega Realizada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -3793,7 +3793,7 @@ async function desvincularCAF(){
 // Vincular CAF a uma operação
 function vincularCAFDialog(cafId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
-  if(c.status!=='Vinculada a Veículo'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+{aberta:'Em Produção',fechada:'Já vinculada a veículo',processo:'Em processo de entrega',entregue:'Já entregue'}[c.status]+')', 'err');return;}
+  if(c.status!=='Vinculada a Veículo'){showToast('CAF '+c.num+' não está disponível para embarque (status: '+({'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Em processo de entrega','Entrega Realizada':'Já entregue'}[c.status]||c.status)+')', 'err');return;}
   const opsRota=ops.filter(o=>o.rota===c.rota&&['PROG','AGUCARR','EMCARR'].includes(o.status));
   if(!opsRota.length){showToast(`Nenhuma operação ativa para rota ${esc(c.rota)}`,'err');return;}
   // Modal inline sem prompt()
