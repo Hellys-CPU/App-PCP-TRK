@@ -2580,7 +2580,7 @@ function renderProg(){
               }).join('')}
             </select>
             ${!op.doca?'<div style="font-size:.6rem;color:var(--red);margin-top:2px;font-weight:700">⚠ Doca obrigatória</div>':''}
-          `:`<div style="font-weight:800;font-size:.85rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border-radius:4px;padding:4px 8px;display:inline-block">
+          `:`<div style="font-weight:800;font-size:1.15rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border:1.5px solid ${op.doca?'var(--green)':'var(--bd)'};border-radius:var(--rs);padding:8px 12px;display:block;text-align:center;letter-spacing:.3px">
             ${op.doca||'Não vinculada'}
           </div>`}
         </div>
@@ -2595,9 +2595,10 @@ function renderProg(){
             ${cafsDaOp.map(c=>{
               const cor=c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
               const bg=c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
-              return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal."
-                style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700">
-                ${esc(c.num)}
+              const ruaN=ruaNumeroDe(c.ruaId);
+              return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
+                style="background:${bg};color:${cor};border:1px solid ${cor}44;border-radius:3px;padding:2px 6px;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;gap:4px">
+                ${esc(c.num)}${ruaN?`<span style="background:${cor}22;border-radius:3px;padding:0 4px;font-size:.58rem">Rua ${ruaN}</span>`:''}
               </div>`;
             }).join('')}
           </div>`:`<div style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</div>`}
@@ -3916,13 +3917,23 @@ async function saveCAF(){
     }
   }
   if(hist.length>50)hist.splice(0,hist.length-50);
+  // Nova regra: a rua só é liberada quando a CAF chega em "Processo de Entrega"
+  let ruaFinal=ruaEscolhida?Number(ruaEscolhida):null;
+  const ruaAntigaId=existente?existente.ruaId:null;
+  if(statusEscolhido==='Processo de Entrega'&&ruaAntigaId){
+    ruaFinal=null;
+    try{
+      await sbUpsert(TABELA_RUAS,{id:ruaAntigaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
+      hist.push({t:nowIso,txt:`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF em Processo de Entrega)`});
+    }catch(e){console.warn('liberar rua em Processo de Entrega:',e);}
+  }
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
     pallets:parseFloat(document.getElementById('cafPal')?.value||0)||0,
     venc:document.getElementById('cafVenc')?.value||'',
     status:statusEscolhido,
-    ruaId:ruaEscolhida?Number(ruaEscolhida):null,
+    ruaId:ruaFinal,
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
     criadoPor:existente?existente.criadoPor:who,
@@ -3958,16 +3969,23 @@ async function deleteCAF(){
 async function desvincularCAF(){
   if(!editCAFId)return;
   const c=cafsDB.find(x=>x.id===editCAFId);if(!c)return;
+  const who=_nomeOperadorAtual?_nomeOperadorAtual():(currentUser?.nome||'Sistema');
+  const opIdAnterior=c.opId;
   // Remove da operação também
   if(c.opId){
     const op=ops.find(o=>o.id===c.opId);
     if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
   }
-  c.opId='';c.status='Vinculada a Veículo'; // volta para disponível p/ embarque
+  c.opId='';
+  c.status='Produzida'; // volta para disponível p/ embarque (Vinculada a Veículo → Produzida)
+  // A rua NÃO foi liberada no momento do vínculo — continua com a CAF (c.ruaId intacto)
+  if(!Array.isArray(c.hist))c.hist=[];
+  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Desvinculada da operação ${opIdAnterior||''} (Vinculada a Veículo → Produzida)`});
+  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
   await saveCAFToDB(c);await loadCAFs();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();closeCAFModal();
-  showToast('✅ CAF desvinculada','ok');
+  showToast('✅ CAF desvinculada — status voltou para Produzida','ok');
 }
 
 // Vincular CAF a uma operação
@@ -4007,24 +4025,18 @@ async function _vincularCAF(cafId,op){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
     await saveOp(op);
   }
-  // Libera a rua ocupada por esta CAF (se houver) — a rua fica disponível imediatamente
-  const ruaAnterior=c.ruaId?ruaNumeroDe(c.ruaId):null;
-  if(c.ruaId){
-    try{await sbUpsert(TABELA_RUAS,{id:c.ruaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');}
-    catch(e){console.warn('liberar rua ao vincular:',e);}
-  }
+  // A rua NÃO é liberada aqui — permanece ocupada até a CAF chegar em "Processo de Entrega"
   c.opId=op.id;
   c.status='Vinculada a Veículo';
-  c.ruaId=null;
   if(!Array.isArray(c.hist))c.hist=[];
-  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id}${ruaAnterior?` — Rua ${ruaAnterior} liberada`:''}`});
+  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id}`});
   if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
   await saveCAFToDB(c);
   await loadCAFs();
   await loadRuas();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
-  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}${ruaAnterior?` — Rua ${ruaAnterior} liberada`:''}`,'ok');
+  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
 }
 
 function exportCAFs(){
@@ -4340,6 +4352,7 @@ function alertaCAFsTransito(op){
 // Quando CAF é adicionada via modal (num na op.cafs), atualiza cafsDB
 async function autoVincularCAFs(op){
   if(!supabaseOK||!op.cafs.length)return;
+  const who=_nomeOperadorAtual?_nomeOperadorAtual():(currentUser?.nome||'Sistema');
   let changed=false;
   for(const cafRef of op.cafs){
     if(!cafRef.num)continue;
@@ -4348,8 +4361,14 @@ async function autoVincularCAFs(op){
     // Só atualiza se ainda não vinculada a esta op
     if(c.opId===op.id&&c.status==='Vinculada a Veículo')continue;
     c.opId=op.id;
-    // Só muda para vinculada se estiver aberta
-    if(c.status==='Vinculada a Veículo')c.status='Entrega Realizada'; // disponível → vinculada a veículo
+    // Só muda para Vinculada a Veículo se estava Produzida (disponível para embarque)
+    // A rua NÃO é liberada aqui — só quando o status avançar para "Processo de Entrega"
+    if(c.status==='Produzida'){
+      if(!Array.isArray(c.hist))c.hist=[];
+      c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id} (Produzida → Vinculada a Veículo)`});
+      if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+      c.status='Vinculada a Veículo';
+    }
     await saveCAFToDB(c);
     changed=true;
   }
