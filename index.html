@@ -1273,10 +1273,12 @@ async function sbFetch(path,opts={}){
   if(!res.ok)throw new Error(await res.text());
   return res.status===204?null:res.json();
 }
-async function sbUpsert(table,row){
+async function sbUpsert(table,row,onConflict){
   const hasId=row.id!==undefined&&row.id!==null;
-  const prefer=hasId?'resolution=merge-duplicates,return=minimal':'return=minimal';
-  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':prefer},body:JSON.stringify(row)});
+  const conflictCol=onConflict||(hasId?'id':null);
+  const prefer=conflictCol?'resolution=merge-duplicates,return=minimal':'return=minimal';
+  const qs=conflictCol?`?on_conflict=${encodeURIComponent(conflictCol)}`:'';
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}${qs}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':prefer},body:JSON.stringify(row)});
   if(!res.ok)throw new Error(await res.text());
 }
 async function sbDelete(table,col,val){
@@ -1477,7 +1479,7 @@ function _ablyPresenceUpdate(){
 }
 async function pingOnlineDB(){
   if(!currentUser||!supabaseOK)return;
-  try{await sbUpsert(TABELA_SESS,{usuario:currentUser.user,nome:currentUser.nome,avatar:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel',ultimo_ping:new Date().toISOString()});}catch(e){}
+  try{await sbUpsert(TABELA_SESS,{usuario:currentUser.user,nome:currentUser.nome,avatar:currentUser.av,cor:currentUser.cor,perfil:currentUser.perfil,pagina:curPage||'painel',ultimo_ping:new Date().toISOString()},'usuario');}catch(e){}
   _ablyPresenceUpdate();
 }
 async function unpingOnlineDB(){if(!currentUser)return;if(supabaseOK)try{await sbDelete(TABELA_SESS,'usuario',currentUser.user);}catch(e){}unpingOnlineLocal();}
@@ -1762,6 +1764,7 @@ async function bootApp(){
     try{
       const hadChanges=await loadFromSupabase();
       if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
+      if(curPage==='caf'){await loadCAFs();renderCAFs();}
     }catch(e){console.warn('sync:',e);}
   },45000); // 45s — equilibrio entre velocidade e consumo (Ably é o realtime principal)
   window._timerTick=setInterval(()=>{
@@ -2370,6 +2373,7 @@ function renderList(){
     const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
     return `<tr onclick="openEdit('${esc(op.id)}')">
       <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}${op.codigoCurto?`<div style="color:var(--t2);font-weight:600;font-size:.6rem">${esc(op.codigoCurto)}</div>`:''}</td><td>${fmtD(op.dataOp)}</td>
+      <td>${op.planApres||'—'}</td>
       <td><span class="rota-cell">${esc(op.rota)}</span></td>
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
       <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
@@ -3750,7 +3754,7 @@ async function saveCAF(){
   await loadCAFs();
   await loadRuas();
   loading(false);
-  if(ok){showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
+  if(ok){_publishAbly('cafs_update',{action:editCAFId?'update':'insert'});showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
   else showToast('❌ Erro ao salvar CAF','err');
 }
 
@@ -3766,6 +3770,7 @@ async function deleteCAF(){
   await loadCAFs();
   await loadRuas();
   loading(false);
+  _publishAbly('cafs_update',{action:'delete'});
   closeCAFModal();renderCAFs();
   showToast('🗑 CAF excluída','ok');
 }
@@ -3780,6 +3785,7 @@ async function desvincularCAF(){
   }
   c.opId='';c.status='Vinculada a Veículo'; // volta para disponível p/ embarque
   await saveCAFToDB(c);await loadCAFs();
+  _publishAbly('cafs_update',{action:'update'});
   renderCAFs();closeCAFModal();
   showToast('✅ CAF desvinculada','ok');
 }
@@ -3822,6 +3828,7 @@ async function _vincularCAF(cafId,op){
   }
   c.opId=op.id;c.status='Entrega Realizada'; // fechada = vinculada a veículo
   await saveCAFToDB(c);await loadCAFs();
+  _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
   showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
 }
@@ -5374,7 +5381,7 @@ function initAbly(){
     return;
   }
   try{
-    _ably=new Ably.Realtime({key:ABLY_KEY,autoConnect:true});
+    _ably=new Ably.Realtime({key:ABLY_KEY,clientId:(currentUser&&currentUser.user)||('anon-'+Date.now()),autoConnect:true});
     _ably.connection.on('connected',()=>{
       _ablyOK=true;
       console.log('Ably conectado ✅');
