@@ -2434,19 +2434,10 @@ function renderProg(){
   // ── Ocupação de piso ──
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
   // CAFs abertas/vinculadas neste dia (aguardando carregamento)
-  // Ocupação real: CAFs que estão fisicamente no piso
-  // = CAFs disponíveis (vinculada) + CAFs já vinculadas a veículo (fechada)
-  // dentro das ops do dia selecionado que ainda estão no pátio
-  const cafsDia=cafsDB.filter(c=>{
-    if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
-    if(c.opId){
-      const op=ops.find(o=>o.id===c.opId);
-      // Se tem op: considera se a op é do dia e ainda no pátio
-      return op&&op.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);
-    }
-    // CAF disponível sem op vinculada - conta se tem rota relevante
-    return true;
-  });
+  // Ocupação real de piso: conta pelo STATUS da CAF (não depende de op vinculada)
+  // Aparece enquanto: Em Produção, Produzida ou Vinculada a Veículo
+  // Some do piso somente ao chegar em Processo de Entrega / Entrega Realizada / Cancelada
+  const cafsDia=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status));
   const cafCount=cafsDia.length;
   // Pallets reais: soma os pallets de cada CAF (campo pallets do banco)
   const palCount=Math.round(cafsDia.reduce((s,c)=>s+(Number(c.pallets)||0),0));
@@ -3174,9 +3165,10 @@ function setView(name){
   if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
+    loadRuas().catch(()=>{});
     renderTVYard();
     if(_tvYardInterval)clearInterval(_tvYardInterval);
-    _tvYardInterval=setInterval(()=>{if(curPage==='tv-yard')renderTVYard();},30000);
+    _tvYardInterval=setInterval(()=>{if(curPage==='tv-yard'){loadRuas().catch(()=>{});renderTVYard();}},30000);
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
   }
@@ -3185,9 +3177,10 @@ function setView(name){
     if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
   }
   if(name==='tv'){
+    loadRuas().catch(()=>{});
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
-    _tvInterval=setInterval(()=>{if(curPage==='tv')renderTV();},30000);
+    _tvInterval=setInterval(()=>{if(curPage==='tv'){loadRuas().catch(()=>{});renderTV();}},30000);
     // Fullscreen
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
@@ -3943,6 +3936,29 @@ async function saveCAF(){
   loading(true);
   const ok=await saveCAFToDB(caf);
   await loadCAFs();
+  // ── Sincroniza a TABELA ruas de verdade (ocupada/caf_id) — fonte real do heatmap/TV Yard ──
+  // Sem isso, a rua fica só marcada no lado da CAF e nunca aparece ocupada no pátio.
+  if(ok){
+    const cSalva=cafsDB.find(x=>x.num===num); // pega o id real (novo ou existente) após reload
+    const idReal=cSalva?.id;
+    if(idReal){
+      // Libera a rua antiga se mudou de rua (e ainda pertencia a esta CAF)
+      if(ruaAntigaId&&ruaAntigaId!==ruaFinal){
+        try{
+          const rAntiga=ruasDB.find(r=>r.id===ruaAntigaId);
+          if(rAntiga&&rAntiga.caf_id===idReal){
+            await sbUpsert(TABELA_RUAS,{id:ruaAntigaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
+          }
+        }catch(e){console.warn('liberar rua antiga:',e);}
+      }
+      // Ocupa a rua escolhida
+      if(ruaFinal){
+        try{
+          await sbUpsert(TABELA_RUAS,{id:ruaFinal,caf_id:idReal,ocupada:true,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
+        }catch(e){console.warn('ocupar rua:',e);}
+      }
+    }
+  }
   await loadRuas();
   loading(false);
   if(ok){_publishAbly('cafs_update',{action:editCAFId?'update':'insert'});showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
@@ -3957,6 +3973,11 @@ async function deleteCAF(){
   const c=cafsDB.find(x=>x.id===editCAFId);
   if(!confirm(`Excluir CAF ${c?.num}?`))return;
   loading(true);
+  // Libera a rua ocupada por esta CAF antes de excluir — evita rua "fantasma" travada para sempre
+  if(c?.ruaId){
+    try{await sbUpsert(TABELA_RUAS,{id:c.ruaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:_nomeOperadorAtual()},'id');}
+    catch(e){console.warn('liberar rua ao excluir CAF:',e);}
+  }
   await deleteCAFFromDB(editCAFId);
   await loadCAFs();
   await loadRuas();
@@ -4719,74 +4740,99 @@ function renderTV(){
     </div>`).join('')}
   </div>
 
-  <!-- SLA + CAF alert -->
-  <div style="display:grid;grid-template-columns:1fr ${cafAlert?'auto':'0px'};gap:${cafAlert?'10px':'0'};margin-bottom:12px;align-items:center">
-    <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:.75rem;color:var(--t2);font-weight:600">SLA DO DIA</span>
-        <span style="font-size:1.4rem;font-weight:800;color:${taxaSLA>=92?'var(--green)':taxaSLA>=85?'var(--yellow)':'var(--red)'}">${taxaSLA}%</span>
-      </div>
-      <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
-        <div style="height:100%;width:${taxaSLA}%;background:${taxaSLA>=92?'var(--green)':taxaSLA>=85?'var(--yellow)':'var(--red)'};border-radius:4px;transition:width .5s"></div>
-      </div>
-      <div style="font-size:.6rem;color:var(--t2);margin-top:4px">Meta: ≥ 92% · ${slaOk} no prazo · ${total} total</div>
-    </div>
-    ${cafAlert?`<div style="background:#2b1800;border:2px solid #f0883e;border-radius:10px;padding:10px 14px;text-align:center">
-      <div style="font-size:1.6rem;font-weight:800;color:#f0883e">${cafAlert}</div>
-      <div style="font-size:.58rem;color:#f0883e;margin-top:2px">CAF sem<br>Proc. Entrega</div>
-    </div>`:''}
-  </div>
-
-  <!-- OCUPAÇÃO DE PISO -->
+  <!-- PIPELINE DE CAFs (visão operacional) -->
   ${(()=>{
-    const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
-    const cafsPatio=cafsDB.filter(c=>{
-      if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
-      if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===tvDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
-      return true;
-    });
-    const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
-    const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
-    const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
-    const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
-    const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
-    return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:12px">
-      <div style="font-size:.65rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🏭 Ocupação de Piso</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
-            <span style="color:var(--t2)">CAFs no Pátio</span>
-            <span style="font-weight:800;color:${cafCor}">${cafCount}/${CAF_MAX} ${cafPct>=90?'🔴':cafPct>=70?'⚠️':''}</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
-            <div style="height:100%;width:${cafPct}%;background:${cafCor};border-radius:4px;transition:width .5s"></div>
-          </div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:4px">
-            <span style="color:var(--t2)">Pallets</span>
-            <span style="font-weight:800;color:${palCor}">${palCount}/${PAL_MAX} ${palPct>=90?'🔴':palPct>=70?'⚠️':''}</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
-            <div style="height:100%;width:${palPct}%;background:${palCor};border-radius:4px;transition:width .5s"></div>
-          </div>
-        </div>
-      </div>
+    const st={
+      'Em Produção':{cor:'#6b7280',ic:'🏭'},
+      'Produzida':{cor:'var(--blue)',ic:'✅'},
+      'Vinculada a Veículo':{cor:'var(--green)',ic:'🚛'},
+      'Processo de Entrega':{cor:'#bc8cff',ic:'📦'},
+    };
+    const counts=Object.keys(st).map(s=>({s,n:cafsDB.filter(c=>c.status===s).length,...st[s]}));
+    const semRua=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
+    return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <span style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase">📊 Pipeline de CAFs</span>
+      ${counts.map(c=>`<div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:1rem">${c.ic}</span>
+        <div><div style="font-size:1.1rem;font-weight:800;color:${c.cor};line-height:1">${c.n}</div><div style="font-size:.56rem;color:var(--t2)">${c.s}</div></div>
+      </div>`).join('')}
+      ${semRua>0?`<div style="margin-left:auto;background:#2b1800;border:1px solid #f0883e;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#f0883e;font-weight:700">⚠ ${semRua} CAF(s) sem rua atribuída</div>`:''}
     </div>`;
   })()}
 
-  <!-- ESTRADAS POR ROTA -->
-  <div style="margin-top:4px">
-    <div style="font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-      <span>📍 Posição das viagens por rota</span>
-      <span style="color:var(--bd)">·</span>
-      <span>🚛 Em trânsito</span>
-      <span>⚠ Atrasado</span>
-      <span>📦 CAF s/ processo</span>
-      <span>🔴 CAF s/ baixa</span>
-    </div>
-    ${ROTAS.map(r=>rotaEstrada(r,byRota[r]||{ops:[],total:0,fin:0,tran:0,late:0,prog:0,agudesc:0})).join('')}
-  </div>
+  <!-- OCUPAÇÃO DE RUAS (heatmap por FC) -->
+  ${(()=>{
+    const agora=Date.now();
+    const ruasOcup=ruasDB.filter(r=>r.ocupada&&r.caf_id);
+    const ruasLivres=ruasDB.filter(r=>!r.ocupada);
+    const totalRuas=ruasDB.length||1;
+    const pctOcup=Math.round(ruasOcup.length/totalRuas*100);
+    const corOcup=pctOcup>=90?'var(--red)':pctOcup>=70?'var(--yellow)':'var(--green)';
+
+    // Monta detalhe de cada rua ocupada: CAF, FC (via rota), tempo parada
+    const detalhes=ruasOcup.map(r=>{
+      const c=cafsDB.find(x=>x.id===r.caf_id);
+      const fc=c?_fcFromRota(c.rota):null;
+      const desde=r.atualizado_em?new Date(r.atualizado_em).getTime():agora;
+      const horasParada=(agora-desde)/3600000;
+      let cor='var(--green)',nivel='ok';
+      if(horasParada>=6){cor='var(--red)';nivel='critico';}
+      else if(horasParada>=3){cor='var(--yellow)';nivel='atencao';}
+      else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
+      const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
+      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+    }).sort((a,b)=>b.horasParada-a.horasParada);
+
+    // Agrupa por FC
+    const porFC={};
+    detalhes.forEach(d=>{(porFC[d.fc]=porFC[d.fc]||[]).push(d);});
+    const fcsOrdenados=Object.keys(porFC).sort((a,b)=>porFC[b].length-porFC[a].length);
+
+    const travadas=detalhes.filter(d=>d.nivel==='critico').length;
+
+    return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:.72rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">🔥 Ocupação de Ruas</span>
+        <div style="display:flex;gap:14px;align-items:center">
+          ${travadas>0?`<span style="font-size:.68rem;color:var(--red);font-weight:800">⚠ ${travadas} travada${travadas>1?'s':''} (+6h)</span>`:''}
+          <span style="font-size:1.1rem;font-weight:800;color:${corOcup}">${ruasOcup.length}/${totalRuas}</span>
+          <span style="font-size:.62rem;color:var(--t2)">ruas ocupadas (${pctOcup}%)</span>
+        </div>
+      </div>
+
+      <!-- Grid heatmap de todas as ruas -->
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">
+        ${ruasDB.map(r=>{
+          const d=detalhes.find(x=>x.numero===r.numero);
+          const cor=d?d.cor:'var(--bg4)';
+          const borda=d?d.cor:'var(--bd)';
+          return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · parada há ${d.tempoTxt}`:' · livre'}"
+            style="width:34px;height:34px;border-radius:5px;background:${d?cor+'22':'var(--bg3)'};border:1.5px solid ${borda};display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:${d?cor:'var(--t3)'}">
+            ${r.numero}
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Detalhe por FC -->
+      ${fcsOrdenados.length?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+        ${fcsOrdenados.map(fc=>{
+          const lista=porFC[fc];
+          const critFC=lista.filter(d=>d.nivel==='critico').length;
+          return`<div style="background:var(--bg3);border-radius:8px;padding:8px;border-left:3px solid ${critFC?'var(--red)':'var(--blue)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <span style="font-size:.72rem;font-weight:800;color:var(--text)">📍 FC ${esc(fc)}</span>
+              <span style="font-size:.6rem;color:var(--t2)">${lista.length} rua${lista.length>1?'s':''}</span>
+            </div>
+            ${lista.slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;font-size:.64rem;padding:2px 0;border-top:1px solid var(--bd)">
+              <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)}</span>
+              <span style="color:${d.cor};font-weight:700">${d.tempoTxt}</span>
+            </div>`).join('')}
+            ${lista.length>5?`<div style="font-size:.58rem;color:var(--t3);margin-top:3px">+${lista.length-5} outras...</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>`:`<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:8px">Nenhuma rua ocupada no momento — pátio livre ✅</div>`}
+    </div>`;
+  })()}
 </div>`;
 
   // Inicia clock independente (não re-renderiza tudo)
@@ -5162,13 +5208,9 @@ function renderTVYard(){
   const opsYard=ops.filter(o=>o.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(o.status))
     .sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
 
-  // Ocupação de piso
+  // Ocupação de piso: conta pelo STATUS da CAF — some só ao chegar em Processo de Entrega/Entrega Realizada
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
-  const cafsPatio=cafsDB.filter(c=>{
-    if(!['Vinculada a Veículo','Entrega Realizada'].includes(c.status))return false;
-    if(c.opId){const op=ops.find(o=>o.id===c.opId);return op&&op.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(op.status);}
-    return true;
-  });
+  const cafsPatio=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status));
   const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
@@ -5240,50 +5282,69 @@ function renderTVYard(){
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">
     ${opsYard.length?opsYard.map(op=>{
       const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
-      const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada','Entrega Realizada'].includes(c.status));
+      const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
       const agora=new Date();
       const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
       const stCors={PROG:'#6b7280',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)'};
       const cor=passou?'var(--red)':stCors[op.status]||'#6b7280';
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
       const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
+      // Hora limite de encosto (1h antes da saída planejada) — igual Gestão de Doca
+      const horaEncostoLimite=(()=>{
+        if(!op.planSaida)return null;
+        const [hh,mm]=op.planSaida.split(':').map(Number);
+        const total=(hh*60+mm)-60;
+        if(total<0)return null;
+        return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
+      })();
+      const encostoAtrasado=horaEncostoLimite&&(agora.getHours()*60+agora.getMinutes())>(()=>{const[h,m]=horaEncostoLimite.split(':').map(Number);return h*60+m;})()&&['PROG','AGUCARR'].includes(op.status);
       return`<div style="background:var(--bg2);border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
             <div style="font-size:1rem;font-weight:800;color:var(--text)">${esc(op.id)}</div>
             <div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)}</div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:1.4rem;font-weight:800;color:${passou?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
-            <div style="font-size:.58rem;color:${passou?'var(--red)':'var(--t2)'}">${passou?'⚠ PASSOU!':'Saída planejada'}</div>
+        </div>
+        <!-- Horários: Encosta até primeiro, Saída Planejada depois (igual Gestão de Doca) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;background:var(--bg3);border-radius:var(--rs);padding:7px">
+          <div style="text-align:center">
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosta até</div>
+            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
+            ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
+          </div>
+          <div style="text-align:center">
+            <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
+            <div style="font-weight:800;font-size:1rem;color:${passou?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;font-size:.72rem">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;font-size:.72rem">
           <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Motorista</div><div style="font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.mot)||'—'}</div></div>
           <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Transportadora</div><div style="font-weight:600;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(op.transp)||'—'}</div></div>
           <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Placa</div><div style="font-weight:700;color:var(--text)">${esc(op.placa)||'—'}</div></div>
-          <div><div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">Saída Plan.</div><div style="font-weight:800;font-size:.85rem;color:var(--blue)">${op.planSaida||'—'}</div></div>
-        </div>
-        <!-- Doca na TV Yard -->
-        <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
-          <span style="color:var(--t3);font-size:.58rem;text-transform:uppercase">🚪 Doca</span>
-          <span style="font-weight:800;font-size:.85rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'rgba(34,197,94,.15)':'var(--bg2)'};border-radius:4px;padding:2px 10px">${op.doca||'Não vinculada'}</span>
-          ${!op.doca&&op.status==='EMCARR'?'<span style="font-size:.65rem;color:var(--red);font-weight:700;animation:pulse 1.5s infinite">⚠ Atribuir doca!</span>':''}
-        </div>
-        <!-- CAFs -->
-        <div style="border-top:1px solid var(--bg3);padding-top:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:.6rem;color:var(--t3);text-transform:uppercase;font-weight:700">📦 CAFs (${cafsDaOp.length})</span>
-            ${volTotal?`<span style="font-size:.58rem;color:var(--t3)">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+          <div>
+            <div style="color:var(--t3);font-size:.58rem;text-transform:uppercase">🚪 Doca</div>
+            <div style="font-weight:700;font-size:.68rem;color:${op.doca?'var(--green)':'var(--t3)'};background:${op.doca?'var(--green2)':'var(--bg4)'};border-radius:3px;padding:2px 6px;display:inline-block">${op.doca||'Não vinculada'}</div>
+            ${!op.doca&&op.status==='EMCARR'?'<div style="font-size:.58rem;color:var(--red);font-weight:700;animation:pulse 1.5s infinite">⚠ Atribuir!</div>':''}
           </div>
-          ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
+        </div>
+        <!-- CAFs em destaque (igual Gestão de Doca) -->
+        <div style="border-top:1px solid var(--bg3);padding-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span style="font-size:.78rem;font-weight:800;color:var(--text);text-transform:uppercase">📦 CAFs (${cafsDaOp.length})</span>
+            ${volTotal?`<span style="font-size:.65rem;color:var(--t2);font-weight:600">${volTotal.toLocaleString('pt-BR')} un · ${palTotal} pal.</span>`:''}
+          </div>
+          ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:5px">
             ${cafsDaOp.map(c=>{
-              const cor2=c.status==='Em Produção'?'var(--blue)':c.status==='Vinculada a Veículo'?'#bc8cff':c.status==='Processo de Entrega'?'var(--green)':'var(--t3)';
-              const alerta=!['Processo de Entrega','Entrega Realizada','Entrega Realizada'].includes(c.status);
-              return`<span style="background:${cor2}22;color:${cor2};border:1px solid ${cor2}44;border-radius:3px;padding:2px 5px;font-size:.62rem;font-weight:700">${alerta?'⚠ ':''}${esc(c.num)}</span>`;
+              const cor2=c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Processo de Entrega'?'var(--blue)':c.status==='Entrega Realizada'?'var(--orange)':'var(--t3)';
+              const alerta=!['Processo de Entrega','Entrega Realizada'].includes(c.status);
+              const ruaN=ruaNumeroDe(c.ruaId);
+              return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
+                style="background:${cor2}22;color:${cor2};border:1.5px solid ${cor2};border-radius:6px;padding:5px 9px;font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;gap:5px">
+                ${alerta?'⚠ ':''}${esc(c.num)}${ruaN?`<span style="background:${cor2}33;border-radius:4px;padding:1px 5px;font-size:.64rem;font-weight:700">Rua ${ruaN}</span>`:''}
+              </div>`;
             }).join('')}
           </div>`:'<span style="font-size:.65rem;color:var(--t3);font-style:italic">Sem CAFs vinculadas</span>'}
-          ${cafsSemProc.length?`<div style="margin-top:5px;background:#2b1800;border:1px solid #f0883e;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#f0883e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem proc. entrega</div>`:''}
+          ${cafsSemProc.length?`<div style="margin-top:6px;background:#2b1800;border:1px solid #f0883e;border-radius:4px;padding:3px 7px;font-size:.6rem;color:#f0883e;font-weight:700">⚠️ ${cafsSemProc.length} CAF(s) sem proc. entrega</div>`:''}
         </div>
       </div>`;
     }).join(''):`<div style="color:var(--t3);text-align:center;padding:40px;grid-column:1/-1;font-size:.9rem">🏭 Pátio vazio para ${dataFmt}</div>`}
