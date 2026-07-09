@@ -1047,12 +1047,18 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="modal" style="max-width:420px">
     <div class="mhdr"><h2>📊 Extração Completa (Excel)</h2><button class="mclose" onclick="_fecharExtracaoCompleta()">✕</button></div>
     <div class="mbody">
-      <div class="fg">
-        <label>Escolha o dia da viagem</label>
-        <input type="date" id="_extracaoData" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.85rem;width:100%;outline:none"/>
+      <div class="fgrid c2" style="gap:10px">
+        <div class="fg">
+          <label>Data inicial</label>
+          <input type="date" id="_extracaoDataDe" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.85rem;width:100%;outline:none"/>
+        </div>
+        <div class="fg">
+          <label>Data final</label>
+          <input type="date" id="_extracaoDataAte" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.85rem;width:100%;outline:none"/>
+        </div>
       </div>
       <div style="font-size:.68rem;color:var(--t2);margin-top:10px;line-height:1.5">
-        Gera uma planilha Excel (.xlsx) com <b>uma linha por viagem</b> do dia escolhido, incluindo:<br>
+        Gera uma planilha Excel (.xlsx) com <b>uma linha por viagem</b> do período escolhido (pode ser 1 dia ou várias semanas), incluindo:<br>
         • Todos os dados da viagem (rota, transportadora, motorista, horários)<br>
         • CAFs vinculadas (número, status, vencimento)<br>
         • Ocorrências registradas<br>
@@ -2381,8 +2387,10 @@ function buildListSels(){
 // ════════════════════════════════════════════════════════════
 
 function _abrirExtracaoCompleta(){
-  const inp=document.getElementById('_extracaoData');
-  if(inp)inp.value=hojeLocal();
+  const de=document.getElementById('_extracaoDataDe');
+  const ate=document.getElementById('_extracaoDataAte');
+  if(de&&!de.value)de.value=hojeLocal();
+  if(ate&&!ate.value)ate.value=hojeLocal();
   document.getElementById('overlayExtracao').classList.add('open');
 }
 function _fecharExtracaoCompleta(){
@@ -2391,14 +2399,17 @@ function _fecharExtracaoCompleta(){
 
 function _gerarExtracaoCompleta(){
   if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
-  const data=document.getElementById('_extracaoData')?.value;
-  if(!data){showToast('Selecione uma data','err');return;}
+  const dataDe=document.getElementById('_extracaoDataDe')?.value;
+  const dataAte=document.getElementById('_extracaoDataAte')?.value;
+  if(!dataDe||!dataAte){showToast('Selecione data inicial e final','err');return;}
+  if(dataDe>dataAte){showToast('Data inicial não pode ser depois da final','err');return;}
 
-  const opsDia=ops.filter(o=>o.dataOp===data);
-  if(!opsDia.length){showToast(`Nenhuma viagem encontrada em ${fmtD(data)}`,'err');return;}
+  const opsDia=ops.filter(o=>o.dataOp>=dataDe&&o.dataOp<=dataAte);
+  if(!opsDia.length){showToast(`Nenhuma viagem encontrada entre ${fmtD(dataDe)} e ${fmtD(dataAte)}`,'err');return;}
 
   const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
 
+  opsDia.sort((a,b)=>a.dataOp.localeCompare(b.dataOp)||a.rota.localeCompare(b.rota));
   const linhas=opsDia.map(op=>{
     // CAFs vinculadas — cruza com o banco de CAFs pra pegar status/vencimento reais
     const cafsDetalhe=(op.cafs||[]).map(cRef=>{
@@ -2459,10 +2470,11 @@ function _gerarExtracaoCompleta(){
     {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:35},{wch:35},{wch:30},{wch:50},{wch:18}
   ];
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Viagens '+data);
-  XLSX.writeFile(wb,`TRK_Extracao_Completa_${data}.xlsx`);
+  const nomeArquivo=dataDe===dataAte?dataDe:`${dataDe}_a_${dataAte}`;
+  XLSX.utils.book_append_sheet(wb,ws,'Viagens');
+  XLSX.writeFile(wb,`TRK_Extracao_Completa_${nomeArquivo}.xlsx`);
 
-  showToast(`✅ ${linhas.length} viagem(ns) exportada(s)`,'ok');
+  showToast(`✅ ${linhas.length} viagem(ns) exportada(s) de ${fmtD(dataDe)} a ${fmtD(dataAte)}`,'ok');
   _fecharExtracaoCompleta();
 }
 
