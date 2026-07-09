@@ -566,6 +566,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <select id="fTp" onchange="render()"><option value="">Todos os Tipos</option></select>
     <input type="date" id="fData" onchange="render()" title="Filtrar por data"/>
     <div class="sp"></div>
+    <button class="btn btn-s" onclick="_abrirExtracaoCompleta()" style="font-size:.68rem;padding:4px 10px" title="Extração completa em Excel: CAFs, ocorrências, observações e histórico de cada viagem">📊 Extração Completa</button>
     <button class="btn btn-g" onclick="clrF()" style="font-size:.7rem">✕</button>
   </div>
   <div class="painel-wrap"><div class="painel" id="painel"></div></div>
@@ -593,6 +594,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="sp"></div>
     <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
     <button class="btn btn-g" onclick="exportListCSV()" style="font-size:.68rem;padding:4px 10px" title="Exporta a lista com os filtros aplicados">📥 CSV</button>
+    <button class="btn btn-s" onclick="_abrirExtracaoCompleta()" style="font-size:.68rem;padding:4px 10px" title="Extração completa em Excel: CAFs, ocorrências, observações e histórico de cada viagem">📊 Extração Completa (Excel)</button>
     <span id="listCnt" style="font-size:.68rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="clrFList()" style="font-size:.7rem">✕</button>
   </div>
@@ -1036,6 +1038,31 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="mftr">
       <button class="btn" onclick="closeEditUserModal()">Cancelar</button>
       <button class="btn btn-p" onclick="confirmEditUser()">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXTRAÇÃO COMPLETA -->
+<div class="overlay" id="overlayExtracao">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr"><h2>📊 Extração Completa (Excel)</h2><button class="mclose" onclick="_fecharExtracaoCompleta()">✕</button></div>
+    <div class="mbody">
+      <div class="fg">
+        <label>Escolha o dia da viagem</label>
+        <input type="date" id="_extracaoData" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.85rem;width:100%;outline:none"/>
+      </div>
+      <div style="font-size:.68rem;color:var(--t2);margin-top:10px;line-height:1.5">
+        Gera uma planilha Excel (.xlsx) com <b>uma linha por viagem</b> do dia escolhido, incluindo:<br>
+        • Todos os dados da viagem (rota, transportadora, motorista, horários)<br>
+        • CAFs vinculadas (número, status, vencimento)<br>
+        • Ocorrências registradas<br>
+        • Observações<br>
+        • Histórico completo de alterações
+      </div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-g" onclick="_fecharExtracaoCompleta()">Cancelar</button>
+      <button class="btn btn-s" onclick="_gerarExtracaoCompleta()">📊 Gerar Excel</button>
     </div>
   </div>
 </div>
@@ -2349,6 +2376,96 @@ function buildListSels(){
 }
 
 // Exporta a Lista (com filtros e ordenação atuais) para CSV compatível com Excel BR
+// ════════════════════════════════════════════════════════════
+// EXTRAÇÃO COMPLETA EM EXCEL — 1 linha por viagem, tudo detalhado
+// ════════════════════════════════════════════════════════════
+
+function _abrirExtracaoCompleta(){
+  const inp=document.getElementById('_extracaoData');
+  if(inp)inp.value=hojeLocal();
+  document.getElementById('overlayExtracao').classList.add('open');
+}
+function _fecharExtracaoCompleta(){
+  document.getElementById('overlayExtracao').classList.remove('open');
+}
+
+function _gerarExtracaoCompleta(){
+  if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
+  const data=document.getElementById('_extracaoData')?.value;
+  if(!data){showToast('Selecione uma data','err');return;}
+
+  const opsDia=ops.filter(o=>o.dataOp===data);
+  if(!opsDia.length){showToast(`Nenhuma viagem encontrada em ${fmtD(data)}`,'err');return;}
+
+  const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
+
+  const linhas=opsDia.map(op=>{
+    // CAFs vinculadas — cruza com o banco de CAFs pra pegar status/vencimento reais
+    const cafsDetalhe=(op.cafs||[]).map(cRef=>{
+      const cFull=cafsDB.find(c=>c.num===cRef.num);
+      if(cFull)return `${cFull.num} (${cFull.status}${cFull.venc?', venc. '+fmtD(cFull.venc):''})`;
+      return `${cRef.num||'—'} (manual)`;
+    }).join(' | ');
+
+    // Ocorrências registradas na viagem
+    const ocorrTxt=(op.ocorr||[]).map(o=>`${o.tipo}: ${o.desc||''} [${o.ts||''} - ${o.user||''}]`).join(' | ');
+
+    // Histórico completo (uma entrada por linha dentro da célula)
+    const histTxt=(op.hist||[]).map(h=>{
+      const t=h.t?(h.t.includes('T')?new Date(h.t).toLocaleString('pt-BR'):h.t):'';
+      return `${t}: ${h.txt||''}`;
+    }).join('\n');
+
+    const dS=dMin(op.planSaida,op.realSaida);
+    const dC=dMin(op.planChegFC,op.realChegFC);
+
+    return{
+      'ID':op.id,
+      'Código Curto':op.codigoCurto||'',
+      'Data':fmtD(op.dataOp),
+      'Rota':op.rota||'',
+      'Tipo Carga':op.tipoCarga||'',
+      'Tipologia Veículo':op.tipologia||'',
+      'Transportadora':op.transp||'',
+      'Motorista':op.mot||'',
+      'Placa':op.placa||'',
+      'Placa Carreta':op.placaCarreta||'',
+      'SM':op.sm||'',
+      'TMS':op.tms||'',
+      'Status':stLb[op.status]||op.status,
+      'Pl. Apresentação':op.planApres||'',
+      'Rl. Apresentação':op.realApres||'',
+      'Pl. Saída':op.planSaida||'',
+      'Rl. Saída':op.realSaida||'',
+      'Δ Saída (min)':dS??'',
+      'Pl. Chegada FC':op.planChegFC||'',
+      'Rl. Chegada FC':op.realChegFC||'',
+      'Δ FC (min)':dC??'',
+      'Descarga Real':op.realDescarga||'',
+      'Qtd. CAFs':(op.cafs||[]).length,
+      'CAFs Vinculadas':cafsDetalhe||'—',
+      'Ocorrências':ocorrTxt||'—',
+      'Observações':op.obs||'',
+      'Histórico Completo':histTxt||'—',
+      'Última Atualização Por':op.updatedBy||'',
+    };
+  });
+
+  const ws=XLSX.utils.json_to_sheet(linhas);
+  // Largura de colunas — dá espaço extra pras colunas de texto longo
+  ws['!cols']=[
+    {wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:9},{wch:9},{wch:9},{wch:9},
+    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:35},{wch:35},{wch:30},{wch:50},{wch:18}
+  ];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Viagens '+data);
+  XLSX.writeFile(wb,`TRK_Extracao_Completa_${data}.xlsx`);
+
+  showToast(`✅ ${linhas.length} viagem(ns) exportada(s)`,'ok');
+  _fecharExtracaoCompleta();
+}
+
 function exportListCSV(){
   let data=getListFilt();
   // Aplica a mesma ordenação da tela
