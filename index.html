@@ -2874,7 +2874,7 @@ function _verificarAlerta24h(){
         ${criticos.map(o=>{
           const t=tempoAguardandoDescarga(o);
           return `<span style="background:#fff;color:#7f1d1d;border-radius:4px;padding:3px 8px;font-size:.68rem;font-weight:800;display:inline-flex;align-items:center;gap:6px">
-            ${esc(o.codigoCurto||o.id)} · ${esc(o.rota)} · ${t.txt}
+            ${esc(o.codigoCurto||o.id)} · ${esc(o.rota)} · 🚛 ${esc(o.placa||'sem placa')} · ${esc(o.mot||'—')} · ${t.txt}
             <button onclick="_dispensarAlerta24h('${esc(o.id)}')" style="background:#7f1d1d;color:#fff;border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.62rem;font-weight:700">✓ Decidido</button>
           </span>`;
         }).join('')}
