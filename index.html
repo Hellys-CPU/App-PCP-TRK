@@ -188,6 +188,7 @@ body.dark .rota-cell{color:#e6edf3;}
 .dbd.off{background:#f87171;}
 .dbd.loading{background:var(--yellow);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulseAlert{0%,100%{box-shadow:0 4px 20px rgba(220,38,38,.6)}50%{box-shadow:0 4px 30px rgba(220,38,38,1)}}
 .rt-badge{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--green);font-weight:600;background:var(--green2);border:1px solid var(--green);border-radius:10px;padding:2px 7px;}
 .rt-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:rtpulse 2s infinite;}
 @keyframes rtpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
@@ -1809,6 +1810,10 @@ async function bootApp(){
     try{_renderOnlinePresence();}catch(e){}
     // Auto-refresh do FUP Amazon (usa dados em memória — custo zero)
     try{if(curPage==='amazon')renderAmazon();}catch(e){}
+    // Auto-refresh do FUP FC — mantém o cronômetro de "aguardando descarga" andando
+    try{if(curPage==='fup')renderFUP();}catch(e){}
+    // Alerta crítico: veículo 24h+ aguardando descarga (roda em QUALQUER tela)
+    try{_verificarAlerta24h();}catch(e){}
     // Badge de CAFs
     try{_updateCAFBadge();}catch(e){}
   },30000);
@@ -2631,6 +2636,13 @@ function fupRowCls(op){const s=getSLA(op);if(op.status==='CANC')return'fr-canc';
 function fupRow(op){
   const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC);
   const slaCell=sla==='ok'?'<span class="sla-ok">✔ No Prazo</span>':sla==='late'?'<span class="sla-late">✘ Atraso</span>':'<span class="sla-nd">—</span>';
+  const espera=tempoAguardandoDescarga(op);
+  // Padrão: descarga em até 2h. Acima disso é precário (fora do padrão operacional)
+  const descCell=op.realDescarga
+    ?`<span style="color:var(--green);font-weight:700">${toTime(op.realDescarga)}</span>`
+    :espera
+      ?`<span style="color:${espera.mins>=120?'var(--red)':espera.mins>=90?'var(--yellow)':'var(--blue)'};font-weight:700" title="Aguardando descarga desde ${op.realChegFC}${espera.mins>=120?' — PRECÁRIO (acima do padrão de 2h)':''}">⏱ ${espera.txt}${espera.mins>=120?' ⚠':''}</span>`
+      :'<span style="color:var(--t3)">—</span>';
   return `<tr class="${fupRowCls(op)}" onclick="openEdit('${esc(op.id)}')" style="cursor:pointer">
     <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}${op.codigoCurto?`<div style="font-size:.58rem;color:var(--t2);font-weight:600">${esc(op.codigoCurto)}</div>`:''}</td>
     <td><span class="rota-cell">${esc(op.rota)}</span></td>
@@ -2640,11 +2652,120 @@ function fupRow(op){
     <td class="center">${tpFUP(op.planSaida,op.realSaida,op.dataOp)}</td>
     <td class="center">${tpFUP(op.planChegFC,op.realChegFC,op.dataOp)}</td>
     <td class="center">${dC!==null?`<span class="dp dp-${dCls(dC)}">${fDiff(dC)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-    <td class="center" style="color:${op.realDescarga?'var(--green)':'var(--t3)'};font-weight:${op.realDescarga?700:400}">${toTime(op.realDescarga)||'—'}</td>
+    <td class="center">${descCell}</td>
     <td class="center"><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
     <td class="center">${slaCell}</td>
   </tr>`;
 }
+// Cronômetro ao vivo: tempo aguardando descarga no FC — conta desde a Chegada FC Real
+// até agora (se ainda não descarregou) ou até a Descarga Real (se já finalizou)
+function tempoAguardandoDescarga(op){
+  if(!op.realChegFC)return null;
+  const [h1,m1]=op.realChegFC.split(':').map(Number);
+  const inicio=new Date(op.dataOp+'T00:00:00');
+  inicio.setHours(h1,m1,0,0);
+  let fim;
+  if(op.realDescarga){
+    const [h2,m2]=op.realDescarga.split(':').map(Number);
+    fim=new Date(op.dataOp+'T00:00:00');
+    fim.setHours(h2,m2,0,0);
+    if(fim<inicio)fim.setDate(fim.getDate()+1); // virou o dia
+  }else{
+    fim=new Date(); // ao vivo — conta até agora
+  }
+  const mins=Math.round((fim-inicio)/60000);
+  if(mins<0)return null;
+  const h=Math.floor(mins/60),m=mins%60;
+  return{mins,txt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,finalizado:!!op.realDescarga};
+}
+// ══════════════════════════════════════════════════════════════════
+// ALERTA CRÍTICO: veículo aguardando descarga há 24h+ — decisão necessária
+// ══════════════════════════════════════════════════════════════════
+window._alerta24hDispensados=new Set(JSON.parse(localStorage.getItem('trk_24h_dispensados')||'[]'));
+window._alerta24hUltimoSom=0;
+window._audioCtxDesbloqueado=false;
+
+// Desbloqueia o áudio na primeira interação do usuário (exigência dos navegadores)
+['click','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{
+  if(!window._audioCtxDesbloqueado){
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      ctx.resume();
+      window._audioCtxGlobal=ctx;
+      window._audioCtxDesbloqueado=true;
+    }catch(e){}
+  }
+},{once:false,passive:true}));
+
+function _tocarAlarme24h(){
+  try{
+    const ctx=window._audioCtxGlobal||new(window.AudioContext||window.webkitAudioContext)();
+    window._audioCtxGlobal=ctx;
+    if(ctx.state==='suspended')ctx.resume();
+    // 3 bipes altos e agudos — impossível não notar
+    [0,0.35,0.7].forEach(delay=>{
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='square';
+      osc.frequency.value=1000;
+      gain.gain.setValueAtTime(0.35,ctx.currentTime+delay);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+0.3);
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.start(ctx.currentTime+delay);
+      osc.stop(ctx.currentTime+delay+0.3);
+    });
+  }catch(e){console.warn('alarme24h audio:',e);}
+}
+
+function _verificarAlerta24h(){
+  const criticos=ops.filter(o=>{
+    if(o.status!=='AGUDESC')return false;
+    if(window._alerta24hDispensados.has(o.id))return false;
+    const t=tempoAguardandoDescarga(o);
+    return t&&t.mins>=1440; // 24h
+  });
+
+  const banner=document.getElementById('_alerta24hBanner');
+  if(!criticos.length){
+    if(banner)banner.remove();
+    return;
+  }
+
+  // Toca o alarme a cada 5 minutos enquanto houver pendência não resolvida
+  const agora=Date.now();
+  if(agora-window._alerta24hUltimoSom>5*60*1000){
+    _tocarAlarme24h();
+    window._alerta24hUltimoSom=agora;
+  }
+
+  const html=`<div id="_alerta24hBanner" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#7f1d1d;border-bottom:3px solid var(--red);padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:pulseAlert 1.5s infinite">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:1400px;margin:0 auto">
+      <span style="font-size:1.3rem">🚨</span>
+      <span style="font-weight:800;color:#fff;font-size:.85rem">${criticos.length} veículo(s) aguardando descarga há mais de 24h — DECISÃO NECESSÁRIA (retornar ou manter no FC)</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
+        ${criticos.map(o=>{
+          const t=tempoAguardandoDescarga(o);
+          return `<span style="background:#fff;color:#7f1d1d;border-radius:4px;padding:3px 8px;font-size:.68rem;font-weight:800;display:inline-flex;align-items:center;gap:6px">
+            ${esc(o.codigoCurto||o.id)} · ${esc(o.rota)} · ${t.txt}
+            <button onclick="_dispensarAlerta24h('${esc(o.id)}')" style="background:#7f1d1d;color:#fff;border:none;border-radius:3px;padding:1px 6px;cursor:pointer;font-size:.62rem;font-weight:700">✓ Decidido</button>
+          </span>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  if(banner){banner.outerHTML=html;}
+  else{document.body.insertAdjacentHTML('afterbegin',html);}
+}
+
+function _dispensarAlerta24h(opId){
+  window._alerta24hDispensados.add(opId);
+  localStorage.setItem('trk_24h_dispensados',JSON.stringify([...window._alerta24hDispensados]));
+  const op=ops.find(o=>o.id===opId);
+  if(op){addHist(op,`[${currentUser?.nome||'Sistema'}] Alerta de 24h reconhecido — decisão tomada sobre o veículo`);saveOp(op).catch(()=>{});}
+  _verificarAlerta24h();
+  showToast(`✅ Alerta de ${opId} reconhecido`,'ok');
+}
+
 function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig">◀ ORIGEM (TZX)</td><td colspan="3" class="th-dest">▶ DESTINO (FC)</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center">Apres.</th><th class="center">Saída TZX</th><th class="center">Cheg.FC</th><th class="center">Δ FC</th><th class="center">Desc.</th><th class="center">Status</th><th class="center">SLA</th></tr></thead><tbody>`;}
 function renderFUP(){
   const data=getFUPFilt(),c=s=>data.filter(o=>o.status===s).length;
@@ -6369,7 +6490,7 @@ function renderAmazon(){
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planApres,o.realApres)}</td>
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planSaida,o.realSaida)} ${fmtDelta(dSaida)}</td>
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planChegFC,o.realChegFC)} ${fmtDelta(dFC)}</td>
-                  <td style="padding:6px 8px;text-align:center;color:var(--text)">${esc(o.realDescarga||'—')}</td>
+                  <td style="padding:6px 8px;text-align:center;color:var(--text)">${(()=>{const esp=tempoAguardandoDescarga(o);if(o.realDescarga)return `<span style="color:var(--green);font-weight:700">${esc(o.realDescarga)}</span>`;if(esp)return `<span style="color:${esp.mins>=120?'var(--red)':esp.mins>=90?'var(--yellow)':'var(--blue)'};font-weight:700">⏱ ${esp.txt}${esp.mins>=120?' ⚠':''}</span>`;return '—';})()}</td>
                   <td style="padding:6px 8px;text-align:center">${slaHtml}</td>
                   <td style="padding:6px 8px">${cafsTxt}</td>
                 </tr>`;
