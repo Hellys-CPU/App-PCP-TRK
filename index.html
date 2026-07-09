@@ -4792,12 +4792,14 @@ function renderTV(){
       const fc=c?_fcFromRota(c.rota):null;
       const desde=r.atualizado_em?new Date(r.atualizado_em).getTime():agora;
       const horasParada=(agora-desde)/3600000;
+      const pronta=c?.status==='Produzida';
       let cor='var(--green)',nivel='ok';
-      if(horasParada>=6){cor='var(--red)';nivel='critico';}
+      if(pronta){cor='#14b8a6';nivel='pronta';} // Produzida = cor própria (teal), não segue o "tempo parado"
+      else if(horasParada>=6){cor='var(--red)';nivel='critico';}
       else if(horasParada>=3){cor='var(--yellow)';nivel='atencao';}
       else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
       const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
-      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,pronta,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
     }).sort((a,b)=>b.horasParada-a.horasParada);
 
     // Agrupa por FC
@@ -4823,14 +4825,15 @@ function renderTV(){
           const d=detalhes.find(x=>x.numero===r.numero);
           const cor=d?d.cor:'var(--bg4)';
           const borda=d?d.cor:'var(--bd)';
-          const desceProduzida=d&&d.status==='Produzida'?'margin-top:16px;':'';
+          const desceProduzida=d&&d.pronta?'margin-top:16px;':'';
           return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · parada há ${d.tempoTxt} · ${esc(d.status)}`:' · livre'}"
-            style="width:34px;height:34px;border-radius:5px;background:${d?cor+'22':'var(--bg3)'};border:1.5px solid ${borda};display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:${d?cor:'var(--t3)'};${desceProduzida}">
+            style="position:relative;width:34px;height:34px;border-radius:5px;background:${d?cor+'22':'var(--bg3)'};border:1.5px solid ${borda};display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:${d?cor:'var(--t3)'};${desceProduzida}">
             ${r.numero}
+            ${d&&d.pronta?'<span style="position:absolute;top:-7px;right:-6px;background:#14b8a6;color:#fff;border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
           </div>`;
         }).join('')}
       </div>
-      <div style="font-size:.56rem;color:var(--t3);margin-top:-8px;margin-bottom:10px">↓ ruas mais baixas = CAF já "Produzida" (pronta, aguardando veículo)</div>
+      <div style="font-size:.56rem;color:var(--t3);margin-top:-8px;margin-bottom:10px">↓ <span style="color:#14b8a6;font-weight:700">✓ verde-água + descida</span> = CAF "Produzida" (pronta, aguardando veículo)</div>
 
       <!-- Detalhe por FC -->
       ${fcsOrdenados.length?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
@@ -4844,7 +4847,7 @@ function renderTV(){
             </div>
             ${lista.slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;font-size:.64rem;padding:2px 0;border-top:1px solid var(--bd)">
               <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)}</span>
-              <span style="color:${d.cor};font-weight:700">${d.tempoTxt}</span>
+              <span style="color:${d.cor};font-weight:700">${d.pronta?'✓ Produzida':d.tempoTxt}</span>
             </div>`).join('')}
             ${lista.length>5?`<div style="font-size:.58rem;color:var(--t3);margin-top:3px">+${lista.length-5} outras...</div>`:''}
           </div>`;
