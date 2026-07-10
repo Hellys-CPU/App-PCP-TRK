@@ -3850,10 +3850,10 @@ function renderAnalise(){
       <div class="met-box"><div class="mv" style="color:${pctConformes>=90?'var(--green)':pctConformes>=70?'var(--yellow)':'var(--red)'}">${pctConformes}%</div><div class="ml">Viagens c/ CAF</div></div>
       <div class="met-box"><div class="mv" style="color:${semRua?'var(--red)':'var(--green)'}">${semRua}</div><div class="ml">Sem Rua</div></div>
     </div>
-    ${pendentes.length?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
-      <div style="font-size:.68rem;font-weight:700;color:var(--red);margin-bottom:5px">⚠ ${pendentes.length} CAF(s) pendente(s) — viagem finalizada mas CAF sem baixa</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;font-size:.63rem">
-        ${pendentes.map(c=>{const op=data.find(o=>o.id===c.opId);return`<span style="background:var(--red2);color:var(--red);border:1px solid var(--red);border-radius:4px;padding:2px 7px;font-weight:700">${esc(c.num)} → ${esc(c.status)} (viagem ${esc(op?.id||c.opId)} ${op?stObj(op.status).lb:''})</span>`;}).join('')}
+    ${pendentes.length?`<div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
+      <div style="font-size:.62rem;font-weight:700;color:var(--red)">⚠ ${pendentes.length} CAF(s) pendente(s) — viagem finalizada mas CAF sem baixa</div>
+      <div style="max-height:60px;overflow-y:auto;font-size:.58rem;color:var(--t2);margin-top:3px;line-height:1.6">
+        ${pendentes.slice(0,10).map(c=>`${esc(c.num)}`).join(' · ')}${pendentes.length>10?' · +' +(pendentes.length-10)+' outras':''}
       </div>
     </div>`:''}`;
   })()}
