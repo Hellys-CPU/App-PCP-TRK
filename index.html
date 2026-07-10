@@ -1247,12 +1247,20 @@ function _resolveAbas(user){
 let PERMS = {};
 function _refreshPerms(){
   if(!currentUser)return;
-  const u=USERS.find(x=>x.user===currentUser.user);
-  PERMS[currentUser.perfil]=_resolvePerms({...currentUser,permissoes_custom:u?.permissoes_custom});
+  const u = USERS.find(x=>x.user===currentUser.user);
+  const key = currentUser.user;
+  PERMS[key] = _resolvePerms({...currentUser,permissoes_custom:u?.permissoes_custom});
 }
 function hasPerm(action){
-  const p=currentUser?.perfil;
-  return p&&PERMS[p]&&PERMS[p][action];
+  if(!currentUser)return false;
+  const key = currentUser.user;
+  let pUser = PERMS[key];
+  if(!pUser){
+    const u = USERS.find(x=>x.user===currentUser.user);
+    pUser = _resolvePerms({...currentUser,permissoes_custom:u?.permissoes_custom});
+    PERMS[key] = pUser;
+  }
+  return !!pUser[action];
 }
 
 
@@ -1514,8 +1522,11 @@ async function saveToSupabase(op){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')){showToast('Sem permissão para editar','err');return;}
   if(!supabaseOK)return;
   const now=new Date().toISOString();
-  // Sanitiza horários — garante formato HH:MM (remove datetime completo se vier)
-  const _hh=(v)=>{if(!v)return null;const m=String(v).match(/(\d{2}:\d{2})/);return m?m[1]:null;};
+  // Sanitiza horários — mantém data+hora completa quando disponível (datetime-local),
+  // só cai para HH:MM puro em valores legados que não têm data.
+  // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
+  // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
+  const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
   const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
@@ -2407,27 +2418,20 @@ function _quickStatusBtns(op){
   return html+'</div>';
 }
 function _cafAlertBadge(op){
-  if(!op.cafs.length)return'';
-  const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
+  if(!op.cafs || !op.cafs.length)return'';
+  const cafsDaOp = cafsDB.filter(c=>c.opId===op.id);
   if(!cafsDaOp.length)return'';
-  // Em trânsito: alerta CAF sem processo de entrega
+  const okProcesso = ['Processo de Entrega','Entrega Realizada'];
   if(op.status==='TRAN'){
-    const semProcesso=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
+    const semProcesso=cafsDaOp.filter(c=>!okProcesso.includes(c.status));
     if(semProcesso.length)return'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>';
   }
-  // Finalizado: alerta CAF sem baixa (entrega realizada)
   if(op.status==='FIN'){
-    const semBaixa=cafsDaOp.filter(c=>!['Entrega Realizada','Entrega Realizada'].includes(c.status));
+    const semBaixa=cafsDaOp.filter(c=>c.status!=='Entrega Realizada');
     if(semBaixa.length)return'<span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;animation:pulse 1.5s infinite">⚠️ CAF s/ baixa</span>';
   }
   return'';
 }
-// Verifica se viagem tem CAFs pendentes (não baixadas)
-function _cafsPendentesViagem(op){
-  if(!op.cafs||!op.cafs.length)return[];
-  return op.cafs.map(cRef=>cafsDB.find(c=>c.num===cRef.num)).filter(c=>c&&!['Entrega Realizada','cancelada'].includes(c.status));
-}
-
 function cardHTML(op){
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
   const lim=CFG.limiteAtraso||30;
@@ -2458,7 +2462,6 @@ function cardHTML(op){
     ${CFG.alertas&&dC!==null&&dC>0?`<span class="ab">⚠ FC ${fDiff(dC)}</span>`:''}
     ${tempoNoStatus(op)}
     ${_quickStatusBtns(op)}
-    ${op.cafs&&op.cafs.length&&_cafsPendentesViagem(op).length?`<div style="background:#78350f;color:#fef3c7;border:1px solid var(--yellow);border-radius:4px;padding:2px 6px;font-size:.58rem;font-weight:700;margin-top:3px">⚠ ${_cafsPendentesViagem(op).length} CAF(s) sem processo de entrega</div>`:''}
   </div>`;
 }
 
@@ -2540,33 +2543,13 @@ function _gerarExtracaoCompleta(){
   const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
 
   opsDia.sort((a,b)=>a.dataOp.localeCompare(b.dataOp)||a.rota.localeCompare(b.rota));
-  // Descobre o máximo de CAFs numa viagem (pra criar colunas dinâmicas)
-  const maxCAFs=Math.max(1,opsDia.reduce((m,o)=>Math.max(m,(o.cafs||[]).length),0));
   const linhas=opsDia.map(op=>{
-    // CAFs vinculadas — cruza com o banco de CAFs pra pegar dados reais
-    // CAFs detalhadas — cruza com banco pra pegar dados reais
-    const cafsReal=(op.cafs||[]).map(cRef=>{
-      const c=cafsDB.find(x=>x.num===cRef.num);
-      return c||{num:cRef.num,status:'manual',vol:cRef.qtd||0,pallets:0,venc:'',rota:''};
-    });
-    const cafsDetalhe=cafsReal.map(c=>`${c.num} (${c.status})`).join(' | ');
-    const cafsPallets=cafsReal.reduce((s,c)=>s+(Number(c.pallets)||0),0);
-    const cafsVolume=cafsReal.reduce((s,c)=>s+(Number(c.vol)||0),0);
-    const cafsVencimentos=cafsReal.map(c=>c.venc?fmtD(c.venc):'—').join(' | ');
-    const cafsNumeros=cafsReal.map(c=>c.num).join(' | ');
-    const cafsStatus=cafsReal.map(c=>c.status).join(' | ');
-    // Monta colunas individuais por CAF
-    const cafCols={};
-    for(let ci=0;ci<maxCAFs;ci++){
-      const cRef=(op.cafs||[])[ci];
-      const cFull=cRef?cafsDB.find(c=>c.num===cRef.num):null;
-      cafCols[`CAF ${ci+1} Número`]=cFull?.num||cRef?.num||'';
-      cafCols[`CAF ${ci+1} Status`]=cFull?.status||'';
-      cafCols[`CAF ${ci+1} Pallets`]=cFull?.pallets||'';
-      cafCols[`CAF ${ci+1} Volume`]=cFull?.vol||'';
-      cafCols[`CAF ${ci+1} Vencimento`]=cFull?.venc?fmtD(cFull.venc):'';
-      cafCols[`CAF ${ci+1} Rua`]=cFull?.ruaId?ruaNumeroDe(cFull.ruaId)||'':'';
-    }
+    // CAFs vinculadas — cruza com o banco de CAFs pra pegar status/vencimento reais
+    const cafsDetalhe=(op.cafs||[]).map(cRef=>{
+      const cFull=cafsDB.find(c=>c.num===cRef.num);
+      if(cFull)return `${cFull.num} (${cFull.status}${cFull.venc?', venc. '+fmtD(cFull.venc):''})`;
+      return `${cRef.num||'—'} (manual)`;
+    }).join(' | ');
 
     // Ocorrências registradas na viagem
     const ocorrTxt=(op.ocorr||[]).map(o=>`${o.tipo}: ${o.desc||''} [${o.ts||''} - ${o.user||''}]`).join(' | ');
@@ -2604,19 +2587,7 @@ function _gerarExtracaoCompleta(){
       'Δ FC (min)':dC??'',
       'Descarga Real':op.realDescarga?`${fmtD(op.dataOp)} ${op.realDescarga}`:'',
       'Qtd. CAFs':(op.cafs||[]).length,
-      'CAFs (números)':cafsNumeros||'—',
-      'CAFs (status)':cafsStatus||'—',
-      'CAFs (vencimentos)':cafsVencimentos||'—',
-      'Total Pallets CAFs':cafsPallets||0,
-      'Total Volume CAFs':cafsVolume||0,
-      'CAFs — Números':(op.cafs||[]).map(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c?c.num:cRef.num;}).join(' | ')||'—',
-      'CAFs — Status':(op.cafs||[]).map(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c?c.status:'manual';}).join(' | ')||'—',
-      'CAFs — Pallets (cada)':(op.cafs||[]).map(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c?c.pallets:0;}).join(' | ')||'—',
-      'CAFs — Pallets Total':(op.cafs||[]).reduce((s,cRef)=>{const c=cafsDB.find(x=>x.num===cRef.num);return s+(c?Number(c.pallets)||0:0);},0),
-      'CAFs — Volume Total':(op.cafs||[]).reduce((s,cRef)=>{const c=cafsDB.find(x=>x.num===cRef.num);return s+(c?Number(c.vol)||0:0);},0),
-      'CAFs — Vencimentos':(op.cafs||[]).map(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c&&c.venc?fmtD(c.venc):'—';}).join(' | ')||'—',
-      'CAFs — Ruas':(op.cafs||[]).map(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c&&c.ruaId?'Rua '+ruaNumeroDe(c.ruaId):'—';}).join(' | ')||'—',
-      ...cafCols,
+      'CAFs Vinculadas':cafsDetalhe||'—',
       'Ocorrências':ocorrTxt||'—',
       'Observações':op.obs||'',
       'Histórico Completo':histTxt||'—',
@@ -2627,11 +2598,9 @@ function _gerarExtracaoCompleta(){
   const ws=XLSX.utils.json_to_sheet(linhas);
   // Largura de colunas — dá espaço extra pras colunas de texto longo
   ws['!cols']=[
-    {wch:10},{wch:12},{wch:12},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
-    {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:12},{wch:14},{wch:12},{wch:14},
-    {wch:9},{wch:12},{wch:14},{wch:9},{wch:12},{wch:8},
-    {wch:25},{wch:25},{wch:22},{wch:10},{wch:10},
-    {wch:35},{wch:30},{wch:50},{wch:18}
+    {wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:9},{wch:9},{wch:9},{wch:9},
+    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:35},{wch:35},{wch:30},{wch:50},{wch:18}
   ];
   const wb=XLSX.utils.book_new();
   const nomeArquivo=dataDe===dataAte?dataDe:`${dataDe}_a_${dataAte}`;
@@ -3133,21 +3102,6 @@ async function onDrop(e,sid){
     // REGRA: Viagem NÃO pode ir pra Em Trânsito sem CAF vinculada
     if(sid==='TRAN'&&(!op.cafs||!op.cafs.length)){
       showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');dragged=null;return;
-    }
-    // REGRA: Viagem FIN com CAFs não baixadas — avisa
-    if(sid==='FIN'&&op.cafs&&op.cafs.length){
-      const pend=_cafsPendentesViagem(op);
-      if(pend.length&&!confirm(`⚠ ${pend.length} CAF(s) sem baixa. Finalizar mesmo assim?`)){dragged=null;return;}
-    }
-    // REGRA: Viagem só finaliza quando TODAS as CAFs vinculadas estiverem baixadas
-    if(sid==='FIN'&&op.cafs&&op.cafs.length){
-      const semBaixa2=op.cafs.filter(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c&&!['Entrega Realizada','cancelada'].includes(c.status);});
-      if(semBaixa2.length){showToast(`⛔ ${semBaixa2.length} CAF(s) sem baixa — finalize antes de concluir`,'err');dragged=null;return;}
-    }
-    // REGRA: Viagem só FINALIZADA quando todas CAFs baixadas
-    if(sid==='FIN'&&op.cafs&&op.cafs.length){
-      const pend=_cafsPendentesViagem(op);
-      if(pend.length&&!confirm(`⚠ ${pend.length} CAF(s) sem baixa. Finalizar mesmo assim?`)){dragged=null;return;}
     }
     const prevStatus=op.status;
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
@@ -4006,61 +3960,7 @@ function renderAnalise(){
   <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
   ${_renderMapaDoca()}
-</div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Pareto — Causas de Atraso por Transportadora</h3>
-  ${(()=>{
-    const atrasadas=data.filter(o=>getSLA(o)==='late');
-    if(!atrasadas.length)return'<p style="color:var(--t3);text-align:center;padding:12px">Sem atrasos no período ✅</p>';
-    const porTransp={};atrasadas.forEach(o=>{const t=o.transp||'Sem transp.';porTransp[t]=(porTransp[t]||0)+1;});
-    const sorted=Object.entries(porTransp).sort((a,b)=>b[1]-a[1]);const totalAt=atrasadas.length;let acum=0;
-    return`<div style="display:flex;flex-direction:column;gap:4px">
-      ${sorted.map(([t,n])=>{acum+=n;const pctInd=Math.round(n/totalAt*100);const pctAcum=Math.round(acum/totalAt*100);
-        return`<div style="display:flex;align-items:center;gap:8px;font-size:.7rem">
-          <span style="min-width:120px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t)}</span>
-          <div style="flex:1;background:var(--bg4);border-radius:4px;height:16px;overflow:hidden"><div style="height:100%;width:${pctInd}%;background:var(--red);border-radius:4px"></div></div>
-          <span style="min-width:35px;font-weight:700;color:var(--red)">${n}</span>
-          <span style="min-width:45px;font-size:.6rem;color:var(--t2)">${pctAcum}% acum.</span>
-        </div>`;}).join('')}
-    </div><div style="font-size:.58rem;color:var(--t3);margin-top:6px">* Tolerância SLA: 30min</div>`;
-  })()}
-</div>
-<div class="an-card">
-  <h3>📈 Planejado vs Realizado (Chegada FC)</h3>
-  ${(()=>{
-    const comDados=data.filter(o=>o.planChegFC&&o.realChegFC).slice(0,20);
-    if(!comDados.length)return'<p style="color:var(--t3);text-align:center;padding:12px">Sem dados suficientes</p>';
-    const toMin=t=>{const[h,m]=(t||'00:00').split(':').map(Number);return h*60+m;};
-    return`<div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:10px">
-      ${comDados.map(o=>{const plan=toMin(o.planChegFC),real=toMin(o.realChegFC);
-        const hPlan=Math.max(4,Math.round(plan/1440*100));const hReal=Math.max(4,Math.round(real/1440*100));const atrasou=real-plan>30;
-        return`<div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:18px" title="${esc(o.id)}: Plan ${o.planChegFC} / Real ${o.realChegFC}">
-          <div style="display:flex;gap:1px;align-items:flex-end;height:100px">
-            <div style="width:8px;background:var(--blue);border-radius:2px 2px 0 0;height:${hPlan}px"></div>
-            <div style="width:8px;background:${atrasou?'var(--red)':'var(--green)'};border-radius:2px 2px 0 0;height:${hReal}px"></div>
-          </div>
-          <span style="font-size:.42rem;color:var(--t3)">${(o.codigoCurto||o.id).slice(-4)}</span>
-        </div>`;}).join('')}
-    </div><div style="display:flex;gap:12px;margin-top:6px;font-size:.58rem;color:var(--t2)"><span>🔵 Plan.</span><span>🟢 Real (prazo)</span><span>🔴 Real (atrasado)</span></div>`;
-  })()}
-</div>
-<div class="an-card">
-  <h3>📉 Tendência SLA por Dia</h3>
-  ${(()=>{
-    const porDia={};data.forEach(o=>{if(!o.dataOp)return;if(!porDia[o.dataOp])porDia[o.dataOp]={t:0,ok:0};porDia[o.dataOp].t++;if(getSLA(o)==='ok')porDia[o.dataOp].ok++;});
-    const dias=Object.keys(porDia).sort();
-    if(dias.length<2)return'<p style="color:var(--t3);text-align:center;padding:12px">Necessário pelo menos 2 dias</p>';
-    return`<div style="display:flex;align-items:flex-end;gap:4px;height:110px">
-      ${dias.map(d=>{const pct=Math.round(porDia[d].ok/porDia[d].t*100);const cor=pct>=92?'var(--green)':pct>=70?'var(--yellow)':'var(--red)';
-        return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:28px" title="${fmtD(d)}: ${pct}%">
-          <span style="font-size:.55rem;font-weight:700;color:${cor}">${pct}%</span>
-          <div style="width:100%;max-width:40px;background:${cor};border-radius:4px 4px 0 0;height:${Math.max(4,pct)}px"></div>
-          <span style="font-size:.48rem;color:var(--t3)">${d.slice(5)}</span>
-        </div>`;}).join('')}
-    </div><div style="margin-top:4px;font-size:.5rem;color:var(--t3);text-align:right">Meta: ≥92%</div>`;
-  })()}
-
-`;
+</div>`;
   }catch(e){
     console.error('renderAnalise erro:',e);
     el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">⚠️ Erro ao carregar análise: '+(e.message||e)+'<br><br><button class="btn btn-g" onclick="renderAnalise()">Tentar novamente</button></div>';
@@ -5806,16 +5706,6 @@ function quickStatus(opId, newStatus, event){
   // REGRA: Viagem NÃO pode ir pra Em Trânsito sem CAF vinculada
   if(newStatus==='TRAN'&&(!op.cafs||!op.cafs.length)){
     showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');return;
-  }
-  // REGRA: Viagem FIN com CAFs não baixadas — avisa e pede confirmação
-  if(newStatus==='FIN'&&op.cafs&&op.cafs.length){
-    const pend=_cafsPendentesViagem(op);
-    if(pend.length&&!confirm(`⚠ ${pend.length} CAF(s) ainda não baixada(s):\n${pend.map(c=>c.num+' ('+c.status+')').join(', ')}\n\nFinalizar mesmo assim? A viagem ficará com pendência de baixa de CAF.`))return;
-  }
-  // REGRA: Viagem só finaliza quando TODAS as CAFs vinculadas estiverem baixadas
-  if(newStatus==='FIN'&&op.cafs&&op.cafs.length){
-    const semBaixa=op.cafs.filter(cRef=>{const c=cafsDB.find(x=>x.num===cRef.num);return c&&!['Entrega Realizada','cancelada'].includes(c.status);});
-    if(semBaixa.length){showToast(`⛔ ${semBaixa.length} CAF(s) sem baixa: ${semBaixa.map(c=>c.num).join(', ')} — finalize as CAFs antes`,'err');return;}
   }
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
