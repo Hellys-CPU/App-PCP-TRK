@@ -601,6 +601,14 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="lt-wrap">
     <table>
       <thead>
+<tr style="font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;color:var(--t3)">
+  <td colspan="10"></td>
+  <td colspan="2" style="background:var(--blue2);color:var(--blue);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">🏭 TZX</td>
+  <td colspan="2" style="background:var(--blue2);color:var(--blue);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">🏭 TZX</td>
+  <td colspan="2" style="background:var(--green2);color:var(--green);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">📦 FC</td>
+  <td colspan="2" style="text-align:center;padding:2px">Δ</td>
+  <td></td>
+</tr>
 <tr>
   <th style="width:28px;color:var(--t2);padding:4px 2px">#</th>
   <th onclick="sortList('id')" style="cursor:pointer;user-select:none;white-space:nowrap">ID <span id="sl-id"></span></th>
@@ -813,6 +821,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </select>
     <button class="btn btn-g" onclick="resetAnaliseFiltro()" style="font-size:.7rem">✕ Limpar</button>
     <button class="btn btn-p" onclick="exportRD()" style="font-size:.72rem;background:var(--blue)">📊 Exportar RD</button>
+    <button class="btn btn-p" onclick="exportPPTX()" style="font-size:.72rem;background:var(--red)">📊 Exportar PPTX</button>
   </div>
   <div class="analise-grid" id="analiseGrid">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t2)">Carregando análise...</div>
@@ -1035,6 +1044,27 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Cor do Avatar</label><div id="euCores" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
       </div>
     </div>
+      <!-- Permissões customizadas -->
+      <div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-weight:700;font-size:.78rem">🔐 Permissões Customizadas</label>
+          <label style="font-size:.65rem;color:var(--t2);display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="euCustomPerms" onchange="_toggleCustomPerms()"> Sobrescrever permissões do perfil
+          </label>
+        </div>
+        <div id="euPermsPanel" style="display:none">
+          <div style="font-size:.62rem;color:var(--t2);margin-bottom:8px">Desmarque abas ou ações que este usuário <b>não deve</b> ter, mesmo que o perfil base permita. Ou marque extras que o perfil base não dá.</div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:.68rem;font-weight:700;color:var(--text);margin-bottom:5px">📋 Abas visíveis</div>
+            <div id="euAbasGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;font-size:.65rem"></div>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;color:var(--text);margin-bottom:5px">⚡ Ações permitidas</div>
+            <div id="euAcoesGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:3px;font-size:.65rem"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="mftr">
       <button class="btn" onclick="closeEditUserModal()">Cancelar</button>
       <button class="btn btn-p" onclick="confirmEditUser()">💾 Salvar Alterações</button>
@@ -1163,14 +1193,63 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <script>
 
 // ═══ PERMISSÕES POR PERFIL ═══
-const PERMS = {
+const PERMS_BASE = {
   admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:1},
   supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:0},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:1,admin:0,pptx:0},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
   doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
   operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,importar:0,exportar:0,admin:0,pptx:0},
   visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
 };
+
+const ABAS_BASE = {
+  admin:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard','admin'],
+  supervisor:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard','admin'],
+  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard'],
+  doca:['painel','lista','prog','tv','tv-yard'],
+  operador_caf:['painel','lista','caf'],
+  visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
+};
+
+const TODAS_PERMS = [
+  {key:'viagem_criar',label:'Criar viagens'},{key:'viagem_editar',label:'Editar viagens'},
+  {key:'viagem_status',label:'Alterar status de viagens'},{key:'viagem_deletar',label:'Deletar viagens'},
+  {key:'doca_atrelar',label:'Atrelar doca'},{key:'caf_criar',label:'Criar CAFs'},
+  {key:'caf_editar',label:'Editar CAFs'},{key:'caf_status_full',label:'Alterar qualquer status de CAF'},
+  {key:'caf_deletar',label:'Deletar CAFs'},{key:'caf_rua',label:'Atrelar rua à CAF'},
+  {key:'importar',label:'Importar planilha'},{key:'exportar',label:'Exportar dados'},
+  {key:'admin',label:'Acessar painel Admin'},{key:'pptx',label:'Exportar PPTX'},
+];
+
+const TODAS_ABAS = [
+  {key:'painel',label:'Painel'},{key:'lista',label:'Lista'},{key:'prog',label:'Gestão de Doca'},
+  {key:'massa',label:'Em Massa'},{key:'fup',label:'FUP FC'},{key:'amazon',label:'FUP Amazon'},
+  {key:'caf',label:'CAFs'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
+  {key:'tv-yard',label:'TV Yard'},{key:'admin',label:'Admin'},
+];
+
+function _resolvePerms(user){
+  const perfil=user?.perfil||'visualizador';
+  const base={...(PERMS_BASE[perfil]||PERMS_BASE.visualizador)};
+  const custom=user?.permissoes_custom;
+  if(custom&&custom.acoes)Object.keys(custom.acoes).forEach(k=>{base[k]=custom.acoes[k]?1:0;});
+  return base;
+}
+
+function _resolveAbas(user){
+  const perfil=user?.perfil||'visualizador';
+  const base=[...(ABAS_BASE[perfil]||ABAS_BASE.visualizador)];
+  const custom=user?.permissoes_custom;
+  if(custom&&Array.isArray(custom.abas))return custom.abas;
+  return base;
+}
+
+let PERMS = {};
+function _refreshPerms(){
+  if(!currentUser)return;
+  const u=USERS.find(x=>x.user===currentUser.user);
+  PERMS[currentUser.perfil]=_resolvePerms({...currentUser,permissoes_custom:u?.permissoes_custom});
+}
 function hasPerm(action){
   const p=currentUser?.perfil;
   return p&&PERMS[p]&&PERMS[p][action];
@@ -1607,7 +1686,7 @@ async function loadUsers(){
     try{
       const data=await sbFetch(`usuarios_seguro?ativo=eq.true&order=criado_em.asc`);
       if(data&&data.length){
-        USERS=data.map(r=>({user:r.usuario,nome:r.nome,av:r.avatar||'??',cor:r.cor||'#cc0000',perfil:r.perfil,pw:null}));
+        USERS=data.map(r=>({user:r.usuario,nome:r.nome,av:r.avatar||'??',cor:r.cor||'#cc0000',perfil:r.perfil,pw:null,permissoes_custom:r.permissoes_custom||null}));
         // HASHES não é mais carregado — validação de senha é 100% server-side via RPC fazer_login
         saveUsersLocal();
         return;
@@ -1773,16 +1852,10 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
-  // ═══ VISIBILIDADE POR PERFIL ═══
-  const _p=currentUser.perfil;
-  const _abasVisiveis={
-    admin:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','admin'],
-    supervisor:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','admin'],
-    torre_controle:['painel','lista','prog','massa','fup','amazon','caf','analise','tv'],
-    doca:['painel','lista','prog','tv'],
-    operador_caf:['painel','lista','caf'],
-    visualizador:['painel','lista','fup','amazon','caf','analise','tv'],
-  }[_p]||['painel','lista'];
+  // ═══ VISIBILIDADE POR PERFIL + OVERRIDE POR USUÁRIO ═══
+  _refreshPerms();
+  const _uRef=USERS.find(x=>x.user===currentUser.user);
+  const _abasVisiveis=_resolveAbas({...currentUser,permissoes_custom:_uRef?.permissoes_custom});
   document.querySelectorAll('.tab[id^="tb-"]').forEach(el=>{
     const aba=el.id.replace('tb-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
@@ -1849,6 +1922,8 @@ async function bootApp(){
     try{_verificarAlerta24h();}catch(e){}
     // Badge de CAFs
     try{_updateCAFBadge();}catch(e){}
+    // Alerta CAF sem baixa no dia (SLA: toda CAF deve ser baixada até 23:59 do dia da viagem)
+    try{_verificarCAFsSemBaixa();}catch(e){}
   },30000);
   // Revalida token a cada 5 min — estende sessão automaticamente (rolling 7 days)
   window._tokenRefresh=setInterval(async()=>{
@@ -1917,6 +1992,47 @@ function selColor(c){selectedColor=c;document.querySelectorAll('#colorPicker [da
 
 // ── EDIÇÃO DE USUÁRIO (ADMIN) ──
 let _editUserTarget=null, _editUserColor=null;
+// ── UI de permissões customizadas no modal de editar usuário ──
+function _toggleCustomPerms(){
+  const on=document.getElementById('euCustomPerms')?.checked;
+  document.getElementById('euPermsPanel').style.display=on?'':'none';
+}
+
+function _popularPermsUI(username){
+  const u=USERS.find(x=>x.user===username);
+  if(!u)return;
+  const perfil=u.perfil||'visualizador';
+  const custom=u.permissoes_custom;
+  const temCustom=!!custom;
+  document.getElementById('euCustomPerms').checked=temCustom;
+  document.getElementById('euPermsPanel').style.display=temCustom?'':'none';
+
+  // Abas: pega as do override ou as do perfil base
+  const abasAtuais=temCustom&&Array.isArray(custom.abas)?custom.abas:(ABAS_BASE[perfil]||[]);
+  document.getElementById('euAbasGrid').innerHTML=TODAS_ABAS.map(a=>
+    `<label style="display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:3px;background:var(--bg3)">
+      <input type="checkbox" class="euAbaChk" value="${a.key}" ${abasAtuais.includes(a.key)?'checked':''}> ${a.label}
+    </label>`).join('');
+
+  // Ações: pega as do override ou as do perfil base
+  const permsBase=PERMS_BASE[perfil]||{};
+  const acoesCustom=temCustom&&custom.acoes?custom.acoes:{};
+  document.getElementById('euAcoesGrid').innerHTML=TODAS_PERMS.map(p=>{
+    const val=acoesCustom[p.key]!==undefined?acoesCustom[p.key]:(permsBase[p.key]||0);
+    return`<label style="display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:3px;background:var(--bg3)">
+      <input type="checkbox" class="euAcaoChk" value="${p.key}" ${val?'checked':''}> ${p.label}
+    </label>`;}).join('');
+}
+
+function _lerPermsUI(){
+  const on=document.getElementById('euCustomPerms')?.checked;
+  if(!on)return null; // herda tudo do perfil
+  const abas=Array.from(document.querySelectorAll('.euAbaChk:checked')).map(c=>c.value);
+  const acoes={};
+  document.querySelectorAll('.euAcaoChk').forEach(c=>{acoes[c.value]=c.checked?1:0;});
+  return{abas,acoes};
+}
+
 function openEditUser(username){
   const u=USERS.find(x=>x.user===username);
   if(!u){showToast('Usuário não encontrado','err');return;}
@@ -1932,6 +2048,7 @@ function openEditUser(username){
   document.getElementById('euCores').innerHTML=cores.map(c=>
     `<div onclick="_editUserColor='${c}';document.querySelectorAll('#euCores>div').forEach(d=>d.style.outline='');this.style.outline='2px solid var(--text)'"
       style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;${c===u.cor?'outline:2px solid var(--text)':''}"></div>`).join('');
+  _popularPermsUI(username);
   document.getElementById('overlayEditUser').classList.add('open');
 }
 function closeEditUserModal(){
@@ -1959,11 +2076,17 @@ async function confirmEditUser(){
   if(pw)dados.senha_sha256=await h256(pw);
   if(trocouLogin)dados.novo_login=novoLogin;
 
+  // Salva permissões customizadas diretamente na tabela (bypass RPC pra não complicar)
+  const permsCustom=_lerPermsUI();
+  try{
+    await sbUpsert('usuarios',{usuario:trocouLogin?novoLogin:_editUserTarget,permissoes_custom:permsCustom},'usuario');
+  }catch(e){console.warn('salvar permissoes_custom:',e);}
+
   try{
     const r=await _rpcGerenciarUsuario('editar',dados);
     // Atualiza lista local
     const u=USERS.find(x=>x.user===_editUserTarget);
-    if(u){u.nome=nome;u.av=av;u.cor=_editUserColor;u.perfil=perfil;if(trocouLogin)u.user=novoLogin;}
+    if(u){u.nome=nome;u.av=av;u.cor=_editUserColor;u.perfil=perfil;u.permissoes_custom=permsCustom;if(trocouLogin)u.user=novoLogin;}
     saveUsersLocal();renderUserList();
     _publishAbly('cfg_update',{});
     showToast(trocouLogin?`✅ Salvo! @${novoLogin} precisará fazer login novamente`:'✅ Usuário atualizado','ok');
@@ -2746,7 +2869,13 @@ function renderProg(){
 // ══════════════════════════════════════════════════════════════════
 // FUP
 // ══════════════════════════════════════════════════════════════════
-function getSLA(op){if(op.status==='CANC')return'nd';const d=dMin(op.planChegFC,op.realChegFC);if(d===null)return'nd';return d>0?'late':'ok';}
+function getSLA(op){
+  if(op.status==='CANC')return'nd';
+  const d=dMin(op.planChegFC,op.realChegFC);
+  if(d===null)return'nd';
+  // REGRA: tolerância de 30 minutos — atraso só conta acima disso
+  return d>30?'late':'ok';
+}
 function getFUPFilt(){
   const fR=document.getElementById('ffRota')?.value||'',fS=document.getElementById('ffStatus')?.value||'',fSLA=document.getElementById('ffSLA')?.value||'';
   const fD=document.getElementById('ffData')?.value||'';
@@ -2895,7 +3024,35 @@ function _dispensarAlerta24h(opId){
   showToast(`✅ Alerta de ${opId} reconhecido`,'ok');
 }
 
-function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig">◀ ORIGEM (TZX)</td><td colspan="3" class="th-dest">▶ DESTINO (FC)</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center">Apres.</th><th class="center">Saída TZX</th><th class="center">Cheg.FC</th><th class="center">Δ FC</th><th class="center">Desc.</th><th class="center">Status</th><th class="center">SLA</th></tr></thead><tbody>`;}
+// ── SLA de baixa de CAF: toda CAF de viagem do dia deve ser baixada até 23:59 ──
+function _verificarCAFsSemBaixa(){
+  const hoje=hojeLocal();
+  const hora=new Date().getHours();
+  // Só alerta a partir das 20h (pra dar tempo da operação)
+  if(hora<20)return;
+  const viagensHoje=ops.filter(o=>o.dataOp===hoje&&['FIN','AGUDESC'].includes(o.status));
+  const cafsPendentes=[];
+  viagensHoje.forEach(op=>{
+    if(!op.cafs||!op.cafs.length)return;
+    op.cafs.forEach(cRef=>{
+      const c=cafsDB.find(x=>x.num===cRef.num);
+      if(c&&!['Entrega Realizada','cancelada'].includes(c.status)){
+        cafsPendentes.push({caf:c.num,op:op.id,status:c.status});
+      }
+    });
+  });
+  const banner=document.getElementById('_cafSlaBanner');
+  if(!cafsPendentes.length){if(banner)banner.remove();return;}
+  const hx=`<div id="_cafSlaBanner" style="position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#78350f;border-top:2px solid var(--yellow);padding:8px 16px;font-size:.72rem;color:#fef3c7;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-weight:800">⚠ ${cafsPendentes.length} CAF(s) sem baixa — viagem do dia já finalizada (SLA: baixar até 23:59)</span>
+    ${cafsPendentes.slice(0,8).map(p=>`<span style="background:#fef3c7;color:#78350f;border-radius:3px;padding:1px 6px;font-weight:700">${esc(p.caf)} (${esc(p.status)}) → ${esc(p.op)}</span>`).join('')}
+    ${cafsPendentes.length>8?`<span style="font-weight:600">+${cafsPendentes.length-8} outras</span>`:''}
+  </div>`;
+  if(banner)banner.outerHTML=hx;
+  else document.body.insertAdjacentHTML('beforeend',hx);
+}
+
+function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig" style="background:var(--blue2);color:var(--blue);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">🏭 RESPONSABILIDADE TZX</td><td colspan="3" class="th-dest" style="background:var(--green2);color:var(--green);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">📦 RESPONSABILIDADE FC</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center" style="border-left:2px solid var(--blue)">Apres.</th><th class="center" style="border-right:2px solid var(--blue)">Saída TZX</th><th class="center" style="border-left:2px solid var(--green)">Cheg.FC</th><th class="center">Δ FC</th><th class="center" style="border-right:2px solid var(--green)">Desc.</th><th class="center">Status</th><th class="center">SLA</th></tr></thead><tbody>`;}
 function renderFUP(){
   const data=getFUPFilt(),c=s=>data.filter(o=>o.status===s).length;
   const fvc={red:'var(--red)',ye:'var(--yellow)',or:'var(--orange)',pu:'var(--purple)',gr:'var(--green)'};
@@ -2932,6 +3089,10 @@ async function onDrop(e,sid){
   if(isReadOnly()){showToast('⛔ Sem permissão para mover operações','err');dragged=null;return;}
   const op=ops.find(o=>o.id===dragged);
   if(op&&op.status!==sid){
+    // REGRA: Viagem NÃO pode ir pra Em Trânsito sem CAF vinculada
+    if(sid==='TRAN'&&(!op.cafs||!op.cafs.length)){
+      showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');dragged=null;return;
+    }
     const prevStatus=op.status;
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
@@ -3521,6 +3682,81 @@ function pizzaSVG(items,total){
   return slices;
 }
 const ST_COR={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f0883e'};
+// ── Exportação PPTX (só admin) ──
+async function exportPPTX(){
+  if(!hasPerm('pptx')){showToast('⛔ Apenas ADMIN pode exportar PPTX','err');return;}
+  if(typeof PptxGenJS==='undefined'){showToast('Biblioteca PPTX não carregada — recarregue a página','err');return;}
+  const data=getAnaliseOps();
+  if(!data.length){showToast('Sem dados para exportar','err');return;}
+  const total=data.length,fin=data.filter(o=>o.status==='FIN').length;
+  const slaOk=data.filter(o=>getSLA(o)==='ok').length,taxaSLA=Math.round(slaOk/total*100);
+  const de=document.getElementById('aDataDe')?.value||'', ate=document.getElementById('aDataAte')?.value||'';
+  const periodo=de&&ate?`${fmtD(de)} a ${fmtD(ate)}`:de||ate||hojeLocal();
+
+  const pptx=new PptxGenJS();
+  pptx.author='TRK PCP 2026';pptx.title=`Análise ${periodo}`;
+
+  // Slide 1: Capa
+  let s=pptx.addSlide();
+  s.background={color:'1a1a2e'};
+  s.addText('TRK PCP 2026',{x:.5,y:1.5,w:9,h:1,fontSize:36,color:'cc0000',bold:true,align:'center'});
+  s.addText(`Análise de Performance\n${periodo}`,{x:.5,y:2.5,w:9,h:1,fontSize:18,color:'FFFFFF',align:'center'});
+  s.addText('* Tolerância SLA: 30 minutos',{x:.5,y:4,w:9,h:.5,fontSize:10,color:'888888',align:'center'});
+
+  // Slide 2: KPIs
+  s=pptx.addSlide();
+  s.addText('Métricas Gerais',{x:.5,y:.3,w:9,h:.6,fontSize:24,color:'cc0000',bold:true});
+  const kpis=[
+    ['Total Viagens',String(total)],['Finalizadas',String(fin)],
+    ['Taxa SLA',taxaSLA+'%'],['Meta','≥ 92%'],
+  ];
+  kpis.forEach((k,i)=>{
+    s.addShape(pptx.shapes.ROUNDED_RECTANGLE,{x:.5+i*2.3,y:1.2,w:2,h:1.2,fill:{color:taxaSLA>=92?'22c55e':'ef4444'},rectRadius:.1});
+    s.addText(k[1],{x:.5+i*2.3,y:1.3,w:2,h:.7,fontSize:28,color:'FFFFFF',bold:true,align:'center'});
+    s.addText(k[0],{x:.5+i*2.3,y:1.9,w:2,h:.4,fontSize:10,color:'FFFFFF',align:'center'});
+  });
+
+  // Slide 3: SLA por Rota
+  s=pptx.addSlide();
+  s.addText('SLA por Rota',{x:.5,y:.3,w:9,h:.6,fontSize:24,color:'cc0000',bold:true});
+  const byR={};
+  data.forEach(o=>{if(!byR[o.rota])byR[o.rota]={t:0,ok:0};byR[o.rota].t++;if(getSLA(o)==='ok')byR[o.rota].ok++;});
+  const rows=[['Rota','Total','No Prazo','Atrasadas','SLA %']];
+  Object.entries(byR).sort((a,b)=>b[1].t-a[1].t).forEach(([r,d])=>{
+    rows.push([r,String(d.t),String(d.ok),String(d.t-d.ok),Math.round(d.ok/d.t*100)+'%']);
+  });
+  s.addTable(rows,{x:.5,y:1.2,w:9,fontSize:11,border:{pt:1,color:'cccccc'},colW:[2.5,1.5,1.5,1.5,1.5],
+    autoPage:true,rowH:.4,
+    headerRow:true,color:'333333'});
+
+  // Slide 4: SLA por Transportadora
+  s=pptx.addSlide();
+  s.addText('SLA por Transportadora',{x:.5,y:.3,w:9,h:.6,fontSize:24,color:'cc0000',bold:true});
+  const byT2={};
+  data.forEach(o=>{if(!o.transp)return;if(!byT2[o.transp])byT2[o.transp]={t:0,ok:0};byT2[o.transp].t++;if(getSLA(o)==='ok')byT2[o.transp].ok++;});
+  const rows2=[['Transportadora','Total','No Prazo','Atrasadas','SLA %']];
+  Object.entries(byT2).sort((a,b)=>b[1].t-a[1].t).forEach(([n,d])=>{
+    rows2.push([n,String(d.t),String(d.ok),String(d.t-d.ok),Math.round(d.ok/d.t*100)+'%']);
+  });
+  s.addTable(rows2,{x:.5,y:1.2,w:9,fontSize:11,border:{pt:1,color:'cccccc'},colW:[3,1.5,1.5,1.5,1.5],
+    autoPage:true,rowH:.4,headerRow:true,color:'333333'});
+
+  // Slide 5: CAFs
+  s=pptx.addSlide();
+  s.addText('KPIs de CAFs',{x:.5,y:.3,w:9,h:.6,fontSize:24,color:'cc0000',bold:true});
+  const cafsPer=cafsDB.filter(c=>c.criadoEm&&(!de||c.criadoEm.slice(0,10)>=de)&&(!ate||c.criadoEm.slice(0,10)<=ate));
+  const cSts=['Em Produção','Produzida','Vinculada a Veículo','Processo de Entrega','Entrega Realizada'];
+  cSts.forEach((st,i)=>{
+    const n=cafsPer.filter(c=>c.status===st).length;
+    s.addShape(pptx.shapes.ROUNDED_RECTANGLE,{x:.5+i*1.8,y:1.2,w:1.6,h:1,fill:{color:st==='Entrega Realizada'?'22c55e':st==='Processo de Entrega'?'3b82f6':'6b7280'},rectRadius:.1});
+    s.addText(String(n),{x:.5+i*1.8,y:1.25,w:1.6,h:.55,fontSize:24,color:'FFFFFF',bold:true,align:'center'});
+    s.addText(st,{x:.5+i*1.8,y:1.75,w:1.6,h:.35,fontSize:8,color:'FFFFFF',align:'center'});
+  });
+
+  pptx.writeFile({fileName:`TRK_Analise_${periodo.replace(/\//g,'-')}.pptx`});
+  showToast('✅ PPTX gerado','ok');
+}
+
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
   try{
@@ -3573,6 +3809,54 @@ function renderAnalise(){
     <div class="met-box"><div class="mv" style="color:${avgDC===null?'var(--t2)':avgDC>0?'var(--red)':'var(--green)'}">${fAvg(avgDC)}</div><div class="ml">Δ Médio FC</div></div>
     <div class="met-box"><div class="mv" style="color:var(--purple)">${fAvg(avgDoc)}</div><div class="ml">T.Médio Doca</div></div>
   </div>
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📦 KPIs de CAFs</h3>
+  ${(()=>{
+    const cafsPeriodo=cafsDB.filter(c=>{
+      if(!c.criadoEm)return false;
+      const dt=c.criadoEm.slice(0,10);
+      const dDe=document.getElementById('aDataDe')?.value||'';
+      const dAte=document.getElementById('aDataAte')?.value||'';
+      if(dDe&&dt<dDe)return false;if(dAte&&dt>dAte)return false;return true;
+    });
+    const totalC=cafsPeriodo.length;
+    const emProd=cafsPeriodo.filter(c=>c.status==='Em Produção').length;
+    const produzidas=cafsPeriodo.filter(c=>c.status==='Produzida').length;
+    const vinculadas=cafsPeriodo.filter(c=>c.status==='Vinculada a Veículo').length;
+    const procEntrega=cafsPeriodo.filter(c=>c.status==='Processo de Entrega').length;
+    const entregues=cafsPeriodo.filter(c=>c.status==='Entrega Realizada').length;
+    const canceladas=cafsPeriodo.filter(c=>c.status==='cancelada').length;
+    const comRua=cafsPeriodo.filter(c=>c.ruaId).length;
+    const semRua=cafsPeriodo.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
+    // Viagens do período com CAF vs sem
+    const viagensComCAF=data.filter(o=>o.cafs&&o.cafs.length>0).length;
+    const viagensSemCAF=data.filter(o=>!o.cafs||!o.cafs.length).length;
+    const pctConformes=total?Math.round(viagensComCAF/total*100):0;
+    // CAFs pendentes (não finalizadas e vinculadas a viagens já finalizadas)
+    const pendentes=cafsPeriodo.filter(c=>{
+      if(['Entrega Realizada','cancelada'].includes(c.status))return false;
+      if(!c.opId)return false;
+      const op=data.find(o=>o.id===c.opId);
+      return op&&['FIN','AGUDESC'].includes(op.status);
+    });
+    return`<div class="met-grid" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr))">
+      <div class="met-box"><div class="mv" style="color:var(--text)">${totalC}</div><div class="ml">Total CAFs</div></div>
+      <div class="met-box"><div class="mv" style="color:#6b7280">${emProd}</div><div class="ml">Em Produção</div></div>
+      <div class="met-box"><div class="mv" style="color:#14b8a6">${produzidas}</div><div class="ml">Produzidas</div></div>
+      <div class="met-box"><div class="mv" style="color:var(--green)">${vinculadas}</div><div class="ml">Vinculadas</div></div>
+      <div class="met-box"><div class="mv" style="color:var(--blue)">${procEntrega}</div><div class="ml">Proc. Entrega</div></div>
+      <div class="met-box"><div class="mv" style="color:var(--green)">${entregues}</div><div class="ml">Entregues</div></div>
+      <div class="met-box"><div class="mv" style="color:${pctConformes>=90?'var(--green)':pctConformes>=70?'var(--yellow)':'var(--red)'}">${pctConformes}%</div><div class="ml">Viagens c/ CAF</div></div>
+      <div class="met-box"><div class="mv" style="color:${semRua?'var(--red)':'var(--green)'}">${semRua}</div><div class="ml">Sem Rua</div></div>
+    </div>
+    ${pendentes.length?`<div style="margin-top:10px;border-top:1px solid var(--bd);padding-top:8px">
+      <div style="font-size:.68rem;font-weight:700;color:var(--red);margin-bottom:5px">⚠ ${pendentes.length} CAF(s) pendente(s) — viagem finalizada mas CAF sem baixa</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;font-size:.63rem">
+        ${pendentes.map(c=>{const op=data.find(o=>o.id===c.opId);return`<span style="background:var(--red2);color:var(--red);border:1px solid var(--red);border-radius:4px;padding:2px 7px;font-weight:700">${esc(c.num)} → ${esc(c.status)} (viagem ${esc(op?.id||c.opId)} ${op?stObj(op.status).lb:''})</span>`;}).join('')}
+      </div>
+    </div>`:''}`;
+  })()}
 </div>
 <div class="an-card">
   <h3>🚛 Volume por Transportadora</h3>
@@ -5409,6 +5693,10 @@ function quickStatus(opId, newStatus, event){
   event.stopPropagation();
   if(isReadOnly()){showToast('⛔ Sem permissão','err');return;}
   const op=ops.find(o=>o.id===opId);if(!op)return;
+  // REGRA: Viagem NÃO pode ir pra Em Trânsito sem CAF vinculada
+  if(newStatus==='TRAN'&&(!op.cafs||!op.cafs.length)){
+    showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');return;
+  }
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
   op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
