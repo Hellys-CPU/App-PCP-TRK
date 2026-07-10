@@ -1514,8 +1514,11 @@ async function saveToSupabase(op){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')){showToast('Sem permissão para editar','err');return;}
   if(!supabaseOK)return;
   const now=new Date().toISOString();
-  // Sanitiza horários — garante formato HH:MM (remove datetime completo se vier)
-  const _hh=(v)=>{if(!v)return null;const m=String(v).match(/(\d{2}:\d{2})/);return m?m[1]:null;};
+  // Sanitiza horários — mantém data+hora completa quando disponível (datetime-local),
+  // só cai para HH:MM puro em valores legados que não têm data.
+  // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
+  // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
+  const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
   const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
