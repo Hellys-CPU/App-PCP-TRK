@@ -2419,12 +2419,11 @@ function _quickStatusBtns(op){
 }
 function _cafAlertBadge(op){
   if(!op.cafs || !op.cafs.length)return'';
-  const cafsDaOp = cafsDB.filter(c=>c.opId===op.id);
+  const cafsDaOp = cafsDB.filter(c=>c.op_id===op.id);
   if(!cafsDaOp.length)return'';
-  const okProcesso = ['Processo de Entrega','Entrega Realizada'];
   if(op.status==='TRAN'){
-    const semProcesso=cafsDaOp.filter(c=>!okProcesso.includes(c.status));
-    if(semProcesso.length)return'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ processo</span>';
+    const semProcesso=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
+    if(semProcesso.length)return'<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;animation:pulse 1.5s infinite">⚠️ CAF s/ proc. entrega</span>';
   }
   if(op.status==='FIN'){
     const semBaixa=cafsDaOp.filter(c=>c.status!=='Entrega Realizada');
