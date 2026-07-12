@@ -7,6 +7,9 @@
 <meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
 <meta name="theme-color" content="#cc0000"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="TRK PCP"/>
@@ -1681,6 +1684,11 @@ function renderOnlineLocal(){
 // ══════════════════════════════════════════════════════════════════
 // PWA
 // ══════════════════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW não registrado:',e));
+  });
+}
 let pwaInstallEvent=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();pwaInstallEvent=e;
@@ -1697,7 +1705,7 @@ function installPWA(){
   pwaInstallEvent.prompt();
   pwaInstallEvent.userChoice.then(r=>{if(r.outcome==='accepted')showToast('✅ Instalando...','ok');pwaInstallEvent=null;});
 }
-// SW e Manifest: adicione manifest.json + sw.js estaticos ao repo para PWA funcional no GitHub Pages
+// SW e Manifest: manifest.json + sw.js prontos — subir junto do index.html no repo
 
 // ══════════════════════════════════════════════════════════════════
 // AUTH + USUÁRIOS
