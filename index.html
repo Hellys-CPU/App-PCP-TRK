@@ -260,7 +260,7 @@ body.dark .ci .val{color:var(--gray2);}
 .ct{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--bd);}
 .tb .tl{font-size:.58rem;color:var(--t3);margin-bottom:1px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
 .tb .tv{font-size:.7rem;font-weight:700;}
-.tv-p{color:var(--t2);}.tv-ok{color:var(--green);}.tv-w{color:#d97706;}.tv-l{color:var(--red);}.tv-nd{color:var(--t3);}
+.tv-p{color:var(--t2);}.tv-otimo{color:var(--green);}.tv-bom{color:#84cc16;}.tv-atencao{color:#d97706;}.tv-alerta{color:#f97316;}.tv-critico{color:var(--red);}.tv-nd{color:var(--t3);}
 .ab{background:var(--red4);color:var(--red);border:1px solid #fca5a5;font-size:.59rem;padding:2px 5px;border-radius:3px;margin-top:3px;display:inline-block;font-weight:600;}
 .live-timer{font-size:.64rem;color:var(--orange);font-weight:700;margin-top:3px;display:flex;align-items:center;gap:3px;}
 .countdown{font-size:.64rem;color:var(--blue);font-weight:700;margin-top:3px;}
@@ -300,9 +300,11 @@ body.dark .countdown{color:#58a6ff;}
 .fgrid.c1{grid-template-columns:1fr;}
 .sec{font-size:.63rem;text-transform:uppercase;letter-spacing:1px;color:var(--t2);border-bottom:2px solid var(--red3);padding-bottom:5px;margin:13px 0 9px;font-weight:700;}
 .db{font-size:.7rem;padding:3px 7px;border-radius:5px;display:inline-block;font-weight:600;}
-.db-ok{background:var(--green2);color:var(--green3);}
-.db-warn{background:var(--yellow2);color:var(--yellow3);}
-.db-late{background:var(--red4);color:var(--red);}
+.db-otimo{background:var(--green2);color:var(--green3);}
+.db-bom{background:#84cc1622;color:#84cc16;}
+.db-atencao{background:var(--yellow2);color:var(--yellow3);}
+.db-alerta{background:#f9731622;color:#f97316;}
+.db-critico{background:var(--red4);color:var(--red);}
 .caf-row{background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:9px;display:grid;grid-template-columns:1fr 1fr 80px auto;gap:7px;align-items:end;}
 .crm{background:var(--red3);border:1.5px solid #fca5a5;color:var(--red);border-radius:var(--rs);padding:4px 7px;cursor:pointer;font-size:.75rem;font-weight:600;}
 .crm:hover{background:var(--red);color:#fff;}
@@ -347,9 +349,11 @@ tbody td{padding:6px 8px;vertical-align:middle;white-space:nowrap;}
 .tp .trl{font-size:.7rem;font-weight:700;}
 .trl-ok{color:var(--green);}.trl-w{color:#d97706;}.trl-l{color:var(--red);}.trl-nd{color:var(--t3);}
 .dp{display:inline-block;padding:1px 5px;border-radius:3px;font-size:.58rem;font-weight:700;margin-top:1px;}
-.dp-ok{background:var(--green2);color:var(--green3);}
-.dp-w{background:var(--yellow2);color:var(--yellow3);}
-.dp-l{background:var(--red4);color:var(--red);}
+.dp-otimo{background:var(--green2);color:var(--green3);}
+.dp-bom{background:#84cc1622;color:#84cc16;}
+.dp-atencao{background:var(--yellow2);color:var(--yellow3);}
+.dp-alerta{background:#f9731622;color:#f97316;}
+.dp-critico{background:var(--red4);color:var(--red);}
 .fup-sep td{background:var(--red3);border-top:2px solid var(--red);border-bottom:1px solid var(--bd);padding:5px 10px;font-weight:700;font-size:.7rem;color:var(--red);}
 body.dark .fup-sep td{color:#e6edf3;}
 .fup-sep .rsi{color:var(--t2);font-weight:500;font-size:.63rem;margin-left:8px;}
@@ -559,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div class="view active" id="view-painel">
   <div class="kpi-bar" id="kpiBar"></div>
   <div class="toolbar">
-    <input id="sQ" placeholder="🔍 ID, placa, motorista, SM..."/>
+    <input id="sQ" placeholder="🔍 VG, ID, placa, motorista, SM..."/>
     <select id="fRo" onchange="render()"><option value="">Todas as Rotas</option></select>
     <select id="fSt" onchange="render()"><option value="">Todos os Status</option></select>
     <select id="fTr" onchange="render()"><option value="">Todas as Transportadoras</option></select>
@@ -589,7 +593,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- LISTA -->
 <div class="view" id="view-lista">
   <div class="toolbar">
-    <input id="lQ" placeholder="🔍 ID, placa, motorista, SM..." oninput="renderList()" style="width:190px"/>
+    <input id="lQ" placeholder="🔍 VG, ID, placa, motorista, SM..." oninput="renderList()" style="width:190px"/>
     <input type="date" id="lFData" onchange="renderList()" title="Filtrar por data"/>
     <div class="sp"></div>
     <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
@@ -711,7 +715,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <select id="ffStatus" onchange="renderFUP()"><option value="">Todos os Status</option></select>
     <select id="ffSLA" onchange="renderFUP()"><option value="">Todos SLAs</option><option value="ok">✔ No Prazo</option><option value="late">✘ Atrasado</option><option value="nd">— Sem info</option></select>
     <input type="date" id="ffData" onchange="renderFUP()" title="Filtrar por data"/>
-    <input id="ffBusca" placeholder="🔍 Placa, motorista..." oninput="renderFUP()" style="width:160px"/>
+    <input id="ffBusca" placeholder="🔍 VG, placa, motorista..." oninput="renderFUP()" style="width:160px"/>
     <div class="sp"></div>
     <span id="fupCnt" style="font-size:.68rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="fupGrouped=!fupGrouped;renderFUP()">⊞</button>
@@ -727,7 +731,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div class="view" id="view-caf">
   <div style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span style="font-size:.8rem;font-weight:700;color:var(--green)">📦 Banco de CAFs</span>
-    <input id="cafBusca" placeholder="🔍 CAF, destino, operação, placa, motorista..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:230px;"/>
+    <input id="cafBusca" placeholder="🔍 VG, CAF, destino, operação, placa, motorista..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:230px;"/>
     <div class="sp"></div>
     <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
@@ -2187,8 +2191,8 @@ const toTime=v=>v?(v.includes('T')?v.split('T')[1].substring(0,5):v.substring(0,
 const toDate=v=>v?(v.includes('T')?v.split('T')[0]:null):null;
 const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);if(pa==null||pb==null)return null;let d=pb-pa;if(d<-720)d+=1440;if(d>720)d-=1440;return d;};
 const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
-const dCls=d=>d===null?'':d>(CFG.limiteAtraso||30)?'late':d>0?'warn':'ok';
-const tvCls=d=>d===null?'tv-nd':d>(CFG.limiteAtraso||30)?'tv-l':d>0?'tv-w':'tv-ok';
+const dCls=d=>{if(d===null)return'';const s=_otScore(Math.max(0,d));if(s>=100)return'otimo';if(s>=90)return'bom';if(s>=80)return'atencao';if(s>=60)return'alerta';return'critico';};
+const tvCls=d=>{if(d===null)return'tv-nd';const s=_otScore(Math.max(0,d));if(s>=100)return'tv-otimo';if(s>=90)return'tv-bom';if(s>=80)return'tv-atencao';if(s>=60)return'tv-alerta';return'tv-critico';};
 
 function loading(on){const b=document.getElementById('loadBar');if(!b)return;b.style.width=on?'70%':'100%';if(!on)setTimeout(()=>b.style.width='0',300);}
 function showToast(msg,type='ok'){const el=document.getElementById('toast');if(!el)return;el.textContent=msg;el.className='toast '+type+' show';clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3000);}
@@ -2368,7 +2372,7 @@ function getFilt(){
     if(fR&&o.rota!==fR)return false;if(fS&&o.status!==fS)return false;
     if(fT&&o.transp!==fT)return false;if(fTp&&o.tipoCarga!==fTp)return false;
     if(fD&&o.dataOp!==fD)return false;
-    if(q){const h=[o.id,o.placa,o.mot,o.sm,o.tms,o.isa,...o.cafs.map(c=>c.num)].join('|').toLowerCase();if(!h.includes(q))return false;}
+    if(q){const h=[o.id,o.codigoCurto,o.placa,o.mot,o.sm,o.tms,o.isa,...o.cafs.map(c=>c.num)].join('|').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
 }
@@ -2469,6 +2473,12 @@ function cardHTML(op){
     ${countdown(op)}
     ${CFG.alertas&&dS!==null&&dS>0?`<span class="ab">⚠ Saída ${fDiff(dS)}</span>`:''}
     ${CFG.alertas&&dC!==null&&dC>0?`<span class="ab">⚠ FC ${fDiff(dC)}</span>`:''}
+    ${(()=>{
+      const otS=dS!==null?_otScore(Math.max(0,dS)):null;
+      const otC=dC!==null?_otScore(Math.max(0,dC)):null;
+      const otV=(otS!==null&&otC!==null)?Math.round((otS+otC)/2):(otS??otC);
+      return otV!==null?`<span class="ab" style="background:${_otCor(otV)}22;color:${_otCor(otV)};border:1px solid ${_otCor(otV)}66">OT ${otV}%</span>`:'';
+    })()}
     ${tempoNoStatus(op)}
     ${_quickStatusBtns(op)}
   </div>`;
@@ -2503,7 +2513,7 @@ function getListFilt(){
     if(fT&&o.transp!==fT)return false;
     if(fTp&&o.tipoCarga!==fTp)return false;
     if(fD&&o.dataOp!==fD)return false;
-    if(q){const h=[o.id,o.placa,o.mot,o.sm,o.tms,o.rota,o.transp].join('|').toLowerCase();if(!h.includes(q))return false;}
+    if(q){const h=[o.id,o.codigoCurto,o.placa,o.mot,o.sm,o.tms,o.rota,o.transp].join('|').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
 }
@@ -2553,12 +2563,20 @@ function _gerarExtracaoCompleta(){
 
   opsDia.sort((a,b)=>a.dataOp.localeCompare(b.dataOp)||a.rota.localeCompare(b.rota));
   const linhas=opsDia.map(op=>{
-    // CAFs vinculadas — cruza com o banco de CAFs pra pegar status/vencimento reais
-    const cafsDetalhe=(op.cafs||[]).map(cRef=>{
-      const cFull=cafsDB.find(c=>c.num===cRef.num);
-      if(cFull)return `${cFull.num} (${cFull.status}${cFull.venc?', venc. '+fmtD(cFull.venc):''})`;
-      return `${cRef.num||'—'} (manual)`;
-    }).join(' | ');
+    // CAFs vinculadas — cruza dos DOIS lados (op.cafs[] E cafsDB.opId) pra nunca perder vínculo
+    // (algumas CAFs foram vinculadas só do lado da CAF, sem refletir no array da viagem)
+    const cafsDoBanco=cafsDB.filter(c=>c.opId===op.id||(op.cafs||[]).some(x=>x.num===c.num));
+    const numsDoBanco=new Set(cafsDoBanco.map(c=>c.num));
+    const cafsManual=(op.cafs||[]).filter(cRef=>cRef.num&&!numsDoBanco.has(cRef.num))
+      .map(cRef=>({num:cRef.num,status:'manual (fora do banco)',vol:cRef.qtd||0,pallets:0,venc:''}));
+    const cafsReal=[...cafsDoBanco,...cafsManual];
+    const cafsNumeros=cafsReal.map(c=>c.num).join(' | ')||'—';
+    const cafsStatusTxt=cafsReal.map(c=>c.status).join(' | ')||'—';
+    const cafsVencimentos=cafsReal.map(c=>c.venc?fmtD(c.venc):'—').join(' | ')||'—';
+    const cafsPalletsDetalhe=cafsReal.map(c=>c.pallets||0).join(' | ')||'—';
+    const cafsVolumeDetalhe=cafsReal.map(c=>c.vol||0).join(' | ')||'—';
+    const totalPallets=cafsReal.reduce((s,c)=>s+(Number(c.pallets)||0),0);
+    const totalVolume=cafsReal.reduce((s,c)=>s+(Number(c.vol)||0),0);
 
     // Ocorrências registradas na viagem
     const ocorrTxt=(op.ocorr||[]).map(o=>`${o.tipo}: ${o.desc||''} [${o.ts||''} - ${o.user||''}]`).join(' | ');
@@ -2574,7 +2592,7 @@ function _gerarExtracaoCompleta(){
 
     return{
       'ID':op.id,
-      'Código Curto':op.codigoCurto||'',
+      'Código Curto (VG)':op.codigoCurto||'',
       'Data':fmtD(op.dataOp),
       'Rota':op.rota||'',
       'Tipo Carga':op.tipoCarga||'',
@@ -2596,7 +2614,13 @@ function _gerarExtracaoCompleta(){
       'Δ FC (min)':dC??'',
       'Descarga Real':op.realDescarga?`${fmtD(op.dataOp)} ${op.realDescarga}`:'',
       'Qtd. CAFs':(op.cafs||[]).length,
-      'CAFs Vinculadas':cafsDetalhe||'—',
+      'CAF(s) — Número':cafsNumeros,
+      'CAF(s) — Status':cafsStatusTxt,
+      'CAF(s) — Vencimento':cafsVencimentos,
+      'CAF(s) — Pallets (por CAF)':cafsPalletsDetalhe,
+      'CAF(s) — Volume (por CAF)':cafsVolumeDetalhe,
+      'Total Pallets':totalPallets,
+      'Total Volume':totalVolume,
       'Ocorrências':ocorrTxt||'—',
       'Observações':op.obs||'',
       'Histórico Completo':histTxt||'—',
@@ -2607,9 +2631,11 @@ function _gerarExtracaoCompleta(){
   const ws=XLSX.utils.json_to_sheet(linhas);
   // Largura de colunas — dá espaço extra pras colunas de texto longo
   ws['!cols']=[
-    {wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
-    {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:9},{wch:9},{wch:9},{wch:9},
-    {wch:9},{wch:9},{wch:9},{wch:9},{wch:10},{wch:8},{wch:35},{wch:35},{wch:30},{wch:50},{wch:18}
+    {wch:12},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:12},{wch:16},{wch:12},{wch:16},
+    {wch:9},{wch:12},{wch:16},{wch:9},{wch:16},{wch:8},
+    {wch:22},{wch:22},{wch:16},{wch:16},{wch:16},{wch:10},{wch:10},
+    {wch:35},{wch:30},{wch:50},{wch:18}
   ];
   const wb=XLSX.utils.book_new();
   const nomeArquivo=dataDe===dataAte?dataDe:`${dataDe}_a_${dataAte}`;
@@ -2675,7 +2701,7 @@ function renderList(){
   const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=data.length+' op.';
   document.getElementById('listBody').innerHTML=data.map((op,i)=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
-    const dc=d=>d===null?'var(--t2)':d>0?'var(--red)':'var(--green)';
+    const dc=d=>d===null?'var(--t2)':_otCor(_otScore(Math.max(0,d)));
     return `<tr onclick="openEdit('${esc(op.id)}')">
       <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}${op.codigoCurto?`<div style="color:var(--t2);font-weight:600;font-size:.6rem">${esc(op.codigoCurto)}</div>`:''}</td><td>${fmtD(op.dataOp)}</td>
       <td>${op.planApres||'—'}</td>
@@ -2802,7 +2828,7 @@ function renderProg(){
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:.9rem;font-weight:800;color:var(--red);cursor:pointer" onclick="openEdit('${esc(op.id)}')">${esc(op.id)}</div>
+            <div style="font-size:.9rem;font-weight:800;color:var(--red);cursor:pointer" onclick="openEdit('${esc(op.id)}')">${esc(op.codigoCurto||op.id)}</div>
             <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)} · ${esc(op.transp)||'—'}</div>
           </div>
           <span style="background:${stCor}22;color:${stCor};border:1px solid ${stCor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${stObj(op.status).lb}</span>
@@ -2901,7 +2927,7 @@ function getFUPFilt(){
   const fR=document.getElementById('ffRota')?.value||'',fS=document.getElementById('ffStatus')?.value||'',fSLA=document.getElementById('ffSLA')?.value||'';
   const fD=document.getElementById('ffData')?.value||'';
   const q=(document.getElementById('ffBusca')?.value||'').toLowerCase();
-  return ops.filter(o=>{if(fR&&o.rota!==fR)return false;if(fS&&o.status!==fS)return false;if(fSLA&&getSLA(o)!==fSLA)return false;if(fD&&o.dataOp!==fD)return false;if(q&&![o.id,o.placa,o.mot,o.sm||''].join('|').toLowerCase().includes(q))return false;return true;});
+  return ops.filter(o=>{if(fR&&o.rota!==fR)return false;if(fS&&o.status!==fS)return false;if(fSLA&&getSLA(o)!==fSLA)return false;if(fD&&o.dataOp!==fD)return false;if(q&&![o.id,o.codigoCurto,o.placa,o.mot,o.sm||''].join('|').toLowerCase().includes(q))return false;return true;});
 }
 function tpFUP(plan,real,dataOp){
   const d=dMin(plan,real),rc=d===null?'trl-nd':d>30?'trl-l':d>0?'trl-w':'trl-ok';
@@ -2913,8 +2939,13 @@ function tpFUP(plan,real,dataOp){
 }
 function fupRowCls(op){const s=getSLA(op);if(op.status==='CANC')return'fr-canc';if(s==='ok')return'fr-ok';if(s==='late')return'fr-late';if(['TRAN','EMCARR','AGUCARR'].includes(op.status))return'fr-w';return'fr-nd';}
 function fupRow(op){
-  const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC);
+  const sla=getSLA(op),dC=dMin(op.planChegFC,op.realChegFC),dS_row=dMin(op.planSaida,op.realSaida);
   const slaCell=sla==='ok'?'<span class="sla-ok">✔ No Prazo</span>':sla==='late'?'<span class="sla-late">✘ Atraso</span>':'<span class="sla-nd">—</span>';
+  // OT individual da viagem — média de OT Saída e OT Chegada
+  const otS_row=dS_row!==null?_otScore(Math.max(0,dS_row)):null;
+  const otC_row=dC!==null?_otScore(Math.max(0,dC)):null;
+  const otRow=(otS_row!==null&&otC_row!==null)?Math.round((otS_row+otC_row)/2):(otS_row??otC_row);
+  const otCell=otRow!==null?`<span style="font-weight:800;color:${_otCor(otRow)}">${otRow}%</span>`:'<span style="color:var(--t3)">—</span>';
   const espera=tempoAguardandoDescarga(op);
   // Padrão: descarga em até 2h. Acima disso é precário (fora do padrão operacional)
   const descCell=op.realDescarga
@@ -2923,7 +2954,7 @@ function fupRow(op){
       ?`<span style="color:${espera.mins>=120?'var(--red)':espera.mins>=90?'var(--yellow)':'var(--blue)'};font-weight:700" title="Aguardando descarga desde ${op.realChegFC}${espera.mins>=120?' — PRECÁRIO (acima do padrão de 2h)':''}">⏱ ${espera.txt}${espera.mins>=120?' ⚠':''}</span>`
       :'<span style="color:var(--t3)">—</span>';
   return `<tr class="${fupRowCls(op)}" onclick="openEdit('${esc(op.id)}')" style="cursor:pointer">
-    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}${op.codigoCurto?`<div style="font-size:.58rem;color:var(--t2);font-weight:600">${esc(op.codigoCurto)}</div>`:''}</td>
+    <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.codigoCurto||op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}${op.codigoCurto?`<div style="font-size:.55rem;color:var(--t3)">${esc(op.id)}</div>`:''}</td>
     <td><span class="rota-cell">${esc(op.rota)}</span></td>
     <td>${esc(op.transp)}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${esc(op.mot)}</td>
     <td><strong>${esc(op.placa)}</strong></td>
@@ -2934,6 +2965,7 @@ function fupRow(op){
     <td class="center">${descCell}</td>
     <td class="center"><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
     <td class="center">${slaCell}</td>
+    <td class="center">${otCell}</td>
   </tr>`;
 }
 // Cronômetro ao vivo: tempo aguardando descarga no FC — conta desde a Chegada FC Real
@@ -3110,10 +3142,12 @@ function _calcOT(opsArr){
   const otSaida=scoresS.length?Math.round(scoresS.reduce((a,b)=>a+b,0)/scoresS.length):null;
   const otChegada=scoresC.length?Math.round(scoresC.reduce((a,b)=>a+b,0)/scoresC.length):null;
   const otTotal=(otSaida!==null&&otChegada!==null)?Math.round((otSaida+otChegada)/2):(otSaida??otChegada);
-  return{otSaida,otChegada,otTotal,nSaida:scoresS.length,nChegada:scoresC.length};
+  // nUnico: viagens DISTINTAS avaliadas (evita contar 2x quem tem saída E chegada)
+  const idsUnicos=new Set([...comSaida.map(o=>o.id),...comChegada.map(o=>o.id)]);
+  return{otSaida,otChegada,otTotal,nSaida:scoresS.length,nChegada:scoresC.length,nUnico:idsUnicos.size};
 }
 
-function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig" style="background:var(--blue2);color:var(--blue);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">🏭 RESPONSABILIDADE TZX</td><td colspan="3" class="th-dest" style="background:var(--green2);color:var(--green);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">📦 RESPONSABILIDADE FC</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center" style="border-left:2px solid var(--blue)">Apres.</th><th class="center" style="border-right:2px solid var(--blue)">Saída TZX</th><th class="center" style="border-left:2px solid var(--green)">Cheg.FC</th><th class="center">Δ FC</th><th class="center" style="border-right:2px solid var(--green)">Desc.</th><th class="center">Status</th><th class="center">SLA</th></tr></thead><tbody>`;}
+function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig" style="background:var(--blue2);color:var(--blue);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">🏭 RESPONSABILIDADE TZX</td><td colspan="3" class="th-dest" style="background:var(--green2);color:var(--green);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">📦 RESPONSABILIDADE FC</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center" style="border-left:2px solid var(--blue)">Apres.</th><th class="center" style="border-right:2px solid var(--blue)">Saída TZX</th><th class="center" style="border-left:2px solid var(--green)">Cheg.FC</th><th class="center">Δ FC</th><th class="center" style="border-right:2px solid var(--green)">Desc.</th><th class="center">Status</th><th class="center">SLA</th><th class="center">OT</th></tr></thead><tbody>`;}
 function renderFUP(){
   const data=getFUPFilt(),c=s=>data.filter(o=>o.status===s).length;
   const fvc={red:'var(--red)',ye:'var(--yellow)',or:'var(--orange)',pu:'var(--purple)',gr:'var(--green)'};
@@ -3132,7 +3166,7 @@ function renderFUP(){
     const byR={};data.forEach(o=>(byR[o.rota]=byR[o.rota]||[]).push(o));
     Object.entries(byR).sort(([a],[b])=>a.localeCompare(b)).forEach(([rota,rows])=>{
       const fin=rows.filter(r=>getSLA(r)==='ok').length,atr=rows.filter(r=>getSLA(r)==='late').length;
-      html+=fupHead()+`<tr class="fup-sep"><td colspan="12">${rota}<span class="rsi">${rows.length} viagem(s) · ✔ ${fin} no prazo · ✘ ${atr} atrasado(s)</span></td></tr>`;
+      html+=fupHead()+`<tr class="fup-sep"><td colspan="13">${rota}<span class="rsi">${rows.length} viagem(s) · ✔ ${fin} no prazo · ✘ ${atr} atrasado(s)</span></td></tr>`;
       html+=rows.map(fupRow).join('')+'</tbody></table>';
     });
   }else{html=fupHead()+data.map(fupRow).join('')+'</tbody></table>';}
@@ -3763,8 +3797,9 @@ async function exportPPTX(){
   if(!data.length){showToast('Sem dados para exportar','err');return;}
   const total=data.length,fin=data.filter(o=>o.status==='FIN').length;
   const slaOk=data.filter(o=>getSLA(o)==='ok').length,taxaSLA=Math.round(slaOk/total*100);
-  const de=document.getElementById('aDataDe')?.value||'', ate=document.getElementById('aDataAte')?.value||'';
-  const periodo=de&&ate?`${fmtD(de)} a ${fmtD(ate)}`:de||ate||hojeLocal();
+  const de=data.map(o=>o.dataOp).filter(Boolean).sort()[0]||'';
+  const ate=data.map(o=>o.dataOp).filter(Boolean).sort().slice(-1)[0]||'';
+  const periodo=getAnaliseLabel?getAnaliseLabel():(de&&ate?`${fmtD(de)} a ${fmtD(ate)}`:hojeLocal());
 
   const pptx=new PptxGenJS();
   pptx.author='TRK PCP 2026';pptx.title=`Análise ${periodo}`;
@@ -3886,12 +3921,12 @@ function renderAnalise(){
 <div class="an-card" style="grid-column:1/-1">
   <h3>📦 KPIs de CAFs</h3>
   ${(()=>{
+    const _datasPeriodo=data.map(o=>o.dataOp).filter(Boolean).sort();
+    const _pDe=_datasPeriodo[0]||'', _pAte=_datasPeriodo[_datasPeriodo.length-1]||'';
     const cafsPeriodo=cafsDB.filter(c=>{
       if(!c.criadoEm)return false;
       const dt=c.criadoEm.slice(0,10);
-      const dDe=document.getElementById('aDataDe')?.value||'';
-      const dAte=document.getElementById('aDataAte')?.value||'';
-      if(dDe&&dt<dDe)return false;if(dAte&&dt>dAte)return false;return true;
+      if(_pDe&&dt<_pDe)return false;if(_pAte&&dt>_pAte)return false;return true;
     });
     const totalC=cafsPeriodo.length;
     const emProd=cafsPeriodo.filter(c=>c.status==='Em Produção').length;
@@ -3922,13 +3957,47 @@ function renderAnalise(){
       <div class="met-box"><div class="mv" style="color:var(--green)">${entregues}</div><div class="ml">Entregues</div></div>
       <div class="met-box"><div class="mv" style="color:${pctConformes>=90?'var(--green)':pctConformes>=70?'var(--yellow)':'var(--red)'}">${pctConformes}%</div><div class="ml">Viagens c/ CAF</div></div>
       <div class="met-box"><div class="mv" style="color:${semRua?'var(--red)':'var(--green)'}">${semRua}</div><div class="ml">Sem Rua</div></div>
-    </div>
-    ${pendentes.length?`<div style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
-      <div style="font-size:.62rem;font-weight:700;color:var(--red)">⚠ ${pendentes.length} CAF(s) pendente(s) — viagem finalizada mas CAF sem baixa</div>
-      <div style="max-height:60px;overflow-y:auto;font-size:.58rem;color:var(--t2);margin-top:3px;line-height:1.6">
-        ${pendentes.slice(0,10).map(c=>`${esc(c.num)}`).join(' · ')}${pendentes.length>10?' · +' +(pendentes.length-10)+' outras':''}
-      </div>
-    </div>`:''}`;
+    </div>`;
+  })()}
+</div>
+
+<div class="an-card" style="grid-column:1/-1;border:1.5px solid var(--red);background:rgba(220,38,38,.03)">
+  <h3 style="color:var(--red)">🚨 CAFs Pendentes — Viagem Finalizada Sem Baixa</h3>
+  ${(()=>{
+    const _dP=data.map(o=>o.dataOp).filter(Boolean).sort();
+    const _de2=_dP[0]||'', _ate2=_dP[_dP.length-1]||'';
+    const cafsPer2=cafsDB.filter(c=>{
+      if(!c.criadoEm)return false;
+      const dt=c.criadoEm.slice(0,10);
+      if(_de2&&dt<_de2)return false;if(_ate2&&dt>_ate2)return false;return true;
+    });
+    const pend2=cafsPer2.filter(c=>{
+      if(['Entrega Realizada','cancelada'].includes(c.status))return false;
+      if(!c.opId)return false;
+      const op=data.find(o=>o.id===c.opId);
+      return op&&['FIN','AGUDESC'].includes(op.status);
+    });
+    if(!pend2.length)return'<div style="text-align:center;color:var(--green);font-size:.85rem;padding:24px">✅ Nenhuma CAF pendente no período — tudo em dia!</div>';
+    return`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+      ${pend2.map(c=>{
+        const op=data.find(o=>o.id===c.opId);
+        return`<div style="background:var(--bg2);border:1.5px solid var(--red);border-radius:10px;padding:12px;cursor:pointer" onclick="openEditCAF('${c.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:1.1rem;font-weight:800;color:var(--red)">📦 ${esc(c.num)}</span>
+            <span class="badge b-ltl" style="font-size:.62rem">${esc(c.status)}</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--t2);margin-bottom:4px">Rota: <b style="color:var(--text)">${esc(c.rota)}</b></div>
+          <div style="border-top:1px solid var(--bd);margin-top:6px;padding-top:6px">
+            <div style="font-size:.62rem;color:var(--t2);text-transform:uppercase;margin-bottom:2px">🚛 Viagem pertencente</div>
+            <div style="font-size:.95rem;font-weight:800;color:var(--text)">${esc(op?.codigoCurto||c.opId)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+              <span style="font-size:.65rem;color:var(--t2)">${esc(op?.placa||'—')} · ${esc(op?.transp||'—')}</span>
+              <span class="sb sb-${op?.status||''}" style="font-size:.6rem">${op?stObj(op.status).lb:'—'}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
@@ -3943,7 +4012,7 @@ function renderAnalise(){
     return`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
       ${card('OT Saída',ot.otSaida,ot.nSaida)}
       ${card('OT Chegada',ot.otChegada,ot.nChegada)}
-      ${card('OT Total',ot.otTotal,ot.nSaida+ot.nChegada)}
+      ${card('OT Total',ot.otTotal,ot.nUnico)}
     </div>
     <div style="font-size:.6rem;color:var(--t3);line-height:1.6">
       Escala: <b style="color:var(--green)">≤30min=100%</b> · <b style="color:#84cc16">30min-1h=90%</b> · <b style="color:var(--yellow)">1h01-2h=80%</b> · <b style="color:#f97316">2h01-4h=60%</b> · <b style="color:var(--red)">acima de 4h=0%</b> · OT Total = média(OT Saída, OT Chegada)
@@ -3952,7 +4021,7 @@ function renderAnalise(){
 </div>
 
 <div class="an-card" style="grid-column:1/-1">
-  <h3>🚨 Atrasos de Saída — Pareto (piores primeiro)</h3>
+  <h3>🚨 Maiores Atrasos de Saída</h3>
   ${(()=>{
     const atrasadas=data.filter(o=>{const d=dMin(o.planSaida,o.realSaida);return d!==null&&d>30;})
       .map(o=>({...o,_d:dMin(o.planSaida,o.realSaida)}))
@@ -3978,32 +4047,41 @@ function renderAnalise(){
 <div class="an-card" style="grid-column:1/-1">
   <h3>📦 Quadro de Descarregamento</h3>
   ${(()=>{
-    const comDesc=data.filter(o=>o.realChegFC&&o.realDescarga).map(o=>{
+    const comDesc=data.filter(o=>o.realChegFC&&!['CANC','REC'].includes(o.status)).map(o=>{
       const t=tempoAguardandoDescarga(o);
-      // Pernoite: hora da descarga é numericamente menor que a de chegada = virou o dia
-      const [h1]=o.realChegFC.split(':').map(Number);
-      const [h2]=o.realDescarga.split(':').map(Number);
-      const pernoite=(h2<h1)||(t&&t.mins>=720); // heurística: cruzou meia-noite ou >12h
-      return{...o,_tempoMin:t?t.mins:0,_pernoite:pernoite};
+      const emAndamento=!o.realDescarga;
+      let pernoite=false;
+      if(!emAndamento){
+        const [h1]=o.realChegFC.split(':').map(Number);
+        const [h2]=o.realDescarga.split(':').map(Number);
+        pernoite=(h2<h1)||(t&&t.mins>=720);
+      }else{
+        pernoite=t&&t.mins>=720;
+      }
+      return{...o,_tempoMin:t?t.mins:0,_pernoite:pernoite,_emAndamento:emAndamento};
     }).sort((a,b)=>b._tempoMin-a._tempoMin);
-    if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Nenhuma descarga registrada no período</div>';
+    if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Nenhuma viagem chegou ao FC no período</div>';
+    const emAndamentoCount=comDesc.filter(o=>o._emAndamento).length;
     return`<div style="overflow-x:auto">
+    ${emAndamentoCount?`<div style="font-size:.65rem;color:var(--blue);margin-bottom:8px;font-weight:600">🔄 ${emAndamentoCount} viagem(ns) ainda aguardando descarga — tempo contando ao vivo</div>`:''}
     <table style="width:100%;font-size:.68rem;border-collapse:collapse">
       <thead><tr style="border-bottom:2px solid var(--bd);text-align:left">
         <th style="padding:5px 8px">Rota</th><th style="padding:5px 8px">Transportadora</th>
         <th style="padding:5px 8px">Placa</th><th style="padding:5px 8px">Data</th>
         <th style="padding:5px 8px">Tipo</th><th style="padding:5px 8px;text-align:center">Pernoite</th>
+        <th style="padding:5px 8px;text-align:center">Situação</th>
         <th style="padding:5px 8px;text-align:right">Tempo Descarga</th>
       </tr></thead>
       <tbody>
-        ${comDesc.slice(0,25).map(o=>`<tr style="border-bottom:1px solid var(--bg3)">
+        ${comDesc.slice(0,25).map(o=>`<tr style="border-bottom:1px solid var(--bg3);${o._emAndamento?'background:rgba(59,130,246,.05)':''}">
           <td style="padding:4px 8px"><span class="rota-cell">${esc(o.rota)}</span></td>
           <td style="padding:4px 8px">${esc(o.transp)||'—'}</td>
           <td style="padding:4px 8px;font-weight:700">${esc(o.placa)||'—'}</td>
           <td style="padding:4px 8px;color:var(--t2)">${fmtD(o.dataOp)}</td>
           <td style="padding:4px 8px"><span class="badge ${tCls(o.tipoCarga)}">${esc(o.tipoCarga)}</span></td>
           <td style="padding:4px 8px;text-align:center">${o._pernoite?'🌙 Sim':'—'}</td>
-          <td style="padding:4px 8px;text-align:right;font-weight:700;color:${o._tempoMin>240?'var(--red)':o._tempoMin>120?'var(--yellow)':'var(--green)'}">${Math.floor(o._tempoMin/60)}h${o._tempoMin%60>0?(o._tempoMin%60)+'min':''}</td>
+          <td style="padding:4px 8px;text-align:center">${o._emAndamento?'<span style="color:var(--blue);font-weight:700">🔄 Em andamento</span>':'<span style="color:var(--green)">✔ Finalizada</span>'}</td>
+          <td style="padding:4px 8px;text-align:right;font-weight:700;color:${o._tempoMin>240?'var(--red)':o._tempoMin>120?'var(--yellow)':'var(--green)'}">${Math.floor(o._tempoMin/60)}h${o._tempoMin%60>0?(o._tempoMin%60)+'min':''}${o._emAndamento?' ⏱':''}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -4013,52 +4091,37 @@ function renderAnalise(){
 </div>
 
 <div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Tempo de Descarga — Pareto</h3>
+  <h3>📊 Tempo de Descarga por Viagem</h3>
   ${(()=>{
-    const comDesc=data.filter(o=>o.realChegFC&&o.realDescarga).map(o=>{
+    const comDesc=data.filter(o=>o.realChegFC&&!['CANC','REC'].includes(o.status)).map(o=>{
       const t=tempoAguardandoDescarga(o);
-      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa,transp:o.transp};
-    }).sort((a,b)=>b.mins-a.mins).slice(0,15);
+      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa,transp:o.transp,emAndamento:!o.realDescarga};
+    }).sort((a,b)=>b.mins-a.mins).slice(0,12);
     if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Sem dados de descarga no período</div>';
     const max=comDesc[0].mins||1;
-    const totalMins=comDesc.reduce((s,d)=>s+d.mins,0);
-    let acumulado=0;
-    const chartH=180;
-    const barW=44,gap=8;
-    const pontos=comDesc.map((d,i)=>{
-      acumulado+=d.mins;
-      const pctAcum=totalMins?Math.round(acumulado/totalMins*100):0;
-      return{...d,pctAcum,x:i*(barW+gap)+barW/2};
-    });
-    const svgW=pontos.length*(barW+gap);
-    const linePath=pontos.map((p,i)=>`${i===0?'M':'L'}${p.x},${chartH-(p.pctAcum/100*chartH)}`).join(' ');
     const fmtHM=m=>{const h=Math.floor(m/60),mm=m%60;return h>0?`${h}h${mm>0?mm+'m':''}`:`${mm}m`;};
-    return`<div style="display:flex;gap:14px;align-items:center;margin-bottom:8px;font-size:.62rem;flex-wrap:wrap">
+    return`<div style="display:flex;gap:14px;margin-bottom:10px;font-size:.62rem;flex-wrap:wrap">
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:3px"></span>até 2h (padrão)</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border-radius:2px;margin-right:3px"></span>2h-4h (atenção)</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:3px"></span>acima de 4h (precário)</span>
-      <span style="color:var(--t2)">📈 linha = % acumulado (Pareto)</span>
+      <span style="color:var(--blue)">🔄 ainda em andamento</span>
     </div>
-    <div style="position:relative;overflow-x:auto;padding-bottom:6px">
-      <svg width="${svgW}" height="${chartH+15}" style="position:absolute;top:0;left:0;pointer-events:none;z-index:2">
-        <path d="${linePath}" fill="none" stroke="var(--blue)" stroke-width="2"/>
-        ${pontos.map(p=>`<circle cx="${p.x}" cy="${chartH-(p.pctAcum/100*chartH)}" r="2.5" fill="var(--blue)"/>`).join('')}
-      </svg>
-      <div style="display:flex;align-items:flex-end;gap:${gap}px;height:${chartH}px;position:relative;z-index:1">
-        ${pontos.map(d=>{
-          const h=Math.max(6,Math.round(d.mins/max*(chartH-30)));
-          const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
-          return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:${barW}px;flex-shrink:0">
-            <div style="font-size:.6rem;font-weight:700;color:${cor}">${fmtHM(d.mins)}</div>
-            <div style="width:26px;height:${h}px;background:${cor};border-radius:3px 3px 0 0" title="${esc(d.id)} · ${esc(d.placa||'—')} · ${esc(d.transp||'—')} · ${fmtHM(d.mins)} · ${d.pctAcum}% acumulado"></div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="display:flex;gap:${gap}px;margin-top:4px">
-        ${pontos.map(d=>`<div style="width:${barW}px;flex-shrink:0;text-align:center;font-size:.56rem;color:var(--t2);font-weight:600">${esc(d.id)}</div>`).join('')}
-      </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${comDesc.map(d=>{
+        const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
+        const pct=Math.round(d.mins/max*100);
+        return`<div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;font-size:.62rem;color:var(--t2);flex-shrink:0;font-weight:600">${esc(d.id)}${d.emAndamento?' 🔄':''}</div>
+          <div style="flex:1;background:var(--bg3);border-radius:4px;height:20px;position:relative;overflow:hidden">
+            <div style="background:${cor};height:100%;width:${pct}%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">
+              <span style="font-size:.6rem;font-weight:700;color:#fff;white-space:nowrap">${fmtHM(d.mins)}</span>
+            </div>
+          </div>
+          <div style="width:130px;font-size:.6rem;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.placa||'')} · ${esc(d.transp||'')}">${esc(d.placa||'—')} · ${esc(d.transp||'—')}</div>
+        </div>`;
+      }).join('')}
     </div>
-    <div style="font-size:.58rem;color:var(--t3);margin-top:6px">Barras ordenadas do maior pro menor tempo de descarga. A linha azul mostra o % acumulado — onde ela cruza 80% mostra quais viagens concentram a maior parte do problema (regra 80/20).</div>`;
+    <div style="font-size:.58rem;color:var(--t3);margin-top:8px">Viagens ordenadas da maior pra menor tempo de descarga no período selecionado.</div>`;
   })()}
 </div>
 <div class="an-card">
@@ -4614,7 +4677,7 @@ function openEditCAF(id){
     const op=ops.find(o=>o.id===c.opId);
     vincEl.style.display='';
     document.getElementById('cafOpVincInfo').innerHTML=op
-      ?`<strong style="color:var(--red)">${esc(op.id)}</strong> · ${esc(op.rota)} · ${esc(op.transp)||'—'} · ${fmtD(op.dataOp)}`
+      ?`<strong style="color:var(--red);font-size:.95rem">${esc(op.codigoCurto||op.id)}</strong><span style="color:var(--t3);font-size:.62rem"> (${esc(op.id)})</span> · ${esc(op.rota)} · ${esc(op.transp)||'—'} · ${fmtD(op.dataOp)}`
       :`Operação ${c.opId} (não encontrada no período atual)`;
   }else{vincEl.style.display='none';}
   // Histórico
@@ -4812,7 +4875,7 @@ async function _vincularCAF(cafId,op){
   await loadRuas();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
-  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.id)}`,'ok');
+  showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.codigoCurto||op.id)}`,'ok');
 }
 
 function exportCAFs(){
@@ -6069,7 +6132,7 @@ function renderTVYard(){
       return`<div style="background:var(--bg2);border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:1rem;font-weight:800;color:var(--text)">${esc(op.id)}</div>
+            <div style="font-size:1rem;font-weight:800;color:var(--text)">${esc(op.codigoCurto||op.id)}</div>
             <div style="font-size:.7rem;color:var(--t2);margin-top:1px">${esc(op.rota)} · ${esc(op.tipoCarga)}</div>
           </div>
         </div>
@@ -6294,7 +6357,7 @@ function _renderMapaDoca(){
       <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${nome}</div>
       ${op?`
         <div style="font-size:.65rem;font-weight:700;color:${op.status==='EMCARR'?'var(--orange)':'var(--blue)'};margin-bottom:3px">${statusLabel}</div>
-        <div style="font-size:.8rem;font-weight:800;color:${cor}">${esc(op.id)}</div>
+        <div style="font-size:.8rem;font-weight:800;color:${cor}">${esc(op.codigoCurto||op.id)}</div>
         <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)}</div>
         <div style="font-size:.62rem;color:var(--t2)">${esc(op.placa)||'—'}</div>
         ${t!==null?`<div style="font-size:.65rem;color:${alerta?'var(--red)':'var(--t2)'};margin-top:4px;font-weight:${alerta?700:400}">🕐 ${t>59?Math.floor(t/60)+'h '+t%60+'min':t+'min'}${alerta?' ⚠':''}</div>`:''}
@@ -7234,7 +7297,7 @@ async function _iniciarTurno(){
       currentUser._turnoNome=nome;
       currentUser.nome=nome+' ('+d.turno+')';
       document.getElementById('overlayTurno').classList.remove('open');
-      const av=document.getElementById('uAvatar');if(av)av.textContent=nome.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+      const av=document.getElementById('uAv');if(av)av.textContent=nome.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
       const nm=document.getElementById('uName');if(nm)nm.textContent=nome;
       showToast('✅ Turno iniciado: '+nome+' ('+d.turno+')','ok');
     }else{showToast('Erro: '+(d?.erro||'desconhecido'),'err');}
