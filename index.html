@@ -2971,13 +2971,18 @@ function fupRow(op){
 // Cronômetro ao vivo: tempo aguardando descarga no FC — conta desde a Chegada FC Real
 // até agora (se ainda não descarregou) ou até a Descarga Real (se já finalizou)
 function tempoAguardandoDescarga(op){
-  if(!op.realChegFC)return null;
-  const [h1,m1]=op.realChegFC.split(':').map(Number);
+  if(!op.realChegFC||!op.dataOp)return null;
+  const hChegFC=toTime(op.realChegFC); // normaliza — aceita "HH:MM" ou "YYYY-MM-DDTHH:MM"
+  if(!hChegFC)return null;
+  const [h1,m1]=hChegFC.split(':').map(Number);
+  if(isNaN(h1)||isNaN(m1))return null;
   const inicio=new Date(op.dataOp+'T00:00:00');
   inicio.setHours(h1,m1,0,0);
   let fim;
   if(op.realDescarga){
-    const [h2,m2]=op.realDescarga.split(':').map(Number);
+    const hDesc=toTime(op.realDescarga);
+    const [h2,m2]=hDesc.split(':').map(Number);
+    if(isNaN(h2)||isNaN(m2))return null;
     fim=new Date(op.dataOp+'T00:00:00');
     fim.setHours(h2,m2,0,0);
     if(fim<inicio)fim.setDate(fim.getDate()+1); // virou o dia
@@ -2985,7 +2990,7 @@ function tempoAguardandoDescarga(op){
     fim=new Date(); // ao vivo — conta até agora
   }
   const mins=Math.round((fim-inicio)/60000);
-  if(mins<0)return null;
+  if(isNaN(mins)||mins<0)return null;
   const h=Math.floor(mins/60),m=mins%60;
   return{mins,txt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,finalizado:!!op.realDescarga};
 }
@@ -4051,21 +4056,25 @@ function renderAnalise(){
       const t=tempoAguardandoDescarga(o);
       const emAndamento=!o.realDescarga;
       let pernoite=false;
-      if(!emAndamento){
-        const [h1]=o.realChegFC.split(':').map(Number);
-        const [h2]=o.realDescarga.split(':').map(Number);
-        pernoite=(h2<h1)||(t&&t.mins>=720);
-      }else{
-        pernoite=t&&t.mins>=720;
+      if(t){
+        const hChg=toTime(o.realChegFC),hDsc=emAndamento?null:toTime(o.realDescarga);
+        const h1=parseInt(hChg,10);
+        if(!emAndamento){
+          const h2=parseInt(hDsc,10);
+          pernoite=(!isNaN(h1)&&!isNaN(h2)&&h2<h1)||t.mins>=720;
+        }else{
+          pernoite=t.mins>=720;
+        }
       }
-      return{...o,_tempoMin:t?t.mins:0,_pernoite:pernoite,_emAndamento:emAndamento};
-    }).sort((a,b)=>b._tempoMin-a._tempoMin);
+      return{...o,_tempoMin:t?t.mins:null,_pernoite:pernoite,_emAndamento:emAndamento};
+    }).filter(o=>o._tempoMin!==null).sort((a,b)=>b._tempoMin-a._tempoMin);
     if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Nenhuma viagem chegou ao FC no período</div>';
     const emAndamentoCount=comDesc.filter(o=>o._emAndamento).length;
     return`<div style="overflow-x:auto">
     ${emAndamentoCount?`<div style="font-size:.65rem;color:var(--blue);margin-bottom:8px;font-weight:600">🔄 ${emAndamentoCount} viagem(ns) ainda aguardando descarga — tempo contando ao vivo</div>`:''}
     <table style="width:100%;font-size:.68rem;border-collapse:collapse">
       <thead><tr style="border-bottom:2px solid var(--bd);text-align:left">
+        <th style="padding:5px 8px">VG</th>
         <th style="padding:5px 8px">Rota</th><th style="padding:5px 8px">Transportadora</th>
         <th style="padding:5px 8px">Placa</th><th style="padding:5px 8px">Data</th>
         <th style="padding:5px 8px">Tipo</th><th style="padding:5px 8px;text-align:center">Pernoite</th>
@@ -4073,7 +4082,8 @@ function renderAnalise(){
         <th style="padding:5px 8px;text-align:right">Tempo Descarga</th>
       </tr></thead>
       <tbody>
-        ${comDesc.slice(0,25).map(o=>`<tr style="border-bottom:1px solid var(--bg3);${o._emAndamento?'background:rgba(59,130,246,.05)':''}">
+        ${comDesc.slice(0,25).map(o=>`<tr style="border-bottom:1px solid var(--bg3);${o._emAndamento?'background:rgba(59,130,246,.05)':''};cursor:pointer" onclick="openEdit('${esc(o.id)}')">
+          <td style="padding:4px 8px;font-weight:700;color:var(--red)">${esc(o.codigoCurto||o.id)}</td>
           <td style="padding:4px 8px"><span class="rota-cell">${esc(o.rota)}</span></td>
           <td style="padding:4px 8px">${esc(o.transp)||'—'}</td>
           <td style="padding:4px 8px;font-weight:700">${esc(o.placa)||'—'}</td>
@@ -4095,8 +4105,8 @@ function renderAnalise(){
   ${(()=>{
     const comDesc=data.filter(o=>o.realChegFC&&!['CANC','REC'].includes(o.status)).map(o=>{
       const t=tempoAguardandoDescarga(o);
-      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa,transp:o.transp,emAndamento:!o.realDescarga};
-    }).sort((a,b)=>b.mins-a.mins).slice(0,12);
+      return t?{id:o.codigoCurto||o.id,mins:t.mins,placa:o.placa,transp:o.transp,emAndamento:!o.realDescarga}:null;
+    }).filter(Boolean).sort((a,b)=>b.mins-a.mins).slice(0,12);
     if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Sem dados de descarga no período</div>';
     const max=comDesc[0].mins||1;
     const fmtHM=m=>{const h=Math.floor(m/60),mm=m%60;return h>0?`${h}h${mm>0?mm+'m':''}`:`${mm}m`;};
