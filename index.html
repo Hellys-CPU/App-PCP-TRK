@@ -741,11 +741,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
     <table style="table-layout:auto;border-collapse:collapse">
       <thead><tr>
-  <th style="padding:2px;min-width:140px;max-width:150px">
-    <div onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Data Criação <span id="sc-criadoEm"></span></div>
-    <div style="display:flex;gap:2px;align-items:center">
-      <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
-      <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
+  <th style="padding:2px;min-width:82px;max-width:88px">
+    <div onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px;font-size:.68rem">Data Criação <span id="sc-criadoEm"></span></div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de (a partir de)" style="width:100%;font-size:.56rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
+      <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="width:100%;font-size:.56rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
     </div>
   </th>
   <th style="padding:2px;min-width:90px;max-width:100px">
