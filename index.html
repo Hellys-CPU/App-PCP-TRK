@@ -2087,10 +2087,17 @@ async function confirmEditUser(){
   if(pw)dados.senha_sha256=await h256(pw);
   if(trocouLogin)dados.novo_login=novoLogin;
 
-  // Salva permissões customizadas diretamente na tabela (bypass RPC pra não complicar)
+  // Salva permissões customizadas via RPC seguro (SECURITY DEFINER — não expõe tabela usuarios)
   const permsCustom=_lerPermsUI();
   try{
-    await sbUpsert('usuarios',{usuario:trocouLogin?novoLogin:_editUserTarget,permissoes_custom:permsCustom},'usuario');
+    const targetUser=trocouLogin?novoLogin:_editUserTarget;
+    const rPerm=await fetch(`${SUPABASE_URL}/rest/v1/rpc/atualizar_permissoes_usuario`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:currentUser._token,p_usuario:targetUser,p_permissoes:permsCustom})
+    });
+    const resPerm=await rPerm.json();
+    if(resPerm&&!resPerm.ok)console.warn('salvar permissoes:',resPerm.erro);
   }catch(e){console.warn('salvar permissoes_custom:',e);}
 
   try{
