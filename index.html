@@ -2446,7 +2446,7 @@ function cardHTML(op){
   const lim=CFG.limiteAtraso||30;
   const rc=CFG.alertas?(dC>lim||dS>lim?'r-late':dC>0||dS>0?'r-warn':''):'';
   return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
-    <div class="card-top"><span class="card-id">${esc(op.id)}${op.sm?' · '+op.sm:''}${op.codigoCurto?` <span style="font-weight:600;color:var(--t2);font-size:.62rem" title="Código curto">[${esc(op.codigoCurto)}]</span>`:''}</span><span class="card-rota-badge">${esc(op.rota)}</span></div>
+    <div class="card-top"><span class="card-id">${esc(op.codigoCurto||op.id)}${op.sm?' · '+op.sm:''}<span style="font-weight:500;color:var(--t3);font-size:.6rem" title="ID técnico interno"> (${esc(op.id)})</span></span><span class="card-rota-badge">${esc(op.rota)}</span></div>
     <div class="card-badges">
       <span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span>
       ${op.cafs.length?`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd)">${op.cafs.length} CAF${op.cafs.length>1?'s':''}</span>`:''}
@@ -3183,7 +3183,7 @@ function openNew(){
 editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
 function openEdit(id){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')&&!hasPerm('doca_atrelar')){showToast('Sem permissão','err');return;}
-editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+id+(op.codigoCurto?'  ['+op.codigoCurto+']':'');const isViz=isReadOnly();const isDoca=_perfil()==='doca';document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
+editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=_perfil()==='doca';document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
@@ -4013,29 +4013,52 @@ function renderAnalise(){
 </div>
 
 <div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Tempo de Descarga — Gráfico Pareto</h3>
+  <h3>📊 Tempo de Descarga — Pareto</h3>
   ${(()=>{
     const comDesc=data.filter(o=>o.realChegFC&&o.realDescarga).map(o=>{
       const t=tempoAguardandoDescarga(o);
-      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa};
+      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa,transp:o.transp};
     }).sort((a,b)=>b.mins-a.mins).slice(0,15);
     if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Sem dados de descarga no período</div>';
     const max=comDesc[0].mins||1;
-    let acumulado=0;const totalMins=comDesc.reduce((s,d)=>s+d.mins,0);
-    return`<div style="display:flex;align-items:flex-end;gap:6px;height:220px;padding:10px 0;overflow-x:auto">
-      ${comDesc.map(d=>{
-        acumulado+=d.mins;
-        const pctAcum=totalMins?Math.round(acumulado/totalMins*100):0;
-        const h=Math.max(4,Math.round(d.mins/max*160));
-        const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
-        return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:38px">
-          <div style="font-size:.55rem;color:var(--t3)">${pctAcum}%</div>
-          <div style="width:26px;height:${h}px;background:${cor};border-radius:3px 3px 0 0" title="${esc(d.id)} · ${esc(d.placa||'')} · ${Math.floor(d.mins/60)}h${d.mins%60}min"></div>
-          <div style="font-size:.52rem;color:var(--t2);writing-mode:vertical-rl;text-orientation:mixed;height:55px">${esc(d.id)}</div>
-        </div>`;
-      }).join('')}
+    const totalMins=comDesc.reduce((s,d)=>s+d.mins,0);
+    let acumulado=0;
+    const chartH=180;
+    const barW=44,gap=8;
+    const pontos=comDesc.map((d,i)=>{
+      acumulado+=d.mins;
+      const pctAcum=totalMins?Math.round(acumulado/totalMins*100):0;
+      return{...d,pctAcum,x:i*(barW+gap)+barW/2};
+    });
+    const svgW=pontos.length*(barW+gap);
+    const linePath=pontos.map((p,i)=>`${i===0?'M':'L'}${p.x},${chartH-(p.pctAcum/100*chartH)}`).join(' ');
+    const fmtHM=m=>{const h=Math.floor(m/60),mm=m%60;return h>0?`${h}h${mm>0?mm+'m':''}`:`${mm}m`;};
+    return`<div style="display:flex;gap:14px;align-items:center;margin-bottom:8px;font-size:.62rem;flex-wrap:wrap">
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:3px"></span>até 2h (padrão)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border-radius:2px;margin-right:3px"></span>2h-4h (atenção)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:3px"></span>acima de 4h (precário)</span>
+      <span style="color:var(--t2)">📈 linha = % acumulado (Pareto)</span>
     </div>
-    <div style="font-size:.58rem;color:var(--t3);margin-top:4px">Barras ordenadas do maior pro menor tempo de descarga · linha % = acumulado (Pareto)</div>`;
+    <div style="position:relative;overflow-x:auto;padding-bottom:6px">
+      <svg width="${svgW}" height="${chartH+15}" style="position:absolute;top:0;left:0;pointer-events:none;z-index:2">
+        <path d="${linePath}" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        ${pontos.map(p=>`<circle cx="${p.x}" cy="${chartH-(p.pctAcum/100*chartH)}" r="2.5" fill="var(--blue)"/>`).join('')}
+      </svg>
+      <div style="display:flex;align-items:flex-end;gap:${gap}px;height:${chartH}px;position:relative;z-index:1">
+        ${pontos.map(d=>{
+          const h=Math.max(6,Math.round(d.mins/max*(chartH-30)));
+          const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
+          return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:${barW}px;flex-shrink:0">
+            <div style="font-size:.6rem;font-weight:700;color:${cor}">${fmtHM(d.mins)}</div>
+            <div style="width:26px;height:${h}px;background:${cor};border-radius:3px 3px 0 0" title="${esc(d.id)} · ${esc(d.placa||'—')} · ${esc(d.transp||'—')} · ${fmtHM(d.mins)} · ${d.pctAcum}% acumulado"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:${gap}px;margin-top:4px">
+        ${pontos.map(d=>`<div style="width:${barW}px;flex-shrink:0;text-align:center;font-size:.56rem;color:var(--t2);font-weight:600">${esc(d.id)}</div>`).join('')}
+      </div>
+    </div>
+    <div style="font-size:.58rem;color:var(--t3);margin-top:6px">Barras ordenadas do maior pro menor tempo de descarga. A linha azul mostra o % acumulado — onde ela cruza 80% mostra quais viagens concentram a maior parte do problema (regra 80/20).</div>`;
   })()}
 </div>
 <div class="an-card">
@@ -4253,7 +4276,7 @@ async function _docaMoverParaCarregamento(opId){
   if(!doca){showToast('⚠ Selecione a doca antes de mover para Em Carregamento','err');return;}
   // Bloqueio de doca dupla (mesma regra do atribuirDocaRapido)
   const docaEmUso=ops.find(o=>o.id!==opId&&o.doca===doca&&o.status==='EMCARR'&&o.dataOp===op.dataOp);
-  if(docaEmUso){showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.id} (${docaEmUso.placa||'—'})`,'err');return;}
+  if(docaEmUso){showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.codigoCurto||docaEmUso.id} (${docaEmUso.placa||'—'})`,'err');return;}
   const who=currentUser?.nome||'Sistema';
   const prevStatus=op.status;
   op.doca=doca;op.status='EMCARR';op.updatedAt=new Date().toISOString();op.updatedBy=who;
@@ -4263,7 +4286,7 @@ async function _docaMoverParaCarregamento(opId){
   await syncCAFsStatus(op,'EMCARR',prevStatus);
   loading(false);
   closeModal();
-  showToast(`✅ ${op.id} → Doca ${doca} → Em Carregamento`,'ok');
+  showToast(`✅ ${op.codigoCurto||op.id} → Doca ${doca} → Em Carregamento`,'ok');
   addActivityLog(`${op.id}: Doca ${doca} atribuída, movida para Em Carregamento`);
 }
 
@@ -4271,7 +4294,7 @@ async function _docaAtualizarDoca(opId){
   const op=ops.find(o=>o.id===opId);if(!op)return;
   const doca=(document.getElementById('fDoca')?.value||'').trim();
   const docaEmUso=doca?ops.find(o=>o.id!==opId&&o.doca===doca&&o.status==='EMCARR'&&o.dataOp===op.dataOp):null;
-  if(docaEmUso){showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.id} (${docaEmUso.placa||'—'})`,'err');return;}
+  if(docaEmUso){showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.codigoCurto||docaEmUso.id} (${docaEmUso.placa||'—'})`,'err');return;}
   const who=currentUser?.nome||'Sistema';
   const prev=op.doca||'';
   op.doca=doca;op.updatedAt=new Date().toISOString();op.updatedBy=who;
@@ -4280,7 +4303,7 @@ async function _docaAtualizarDoca(opId){
   await saveOp(op);
   loading(false);
   closeModal();
-  showToast(doca?`✅ ${op.id} → ${doca}`:`Doca removida`,'ok');
+  showToast(doca?`✅ ${op.codigoCurto||op.id} → ${doca}`:`Doca removida`,'ok');
   addActivityLog(`${op.id}: doca atualizada por ${who}`);
 }
 // ── Zoom ajustável das telas de TV (persiste por dispositivo) ──
@@ -4506,7 +4529,7 @@ function renderCAFs(){
       <td>${c.pallets}</td>
       <td style="${vencCls(c)}">${vStr}</td>
       <td>${ruaNumeroDe(c.ruaId)?`<span style="font-weight:700;color:var(--blue)">Rua ${ruaNumeroDe(c.ruaId)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-      <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+      <td>${op?`<span style="color:var(--red);font-weight:600">${esc(op.codigoCurto||op.id)}</span> <span style="font-size:.65rem;color:var(--t2)">${esc(op.rota)}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
       <td style="font-size:.65rem;color:var(--t2)">${c.criadoPor||'—'}</td>
       <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
     </tr>`;
@@ -5377,7 +5400,7 @@ function renderTV(){
         return`<div title="${o.id} · ${o.transp||'—'} · ${toTime(o.planChegFC)||'—'}"
           style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px;cursor:default">
           <div style="font-size:1.1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
-          <div style="font-size:.45rem;color:${cor};font-weight:700;max-width:30px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.id.replace('OP-','')}</div>
+          <div style="font-size:.45rem;color:${cor};font-weight:700;max-width:30px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(o.codigoCurto||o.id).replace('VG-0','')}</div>
           ${atrasado?'<div style="font-size:.5rem;color:var(--red)">⚠</div>':''}
           ${semProc?'<div style="font-size:.5rem;color:#f59e0b">📦</div>':''}
           ${semBaixa?'<div style="font-size:.5rem;color:var(--red)">🔴</div>':''}
@@ -6595,7 +6618,7 @@ async function atribuirDocaRapido(opId, doca){
       o.dataOp===op.dataOp
     );
     if(docaEmUso){
-      showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.id} (${docaEmUso.placa||'—'})`, 'err');
+      showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.codigoCurto||docaEmUso.id} (${docaEmUso.placa||'—'})`, 'err');
       // Reseta o select para o valor anterior
       const sel=document.querySelector(`select[data-op="${opId}"]`)||
                 document.querySelector(`select[onchange*="${opId}"]`);
