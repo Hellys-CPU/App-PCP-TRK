@@ -785,7 +785,16 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </th>
   <th onclick="sortCAF('vol')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Volume <span id="sc-vol"></span></th>
   <th onclick="sortCAF('pallets')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Pallets <span id="sc-pallets"></span></th>
-  <th onclick="sortCAF('venc')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></th>
+  <th style="padding:2px">
+    <div onclick="sortCAF('venc')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></div>
+    <select id="cafFVenc" onchange="renderCAFs()" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px">
+      <option value="">Todas</option>
+      <option value="vencidas">🔴 Vencidas</option>
+      <option value="2d">Vence em 2 dias</option>
+      <option value="7d">Vence em 7 dias</option>
+      <option value="30d">Vence em 30 dias</option>
+    </select>
+  </th>
   <th>Rua</th>
   <th>Op. Vinculada</th><th>Criado por</th><th>Ações</th>
 </tr></thead>
@@ -4391,6 +4400,21 @@ function _tvZoomAdjust(key,delta){
   if(key==='trk_tv_zoom')renderTV();
   if(key==='trk_tvyard_zoom')renderTVYard();
 }
+// Tempo real desde que a CAF entrou no status atual — busca no histórico o momento exato
+// da transição (criação ou "→ Status"), com fallback pra criadoEm se não achar
+function _tempoNoStatusAtualCAF(c){
+  if(!Array.isArray(c.hist)||!c.hist.length)return c.criadoEm?new Date(c.criadoEm).getTime():Date.now();
+  const alvo=c.status;
+  // Procura de trás pra frente a entrada mais recente que documenta a entrada NESTE status
+  for(let i=c.hist.length-1;i>=0;i--){
+    const h=c.hist[i];
+    if(!h.txt)continue;
+    if(h.txt.includes(`→ ${alvo}`)||h.txt.includes(`criada (status: ${alvo})`)){
+      return h.t?new Date(h.t).getTime():(c.criadoEm?new Date(c.criadoEm).getTime():Date.now());
+    }
+  }
+  return c.criadoEm?new Date(c.criadoEm).getTime():Date.now();
+}
 function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
 
 // Supabase CAF CRUD
@@ -4440,6 +4464,8 @@ async function saveCAFToDB(caf){
     if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')||msg.includes('404')){
       showToast('❌ Tabela "cafs" não existe no Supabase. Veja o console para o SQL de criação.','err');
       console.error('CRIAR TABELA NO SUPABASE:\n\nCREATE TABLE cafs (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  num_caf text NOT NULL,\n  tipo text,\n  rota text,\n  volume int DEFAULT 0,\n  pallets numeric DEFAULT 0,\n  vencimento date,\n  status text DEFAULT \'aberta\',\n  op_id text,\n  obs text,\n  criado_por text,\n  criado_em timestamptz DEFAULT now()\n);');
+    }else if(msg.includes('uq_cafs_num_caf')||msg.includes('duplicate key')||msg.includes('23505')){
+      showToast(`⛔ CAF ${caf.num} já existe no sistema — número não pode se repetir`,'err');
     }else if(msg.includes('JWT')||msg.includes('401')||msg.includes('403')){
       showToast('❌ Sem permissão no Supabase. Verifique as policies RLS da tabela cafs.','err');
     }else{
@@ -4542,12 +4568,21 @@ function renderCAFs(){
   const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
   const fDataDe=document.getElementById('cafFDataDe')?.value||'';
   const fDataAte=document.getElementById('cafFDataAte')?.value||'';
+  const fVenc=document.getElementById('cafFVenc')?.value||'';
+  const hojeV=hojeLocal();
   const data=cafsDB.filter(c=>{
     if(fRota&&c.rota!==fRota)return false;
     if(fTipo&&c.tipo!==fTipo)return false;
     if(fStatusList.length&&!fStatusList.includes(c.status))return false;
     if(fDataDe&&(!c.criadoEm||c.criadoEm.slice(0,10)<fDataDe))return false;
     if(fDataAte&&(!c.criadoEm||c.criadoEm.slice(0,10)>fDataAte))return false;
+    if(fVenc){
+      if(!c.venc)return false;
+      if(fVenc==='vencidas'&&c.venc>=hojeV)return false;
+      if(fVenc==='2d'){const lim=dateLocal(new Date(Date.now()+2*86400000));if(c.venc<hojeV||c.venc>lim)return false;}
+      if(fVenc==='7d'){const lim=dateLocal(new Date(Date.now()+7*86400000));if(c.venc<hojeV||c.venc>lim)return false;}
+      if(fVenc==='30d'){const lim=dateLocal(new Date(Date.now()+30*86400000));if(c.venc<hojeV||c.venc>lim)return false;}
+    }
     if(q){
       const op=c.opId?ops.find(o=>o.id===c.opId):null;
       const hay=[c.num,c.rota,c.obs,op?.id,op?.codigoCurto,op?.placa,op?.mot,op?.sm,op?.tms,op?.transp].filter(Boolean).join('|').toLowerCase();
@@ -4705,6 +4740,9 @@ function openEditCAF(id){
 function closeCAFModal(){document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;}
 
 async function saveCAF(){
+  // Trava de duplo-clique — evita criar CAF duplicada por clique duplo/rápido
+  const btnSalvarCAF=document.querySelector('#overlayCAF .btn-s');
+  if(btnSalvarCAF){if(btnSalvarCAF.disabled)return;btnSalvarCAF.disabled=true;setTimeout(()=>{if(btnSalvarCAF)btnSalvarCAF.disabled=false;},2500);}
   const perfilPermitido=['admin','supervisor','operador_caf','torre_controle'].includes(_perfil());
   if(!perfilPermitido){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
   const num=(document.getElementById('cafNum')?.value||'').trim();
@@ -4732,14 +4770,17 @@ async function saveCAF(){
     }
   }
   if(hist.length>50)hist.splice(0,hist.length-50);
-  // Nova regra: a rua só é liberada quando a CAF chega em "Processo de Entrega"
+  // Regra: a rua é liberada quando a CAF sai do fluxo ativo (Processo de Entrega, Entrega Realizada ou Cancelada)
+  // Corrige bug de "rua fantasma": antes só liberava em Processo de Entrega — se pulasse direto pra
+  // Entrega Realizada (sem passar por Processo de Entrega), a rua ficava presa pra sempre.
   let ruaFinal=ruaEscolhida?Number(ruaEscolhida):null;
   const ruaAntigaId=existente?existente.ruaId:null;
-  if(statusEscolhido==='Processo de Entrega'&&ruaAntigaId){
+  const statusLiberaRua=['Processo de Entrega','Entrega Realizada','cancelada'].includes(statusEscolhido);
+  if(statusLiberaRua&&ruaAntigaId){
     ruaFinal=null;
     try{
       await sbUpsert(TABELA_RUAS,{id:ruaAntigaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
-      hist.push({t:nowIso,txt:`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF em Processo de Entrega)`});
+      hist.push({t:nowIso,txt:`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF → ${statusEscolhido})`});
     }catch(e){console.warn('liberar rua em Processo de Entrega:',e);}
   }
   const caf={
@@ -5584,6 +5625,7 @@ function renderTV(){
         <div><div style="font-size:1.1rem;font-weight:800;color:${c.cor};line-height:1">${c.n}</div><div style="font-size:.56rem;color:var(--t2)">${c.s}</div></div>
       </div>`).join('')}
       ${semRua>0?`<div style="margin-left:auto;background:#2b1800;border:1px solid #f0883e;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#f0883e;font-weight:700">⚠ ${semRua} CAF(s) sem rua atribuída</div>`:''}
+      ${(()=>{const prontas=cafsDB.filter(c=>c.status==='Produzida').length;return prontas>0?`<div style="${semRua>0?'':'margin-left:auto;'}background:#052e16;border:1px solid #14b8a6;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#14b8a6;font-weight:700">✅ ${prontas} CAF(s) Produzida(s) — prontas para alocação em viagem</div>`:'';})()}
     </div>`;
   })()}
 
@@ -5600,7 +5642,8 @@ function renderTV(){
     const detalhes=ruasOcup.map(r=>{
       const c=cafsDB.find(x=>x.id===r.caf_id);
       const fc=c?_fcFromRota(c.rota):null;
-      const desde=r.atualizado_em?new Date(r.atualizado_em).getTime():agora;
+      // Tempo REAL desde que o status atual da CAF foi aplicado (não desde a atribuição da rua)
+      const desde=c?_tempoNoStatusAtualCAF(c):(r.atualizado_em?new Date(r.atualizado_em).getTime():agora);
       const horasParada=(agora-desde)/3600000;
       const pronta=c?.status==='Produzida';
       const pallets=c?.pallets||0;
@@ -5639,21 +5682,20 @@ function renderTV(){
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--yellow);margin-right:4px;vertical-align:middle"></span>20-25 pal.</span>
         <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--red);margin-right:4px;vertical-align:middle"></span>26+ pal.</span>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:flex-start">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-start">
         ${ruasDB.map(r=>{
           const d=detalhes.find(x=>x.numero===r.numero);
           const cor=d?d.cor:'var(--bg4)';
           const borda=d?d.cor:'var(--bd)';
-          const desceProduzida=d&&d.pronta?'margin-top:16px;':'';
-          return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · parada há ${d.tempoTxt} · ${esc(d.status)}`:' · livre'}"
-            style="position:relative;width:38px;height:38px;border-radius:6px;background:${d?cor+'18':'var(--bg3)'};border:1.5px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.58rem;font-weight:800;color:${d?cor:'var(--t3)'};${desceProduzida}">
-            ${d?`<span style="width:14px;height:14px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 6px ${d.corPallets};margin-bottom:1px"></span>`:''}
+          return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
+            style="position:relative;width:52px;height:52px;border-radius:8px;background:${d?cor+'18':'var(--bg3)'};border:2px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:${d?cor:'var(--t3)'}">
+            ${d?`<span style="width:16px;height:16px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 7px ${d.corPallets};margin-bottom:2px"></span>`:''}
             ${r.numero}
-            ${d&&d.pronta?'<span style="position:absolute;top:-7px;right:-6px;background:#14b8a6;color:#fff;border-radius:50%;width:15px;height:15px;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
+            ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
           </div>`;
         }).join('')}
       </div>
-      <div style="font-size:.56rem;color:var(--t3);margin-top:-8px;margin-bottom:10px">↓ <span style="color:#14b8a6;font-weight:700">✓ verde-água + descida</span> = CAF "Produzida" (pronta, aguardando veículo)</div>
+      <div style="font-size:.56rem;color:var(--t3);margin-top:-8px;margin-bottom:10px">✓ <span style="color:#14b8a6;font-weight:700">verde-água</span> = CAF "Produzida" (pronta, aguardando veículo)</div>
 
       <!-- Detalhe por FC -->
       ${fcsOrdenados.length?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
@@ -5666,7 +5708,7 @@ function renderTV(){
               <span style="font-size:.6rem;color:var(--t2)">${lista.length} rua${lista.length>1?'s':''}</span>
             </div>
             ${lista.slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;font-size:.64rem;padding:2px 0;border-top:1px solid var(--bd)">
-              <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)}</span>
+              <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)} · <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
               <span style="color:${d.cor};font-weight:700">${d.pronta?'✓ Produzida':d.tempoTxt}</span>
             </div>`).join('')}
             ${lista.length>5?`<div style="font-size:.58rem;color:var(--t3);margin-top:3px">+${lista.length-5} outras...</div>`:''}
