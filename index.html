@@ -607,6 +607,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <td colspan="2" style="background:var(--blue2);color:var(--blue);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">🏭 TZX</td>
   <td colspan="2" style="background:var(--green2);color:var(--green);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">📦 FC</td>
   <td colspan="2" style="text-align:center;padding:2px">Δ</td>
+  <td colspan="2" style="text-align:center;padding:2px;color:var(--red)">⚠ Motivo Atraso</td>
   <td></td>
 </tr>
 <tr>
@@ -637,6 +638,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <th onclick="sortList('_dS')" style="cursor:pointer;user-select:none;white-space:nowrap">Δ Saída <span id="sl-_dS"></span></th>
   <th onclick="sortList('_dC')" style="cursor:pointer;user-select:none;white-space:nowrap">Δ FC <span id="sl-_dC"></span></th>
   <th onclick="sortList('_dDoc')" style="cursor:pointer;user-select:none;white-space:nowrap">T.Doca <span id="sl-_dDoc"></span></th>
+  <th style="white-space:nowrap;font-size:.62rem">Motivo Saída</th>
+  <th style="white-space:nowrap;font-size:.62rem">Motivo Chegada</th>
   <th style="padding:2px">
     <div onclick="sortList('status')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Status <span id="sl-status"></span></div>
     <select id="lFSt" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
@@ -1460,7 +1463,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -1490,7 +1493,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -1527,7 +1530,7 @@ async function saveToSupabase(op){
   // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
   // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
   const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -2685,6 +2688,8 @@ function renderList(){
       <td style="color:${dc(dS)};font-weight:600">${fDiff(dS)}</td>
       <td style="color:${dc(dC)};font-weight:600">${fDiff(dC)}</td>
       <td style="color:var(--purple);font-weight:600">${fDiff(dDoc)}</td>
+      <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoSaida||'')}">${esc(op.motivoAtrasoSaida||(dS>30?'⚠ sem motivo':'—'))}</td>
+      <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoChegada||'')}">${esc(op.motivoAtrasoChegada||(dC>30?'⚠ sem motivo':'—'))}</td>
       <td><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
     </tr>`;
   }).join('');
@@ -3068,6 +3073,46 @@ function _verificarCAFsSemBaixa(){
   else document.body.insertAdjacentHTML('beforeend',hx);
 }
 
+// ══════════════════════════════════════════════════════════════════
+// OT (ON TIME) — escala de pontuação por faixa de atraso
+// ══════════════════════════════════════════════════════════════════
+// Regra: ≤30min=100% | 30min-1h=90% | 1h01-2h=80% | 2h01-4h=60% | >4h=0%
+function _otScore(minAtraso){
+  if(minAtraso===null||minAtraso===undefined)return null;
+  if(minAtraso<=30)return 100;
+  if(minAtraso<=60)return 90;
+  if(minAtraso<=120)return 80;
+  if(minAtraso<=240)return 60;
+  return 0;
+}
+function _otCor(score){
+  if(score===null)return 'var(--t3)';
+  if(score>=100)return 'var(--green)';
+  if(score>=90)return '#84cc16';
+  if(score>=80)return 'var(--yellow)';
+  if(score>=60)return '#f97316';
+  return 'var(--red)';
+}
+function _otFaixaLabel(minAtraso){
+  if(minAtraso===null||minAtraso===undefined)return '—';
+  if(minAtraso<=30)return 'Até 30min';
+  if(minAtraso<=60)return '30min-1h';
+  if(minAtraso<=120)return '1h01-2h';
+  if(minAtraso<=240)return '2h01-4h';
+  return 'Acima de 4h';
+}
+// Calcula OT Saída, OT Chegada, OT Total (média) pra um conjunto de operações
+function _calcOT(opsArr){
+  const comSaida=opsArr.filter(o=>o.planSaida&&o.realSaida);
+  const comChegada=opsArr.filter(o=>o.planChegFC&&o.realChegFC);
+  const scoresS=comSaida.map(o=>_otScore(Math.max(0,dMin(o.planSaida,o.realSaida)||0))).filter(s=>s!==null);
+  const scoresC=comChegada.map(o=>_otScore(Math.max(0,dMin(o.planChegFC,o.realChegFC)||0))).filter(s=>s!==null);
+  const otSaida=scoresS.length?Math.round(scoresS.reduce((a,b)=>a+b,0)/scoresS.length):null;
+  const otChegada=scoresC.length?Math.round(scoresC.reduce((a,b)=>a+b,0)/scoresC.length):null;
+  const otTotal=(otSaida!==null&&otChegada!==null)?Math.round((otSaida+otChegada)/2):(otSaida??otChegada);
+  return{otSaida,otChegada,otTotal,nSaida:scoresS.length,nChegada:scoresC.length};
+}
+
 function fupHead(){return `<table class="fup-table"><thead><tr class="th-grp"><td colspan="5"></td><td colspan="2" class="th-orig" style="background:var(--blue2);color:var(--blue);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">🏭 RESPONSABILIDADE TZX</td><td colspan="3" class="th-dest" style="background:var(--green2);color:var(--green);font-weight:700;border-radius:6px 6px 0 0;text-align:center;font-size:.62rem;padding:3px 6px;letter-spacing:.4px">📦 RESPONSABILIDADE FC</td><td colspan="2"></td></tr><tr class="th-main"><th>ID/SM</th><th>Rota</th><th>Transp.</th><th>Motorista</th><th>Placa</th><th class="center" style="border-left:2px solid var(--blue)">Apres.</th><th class="center" style="border-right:2px solid var(--blue)">Saída TZX</th><th class="center" style="border-left:2px solid var(--green)">Cheg.FC</th><th class="center">Δ FC</th><th class="center" style="border-right:2px solid var(--green)">Desc.</th><th class="center">Status</th><th class="center">SLA</th></tr></thead><tbody>`;}
 function renderFUP(){
   const data=getFUPFilt(),c=s=>data.filter(o=>o.status===s).length;
@@ -3298,6 +3343,16 @@ function buildForm(op){
     <button class="btn btn-g" style="font-size:.72rem;flex-shrink:0" onclick="addCaf()">+ Manual</button>
   </div>
 </div>
+${(()=>{
+  const dS=dMin(o.planSaida,o.realSaida), dC=dMin(o.planChegFC,o.realChegFC);
+  const showS=dS!==null&&dS>30, showC=dC!==null&&dC>30;
+  if(!showS&&!showC)return'';
+  return`<div class="sec">⏱️ Motivo do Atraso</div>
+  <div class="fgrid c2">
+    ${showS?`<div class="fg"><label style="color:var(--red)">Motivo — Atraso na Saída (+${dS}min)</label><input id="fMotivoSaida" value="${esc(o.motivoAtrasoSaida||'')}" placeholder="Ex: trânsito, fila na doca..."></div>`:'<div></div>'}
+    ${showC?`<div class="fg"><label style="color:var(--red)">Motivo — Atraso na Chegada FC (+${dC}min)</label><input id="fMotivoChegada" value="${esc(o.motivoAtrasoChegada||'')}" placeholder="Ex: trânsito, fila no FC..."></div>`:'<div></div>'}
+  </div>`;
+})()}
 <div class="sec">📝 Observações</div>
 <div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="2">${o.obs||''}</textarea></div></div>
 <div class="sec">⚠️ Ocorrências</div>
@@ -3361,6 +3416,8 @@ async function saveCard(){
     upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
     const statusAntes=op.status;
     upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
+    if(document.getElementById('fMotivoSaida'))upd('motivoAtrasoSaida',g('fMotivoSaida'));
+    if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
     op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
     if(ch.length){addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
@@ -3872,6 +3929,113 @@ function renderAnalise(){
         ${pendentes.slice(0,10).map(c=>`${esc(c.num)}`).join(' · ')}${pendentes.length>10?' · +' +(pendentes.length-10)+' outras':''}
       </div>
     </div>`:''}`;
+  })()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>🎯 OT (On Time) — Saída / Chegada / Total</h3>
+  ${(()=>{
+    const ot=_calcOT(data);
+    const card=(label,val,n)=>`<div style="text-align:center;background:var(--bg3);border-radius:10px;padding:14px 10px;flex:1;min-width:140px">
+      <div style="font-size:2.2rem;font-weight:800;color:${_otCor(val)}">${val===null?'—':val+'%'}</div>
+      <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;margin-top:2px">${label}</div>
+      <div style="font-size:.58rem;color:var(--t3);margin-top:2px">${n} viagem(ns)</div>
+    </div>`;
+    return`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      ${card('OT Saída',ot.otSaida,ot.nSaida)}
+      ${card('OT Chegada',ot.otChegada,ot.nChegada)}
+      ${card('OT Total',ot.otTotal,ot.nSaida+ot.nChegada)}
+    </div>
+    <div style="font-size:.6rem;color:var(--t3);line-height:1.6">
+      Escala: <b style="color:var(--green)">≤30min=100%</b> · <b style="color:#84cc16">30min-1h=90%</b> · <b style="color:var(--yellow)">1h01-2h=80%</b> · <b style="color:#f97316">2h01-4h=60%</b> · <b style="color:var(--red)">acima de 4h=0%</b> · OT Total = média(OT Saída, OT Chegada)
+    </div>`;
+  })()}
+</div>
+
+<div class="an-card" style="grid-column:1/-1">
+  <h3>🚨 Atrasos de Saída — Pareto (piores primeiro)</h3>
+  ${(()=>{
+    const atrasadas=data.filter(o=>{const d=dMin(o.planSaida,o.realSaida);return d!==null&&d>30;})
+      .map(o=>({...o,_d:dMin(o.planSaida,o.realSaida)}))
+      .sort((a,b)=>b._d-a._d).slice(0,12);
+    if(!atrasadas.length)return'<div style="text-align:center;color:var(--green);font-size:.8rem;padding:20px">✅ Nenhum atraso de saída acima de 30min no período</div>';
+    const max=atrasadas[0]._d;
+    return`<div style="display:flex;flex-direction:column;gap:5px">
+      ${atrasadas.map(o=>{
+        const score=_otScore(o._d);
+        return`<div style="display:flex;align-items:center;gap:8px">
+          <div style="width:90px;font-size:.62rem;color:var(--t2);flex-shrink:0">${esc(o.codigoCurto||o.id)}</div>
+          <div style="flex:1;background:var(--bg3);border-radius:4px;height:18px;position:relative;overflow:hidden">
+            <div style="background:${_otCor(score)};height:100%;width:${Math.round(o._d/max*100)}%;border-radius:4px"></div>
+          </div>
+          <div style="width:60px;text-align:right;font-size:.65rem;font-weight:700;color:${_otCor(score)}">+${o._d}min</div>
+          <div style="width:110px;font-size:.6rem;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.motivoAtrasoSaida||'')}">${esc(o.motivoAtrasoSaida||'sem motivo')}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  })()}
+</div>
+
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📦 Quadro de Descarregamento</h3>
+  ${(()=>{
+    const comDesc=data.filter(o=>o.realChegFC&&o.realDescarga).map(o=>{
+      const t=tempoAguardandoDescarga(o);
+      // Pernoite: hora da descarga é numericamente menor que a de chegada = virou o dia
+      const [h1]=o.realChegFC.split(':').map(Number);
+      const [h2]=o.realDescarga.split(':').map(Number);
+      const pernoite=(h2<h1)||(t&&t.mins>=720); // heurística: cruzou meia-noite ou >12h
+      return{...o,_tempoMin:t?t.mins:0,_pernoite:pernoite};
+    }).sort((a,b)=>b._tempoMin-a._tempoMin);
+    if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Nenhuma descarga registrada no período</div>';
+    return`<div style="overflow-x:auto">
+    <table style="width:100%;font-size:.68rem;border-collapse:collapse">
+      <thead><tr style="border-bottom:2px solid var(--bd);text-align:left">
+        <th style="padding:5px 8px">Rota</th><th style="padding:5px 8px">Transportadora</th>
+        <th style="padding:5px 8px">Placa</th><th style="padding:5px 8px">Data</th>
+        <th style="padding:5px 8px">Tipo</th><th style="padding:5px 8px;text-align:center">Pernoite</th>
+        <th style="padding:5px 8px;text-align:right">Tempo Descarga</th>
+      </tr></thead>
+      <tbody>
+        ${comDesc.slice(0,25).map(o=>`<tr style="border-bottom:1px solid var(--bg3)">
+          <td style="padding:4px 8px"><span class="rota-cell">${esc(o.rota)}</span></td>
+          <td style="padding:4px 8px">${esc(o.transp)||'—'}</td>
+          <td style="padding:4px 8px;font-weight:700">${esc(o.placa)||'—'}</td>
+          <td style="padding:4px 8px;color:var(--t2)">${fmtD(o.dataOp)}</td>
+          <td style="padding:4px 8px"><span class="badge ${tCls(o.tipoCarga)}">${esc(o.tipoCarga)}</span></td>
+          <td style="padding:4px 8px;text-align:center">${o._pernoite?'🌙 Sim':'—'}</td>
+          <td style="padding:4px 8px;text-align:right;font-weight:700;color:${o._tempoMin>240?'var(--red)':o._tempoMin>120?'var(--yellow)':'var(--green)'}">${Math.floor(o._tempoMin/60)}h${o._tempoMin%60>0?(o._tempoMin%60)+'min':''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    ${comDesc.length>25?`<div style="text-align:center;font-size:.6rem;color:var(--t3);margin-top:6px">Mostrando 25 de ${comDesc.length} — use a Extração Completa para ver tudo</div>`:''}
+    </div>`;
+  })()}
+</div>
+
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📊 Tempo de Descarga — Gráfico Pareto</h3>
+  ${(()=>{
+    const comDesc=data.filter(o=>o.realChegFC&&o.realDescarga).map(o=>{
+      const t=tempoAguardandoDescarga(o);
+      return{id:o.codigoCurto||o.id,mins:t?t.mins:0,placa:o.placa};
+    }).sort((a,b)=>b.mins-a.mins).slice(0,15);
+    if(!comDesc.length)return'<div style="text-align:center;color:var(--t3);font-size:.8rem;padding:20px">Sem dados de descarga no período</div>';
+    const max=comDesc[0].mins||1;
+    let acumulado=0;const totalMins=comDesc.reduce((s,d)=>s+d.mins,0);
+    return`<div style="display:flex;align-items:flex-end;gap:6px;height:220px;padding:10px 0;overflow-x:auto">
+      ${comDesc.map(d=>{
+        acumulado+=d.mins;
+        const pctAcum=totalMins?Math.round(acumulado/totalMins*100):0;
+        const h=Math.max(4,Math.round(d.mins/max*160));
+        const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
+        return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:38px">
+          <div style="font-size:.55rem;color:var(--t3)">${pctAcum}%</div>
+          <div style="width:26px;height:${h}px;background:${cor};border-radius:3px 3px 0 0" title="${esc(d.id)} · ${esc(d.placa||'')} · ${Math.floor(d.mins/60)}h${d.mins%60}min"></div>
+          <div style="font-size:.52rem;color:var(--t2);writing-mode:vertical-rl;text-orientation:mixed;height:55px">${esc(d.id)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:.58rem;color:var(--t3);margin-top:4px">Barras ordenadas do maior pro menor tempo de descarga · linha % = acumulado (Pareto)</div>`;
   })()}
 </div>
 <div class="an-card">
