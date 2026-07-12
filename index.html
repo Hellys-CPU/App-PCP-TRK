@@ -1439,6 +1439,18 @@ async function sbFetch(path,opts={}){
   if(!res.ok)throw new Error(await res.text());
   return res.status===204?null:res.json();
 }
+// UPDATE puro via PATCH — diferente de sbUpsert (POST com on_conflict), que falha em tabelas
+// com colunas NOT NULL sem default quando o payload é parcial (ex: ruas.numero).
+// Usar sempre que o registro JÁ EXISTE e só queremos atualizar campos específicos.
+async function sbUpdate(table,id,patch){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,{
+    method:'PATCH',
+    headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify(patch)
+  });
+  if(!res.ok)throw new Error(await res.text());
+}
+
 async function sbUpsert(table,row,onConflict){
   const hasId=row.id!==undefined&&row.id!==null;
   const conflictCol=onConflict||(hasId?'id':null);
@@ -4779,7 +4791,7 @@ async function saveCAF(){
   if(statusLiberaRua&&ruaAntigaId){
     ruaFinal=null;
     try{
-      await sbUpsert(TABELA_RUAS,{id:ruaAntigaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
+      await sbUpdate(TABELA_RUAS,ruaAntigaId,{caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who});
       hist.push({t:nowIso,txt:`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF → ${statusEscolhido})`});
     }catch(e){console.warn('liberar rua em Processo de Entrega:',e);}
   }
@@ -4810,15 +4822,15 @@ async function saveCAF(){
         try{
           const rAntiga=ruasDB.find(r=>r.id===ruaAntigaId);
           if(rAntiga&&rAntiga.caf_id===idReal){
-            await sbUpsert(TABELA_RUAS,{id:ruaAntigaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
+            await sbUpdate(TABELA_RUAS,ruaAntigaId,{caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who});
           }
         }catch(e){console.warn('liberar rua antiga:',e);}
       }
       // Ocupa a rua escolhida
       if(ruaFinal){
         try{
-          await sbUpsert(TABELA_RUAS,{id:ruaFinal,caf_id:idReal,ocupada:true,atualizado_em:new Date().toISOString(),atualizado_por:who},'id');
-        }catch(e){console.warn('ocupar rua:',e);}
+          await sbUpdate(TABELA_RUAS,ruaFinal,{caf_id:idReal,ocupada:true,atualizado_em:new Date().toISOString(),atualizado_por:who});
+        }catch(e){console.error('ocupar rua:',e);showToast('⚠ CAF salva, mas houve erro ao marcar a rua como ocupada — avise o admin','err');}
       }
     }
   }
@@ -4838,7 +4850,7 @@ async function deleteCAF(){
   loading(true);
   // Libera a rua ocupada por esta CAF antes de excluir — evita rua "fantasma" travada para sempre
   if(c?.ruaId){
-    try{await sbUpsert(TABELA_RUAS,{id:c.ruaId,caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:_nomeOperadorAtual()},'id');}
+    try{await sbUpdate(TABELA_RUAS,c.ruaId,{caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:_nomeOperadorAtual()});}
     catch(e){console.warn('liberar rua ao excluir CAF:',e);}
   }
   await deleteCAFFromDB(editCAFId);
