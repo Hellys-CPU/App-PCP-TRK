@@ -739,25 +739,25 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
   <div style="padding:10px 16px 20px;overflow-x:auto">
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
-    <table>
+    <table style="table-layout:auto;border-collapse:collapse">
       <thead><tr>
-  <th style="padding:2px;min-width:150px">
+  <th style="padding:2px;min-width:140px;max-width:150px">
     <div onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Data Criação <span id="sc-criadoEm"></span></div>
     <div style="display:flex;gap:2px;align-items:center">
       <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
       <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
     </div>
   </th>
-  <th style="padding:2px">
+  <th style="padding:2px;min-width:90px;max-width:100px">
     <div onclick="sortCAF('tipo')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Tipo <span id="sc-tipo"></span></div>
     <select id="cafFTipo" onchange="renderCAFs()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
   </th>
-  <th style="padding:2px">
+  <th style="padding:2px;min-width:100px;max-width:110px">
     <div onclick="sortCAF('rota')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Destino <span id="sc-rota"></span></div>
     <select id="cafFRota" onchange="renderCAFs()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todas</option></select>
   </th>
   <th onclick="sortCAF('num')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">CAF <span id="sc-num"></span></th>
-  <th style="padding:2px;position:relative">
+  <th style="padding:2px;position:relative;min-width:110px;max-width:120px">
     <div onclick="sortCAF('status')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Status <span id="sc-status"></span></div>
     <button type="button" onclick="event.stopPropagation();toggleCafStatusFiltro()" id="cafFStatusBtn"
       style="width:100%;font-size:.62rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:2px 4px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Todos ▾</button>
@@ -785,7 +785,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </th>
   <th onclick="sortCAF('vol')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Volume <span id="sc-vol"></span></th>
   <th onclick="sortCAF('pallets')" style="cursor:pointer;user-select:none;white-space:nowrap" title="Clique para ordenar">Pallets <span id="sc-pallets"></span></th>
-  <th style="padding:2px">
+  <th style="padding:2px;min-width:110px;max-width:120px">
     <div onclick="sortCAF('venc')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px" title="Clique para ordenar">Vencimento <span id="sc-venc"></span></div>
     <select id="cafFVenc" onchange="renderCAFs()" style="width:100%;font-size:.6rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px">
       <option value="">Todas</option>
