@@ -743,10 +743,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <thead><tr>
   <th style="padding:2px;min-width:82px;max-width:88px">
     <div onclick="sortCAF('criadoEm')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px;font-size:.68rem">Data Criação <span id="sc-criadoEm"></span></div>
-    <div style="display:flex;flex-direction:column;gap:2px">
-      <input id="cafFDataDe" type="date" onchange="renderCAFs()" title="Criada de (a partir de)" style="width:100%;font-size:.56rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
-      <input id="cafFDataAte" type="date" onchange="renderCAFs()" title="Criada até" style="width:100%;font-size:.56rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
-    </div>
+    <input id="cafFData" type="date" onchange="renderCAFs()" title="Filtrar por data de criação" style="width:100%;font-size:.56rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"/>
   </th>
   <th style="padding:2px;min-width:90px;max-width:100px">
     <div onclick="sortCAF('tipo')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Tipo <span id="sc-tipo"></span></div>
@@ -4578,16 +4575,14 @@ function renderCAFs(){
   const fStatusList=_cafStatusSelecionados();
   _atualizaCafStatusBtnLabel();
   const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
-  const fDataDe=document.getElementById('cafFDataDe')?.value||'';
-  const fDataAte=document.getElementById('cafFDataAte')?.value||'';
+  const fData=document.getElementById('cafFData')?.value||'';
   const fVenc=document.getElementById('cafFVenc')?.value||'';
   const hojeV=hojeLocal();
   const data=cafsDB.filter(c=>{
     if(fRota&&c.rota!==fRota)return false;
     if(fTipo&&c.tipo!==fTipo)return false;
     if(fStatusList.length&&!fStatusList.includes(c.status))return false;
-    if(fDataDe&&(!c.criadoEm||c.criadoEm.slice(0,10)<fDataDe))return false;
-    if(fDataAte&&(!c.criadoEm||c.criadoEm.slice(0,10)>fDataAte))return false;
+    if(fData&&(!c.criadoEm||c.criadoEm.slice(0,10)!==fData))return false;
     if(fVenc){
       if(!c.venc)return false;
       if(fVenc==='vencidas'&&c.venc>=hojeV)return false;
