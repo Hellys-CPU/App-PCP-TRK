@@ -553,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v209</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v210</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3987,7 +3987,7 @@ function renderAnalise(){
       if(['Entrega Realizada','cancelada'].includes(c.status))return false;
       if(!c.opId)return false;
       const op=data.find(o=>o.id===c.opId);
-      return op&&['FIN','AGUDESC'].includes(op.status);
+      return op&&op.status==='FIN'; // só viagem REALMENTE finalizada — AGUDESC é status intermediário normal
     });
     return`<div class="met-grid" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr))">
       <div class="met-box"><div class="mv" style="color:var(--text)">${totalC}</div><div class="ml">Total CAFs</div></div>
@@ -4016,7 +4016,7 @@ function renderAnalise(){
       if(['Entrega Realizada','cancelada'].includes(c.status))return false;
       if(!c.opId)return false;
       const op=data.find(o=>o.id===c.opId);
-      return op&&['FIN','AGUDESC'].includes(op.status);
+      return op&&op.status==='FIN'; // só viagem REALMENTE finalizada — AGUDESC é status intermediário normal
     });
     if(!pend2.length)return'<div style="text-align:center;color:var(--green);font-size:.85rem;padding:24px">✅ Nenhuma CAF pendente no período — tudo em dia!</div>';
     return`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
