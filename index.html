@@ -553,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v210</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v213</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -4002,6 +4002,103 @@ function renderAnalise(){
   })()}
 </div>
 
+<div class="an-card" style="grid-column:1/-1;border:1.5px solid var(--yellow);background:rgba(234,179,8,.03)">
+  <h3 style="color:var(--yellow)">💡 Consolidação de CAF — Onde e Quando Está Acontecendo</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">
+    Regra: CAFs já <b>Produzidas</b> com o <b>mesmo vencimento</b> e <b>mesmo destino</b> (FC) poderiam ter sido uma única CAF.
+    Nunca aplica a vencimentos diferentes.
+  </p>
+  ${(()=>{
+    const _dP3=data.map(o=>o.dataOp).filter(Boolean).sort();
+    const _de3=_dP3[0]||'', _ate3=_dP3[_dP3.length-1]||'';
+    const cafsPer3=cafsDB.filter(c=>{
+      if(!c.criadoEm)return false;
+      const dt=c.criadoEm.slice(0,10);
+      if(_de3&&dt<_de3)return false;if(_ate3&&dt>_ate3)return false;return true;
+    });
+    const grupos=_detectarConsolidacaoCAF(cafsPer3);
+
+    if(!grupos.length)return'<div style="text-align:center;color:var(--green);font-size:.85rem;padding:20px">✅ Nenhuma oportunidade perdida no período — cada destino/vencimento virou só 1 CAF</div>';
+
+    const totalCasos=grupos.length;
+    const totalCAFsExtras=grupos.reduce((s,g)=>s+(g.cafs.length-1),0);
+    const totalCAFsProduzidas=cafsPer3.filter(c=>c.status==='Produzida').length;
+    const pctImpacto=totalCAFsProduzidas?Math.round(totalCAFsExtras/totalCAFsProduzidas*100):0;
+
+    // Agrupa POR FC (onde)
+    const porFC={};
+    grupos.forEach(g=>{(porFC[g.fc]=porFC[g.fc]||{casos:0,extras:0});porFC[g.fc].casos++;porFC[g.fc].extras+=g.cafs.length-1;});
+    const fcOrdenado=Object.entries(porFC).sort((a,b)=>b[1].extras-a[1].extras);
+
+    // Agrupa POR DATA de vencimento (quando)
+    const porData={};
+    grupos.forEach(g=>{(porData[g.venc]=porData[g.venc]||{casos:0,extras:0});porData[g.venc].casos++;porData[g.venc].extras+=g.cafs.length-1;});
+    const dataOrdenada=Object.entries(porData).sort((a,b)=>a[0].localeCompare(b[0]));
+
+    return`
+    <!-- KPIs principais -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="text-align:center;background:var(--bg3);border-radius:10px;padding:14px 18px;flex:1;min-width:130px">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--yellow)">${totalCasos}</div>
+        <div style="font-size:.65rem;color:var(--t2);font-weight:700;text-transform:uppercase">Casos Detectados</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:10px;padding:14px 18px;flex:1;min-width:130px">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--red)">${totalCAFsExtras}</div>
+        <div style="font-size:.65rem;color:var(--t2);font-weight:700;text-transform:uppercase">CAFs Evitáveis</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:10px;padding:14px 18px;flex:1;min-width:130px">
+        <div style="font-size:2.2rem;font-weight:800;color:${pctImpacto>15?'var(--red)':pctImpacto>5?'var(--yellow)':'var(--green)'}">${pctImpacto}%</div>
+        <div style="font-size:.65rem;color:var(--t2);font-weight:700;text-transform:uppercase">Das CAFs Produzidas</div>
+      </div>
+    </div>
+
+    <!-- ONDE: por FC -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:6px">📍 ONDE — por Destino (FC)</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${fcOrdenado.map(([fc,d])=>{
+          const maxExtras=Math.max(...fcOrdenado.map(([,x])=>x.extras));
+          const pct=Math.round(d.extras/maxExtras*100);
+          return`<div style="display:flex;align-items:center;gap:8px">
+            <div style="width:60px;font-size:.68rem;font-weight:700;color:var(--text)">${esc(fc)}</div>
+            <div style="flex:1;background:var(--bg3);border-radius:4px;height:18px;position:relative;overflow:hidden">
+              <div style="background:var(--yellow);height:100%;width:${pct}%;border-radius:4px"></div>
+            </div>
+            <div style="width:110px;text-align:right;font-size:.62rem;color:var(--t2)">${d.casos} caso(s) · <b style="color:var(--red)">${d.extras} evitáveis</b></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- QUANDO: por data de vencimento -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:6px">📅 QUANDO — por Data de Vencimento</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${dataOrdenada.map(([venc,d])=>`<div style="background:var(--bg3);border:1px solid var(--yellow);border-radius:6px;padding:6px 10px;text-align:center;min-width:80px">
+          <div style="font-size:.85rem;font-weight:800;color:var(--red)">${d.extras}</div>
+          <div style="font-size:.58rem;color:var(--t2)">${fmtD(venc)}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Detalhe expansível -->
+    <details style="margin-top:6px">
+      <summary style="cursor:pointer;font-size:.68rem;color:var(--t2);font-weight:600">Ver detalhe de cada caso (CAFs envolvidas)</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        ${grupos.map(g=>`<div style="background:var(--bg3);border-left:3px solid var(--yellow);border-radius:6px;padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:.78rem;font-weight:800;color:var(--text)">📍 Destino ${esc(g.fc)} · Vencimento ${fmtD(g.venc)}</span>
+            <span style="font-size:.65rem;color:var(--yellow);font-weight:700">${g.cafs.length} CAFs (poderia ser 1)</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${g.cafs.map(c=>`<span style="background:var(--bg4);border:1px solid var(--bd);border-radius:4px;padding:2px 8px;font-size:.62rem" title="${esc(c.rota)}">${esc(c.num)} <b>${c.pallets||0} pal.</b></span>`).join('')}
+          </div>
+          <div style="font-size:.6rem;color:var(--t2);margin-top:5px">Total combinado: ${g.totalVolume} un · ${g.totalPallets} pallets</div>
+        </div>`).join('')}
+      </div>
+    </details>`;
+  })()}
+</div>
 <div class="an-card" style="grid-column:1/-1;border:1.5px solid var(--red);background:rgba(220,38,38,.03)">
   <h3 style="color:var(--red)">🚨 CAFs Pendentes — Viagem Finalizada Sem Baixa</h3>
   ${(()=>{
@@ -6423,6 +6520,33 @@ function _calcSLAsSeparados(opsArr){
   const pesoTotal=partes.reduce((s,[,p])=>s+p,0);
   const geral=pesoTotal?Math.round(partes.reduce((s,[st,p])=>s+st.pct*p,0)/pesoTotal):null;
   return{apres,saida,chegada,geral};
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DETECÇÃO: CAFs que poderiam ter sido consolidadas (mesmo destino + mesmo vencimento)
+// ══════════════════════════════════════════════════════════════════
+// Regra de negócio: CAFs com o MESMO vencimento E MESMO destino (FC) poderiam
+// ter sido uma única CAF em vez de várias. Isso NÃO se aplica a vencimentos
+// diferentes (nunca mistura dia 1 com dia 2) — só flagra quando é
+// EXATAMENTE o mesmo dia de vencimento + mesmo FC de destino.
+function _detectarConsolidacaoCAF(cafsArr){
+  const grupos={};
+  cafsArr.forEach(c=>{
+    if(c.status!=='Produzida')return; // regra: só aplica pra CAFs já Produzidas (prontas)
+    if(!c.venc||!c.rota)return;
+    const fc=_fcFromRota(c.rota);
+    const chave=c.venc+'|'+fc;
+    if(!grupos[chave])grupos[chave]={venc:c.venc,fc,cafs:[]};
+    grupos[chave].cafs.push(c);
+  });
+  return Object.values(grupos)
+    .filter(g=>g.cafs.length>1) // só interessa quando teve MAIS de 1 CAF pro mesmo par
+    .map(g=>({
+      ...g,
+      totalPallets:g.cafs.reduce((s,c)=>s+(Number(c.pallets)||0),0),
+      totalVolume:g.cafs.reduce((s,c)=>s+(Number(c.vol)||0),0),
+    }))
+    .sort((a,b)=>b.cafs.length-a.cafs.length);
 }
 
 function _renderHeatMap(){
