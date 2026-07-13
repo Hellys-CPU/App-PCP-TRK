@@ -553,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v208</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v209</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -4254,8 +4254,31 @@ function renderAnalise(){
   ${_renderTopAtraso(data)}
 </div>
 <div class="an-card" style="grid-column:1/-1">
+  <h3>🎯 SLA por Etapa</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Tolerância de 30min por etapa · Meta: 92% · <b>Chegada no FC pesa 50% no Geral</b> (é o indicador que a Amazon vê)</p>
+  ${(()=>{
+    const s=_calcSLAsSeparados(data);
+    const card=(label,obj,destaque)=>{
+      const pct=obj.pct;
+      const cor=pct===null?'var(--t3)':pct>=92?'var(--green)':pct>=80?'var(--yellow)':'var(--red)';
+      return`<div style="text-align:center;background:var(--bg3);border-radius:10px;padding:${destaque?'18px 14px':'14px 10px'};flex:1;min-width:${destaque?'160px':'130px'};border:${destaque?'2px solid '+cor:'1px solid var(--bd)'};position:relative">
+        ${destaque?'<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:'+cor+';color:#fff;font-size:.55rem;font-weight:800;padding:1px 8px;border-radius:8px;white-space:nowrap">★ PRINCIPAL</div>':''}
+        <div style="font-size:${destaque?'2.6rem':'2rem'};font-weight:800;color:${cor}">${pct===null?'—':pct+'%'}</div>
+        <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;margin-top:2px">${label}</div>
+        ${obj.total!==''?`<div style="font-size:.58rem;color:var(--t3);margin-top:2px">${obj.ok}/${obj.total} no prazo</div>`:`<div style="font-size:.58rem;color:var(--t3);margin-top:2px">ponderado</div>`}
+      </div>`;
+    };
+    return`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      ${card('Apresentação',s.apres,false)}
+      ${card('Saída TZX',s.saida,false)}
+      ${card('Chegada FC',s.chegada,true)}
+      ${card('SLA Geral',{pct:s.geral,ok:'',total:''},false)}
+    </div>`;
+  })()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
   <h3>📅 Heat Map — Volume e SLA (últimos 60 dias)</h3>
-  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia. Cor: verde = SLA bom · vermelho = SLA ruim · intensidade = volume de operações</p>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia · Este mapa mede especificamente o <b>SLA de Chegada no FC</b> (o principal) · Cor: verde = bom · vermelho = ruim · intensidade = volume de operações</p>
   ${_renderHeatMap()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
@@ -6376,6 +6399,32 @@ function loadPisoConfig(){
 // ══════════════════════════════════════════════════════════════════
 // FEATURE: HEAT MAP SEMANAL (últimos 2 meses)
 // ══════════════════════════════════════════════════════════════════
+// SLA separado por etapa da viagem — cada um mede um trecho diferente
+// Apresentação: chegada do motorista no TZX (planApres vs realApres)
+// Saída TZX: horário de saída do hub (planSaida vs realSaida)
+// Chegada FC: chegada no destino Amazon — O PRINCIPAL, o que a Amazon cobra
+// Geral: média PONDERADA dando mais peso à Chegada FC (50%), já que é o
+//        indicador que realmente importa pro cliente final
+function _slaPorEtapa(opsArr,campoPlain,campoReal){
+  const comDados=opsArr.filter(o=>o[campoPlain]&&o[campoReal]);
+  if(!comDados.length)return{pct:null,ok:0,total:0};
+  const ok=comDados.filter(o=>{
+    const d=dMin(o[campoPlain],o[campoReal]);
+    return d!==null&&d<=30;
+  }).length;
+  return{pct:Math.round(ok/comDados.length*100),ok,total:comDados.length};
+}
+function _calcSLAsSeparados(opsArr){
+  const apres=_slaPorEtapa(opsArr,'planApres','realApres');
+  const saida=_slaPorEtapa(opsArr,'planSaida','realSaida');
+  const chegada=_slaPorEtapa(opsArr,'planChegFC','realChegFC');
+  // Geral ponderado: Chegada FC pesa mais (50%) por ser o indicador que a Amazon vê
+  const partes=[[chegada,0.5],[saida,0.25],[apres,0.25]].filter(([s])=>s.pct!==null);
+  const pesoTotal=partes.reduce((s,[,p])=>s+p,0);
+  const geral=pesoTotal?Math.round(partes.reduce((s,[st,p])=>s+st.pct*p,0)/pesoTotal):null;
+  return{apres,saida,chegada,geral};
+}
+
 function _renderHeatMap(){
   const hoje=new Date();
   // Gera os últimos 60 dias
