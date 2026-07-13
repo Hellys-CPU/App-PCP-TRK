@@ -553,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v206</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v207</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -613,7 +613,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-s" onclick="exportAmazonPDF()" style="font-size:.72rem">📄 Exportar PDF</button>
     <button class="btn" onclick="exportAmazonPDF()" style="font-size:.72rem">🖨 Imprimir</button>
   </div>
-  <div id="amazonWrap" style="padding:12px 16px 40px"></div>
+  <div id="amazonWrap" style="padding:12px 16px 40px;overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
 </div>
 <!-- LISTA -->
 <div class="view" id="view-lista">
@@ -3493,7 +3493,7 @@ async function saveCard(){
     upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
     if(document.getElementById('fMotivoSaida'))upd('motivoAtrasoSaida',g('fMotivoSaida'));
     if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
-    op.cafs=cafs;op.updatedAt=ts();op.updatedBy=who;
+    op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=ts();op.updatedBy=who;
     if(ch.length){addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
@@ -4177,7 +4177,7 @@ function renderAnalise(){
 </div>
 <div class="an-card">
   <h3>🛣️ SLA por Rota</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+  <table style="width:100%;min-width:820px;border-collapse:collapse;font-size:.72rem">
     <thead><tr style="border-bottom:2px solid var(--red3)">
       <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Rota</th>
       <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Total</th>
@@ -6066,7 +6066,7 @@ function _renderComparativoSemanas(){
     {l:'Taxa SLA %',va:a.taxa+'%',vb:b.taxa+'%',dv:a.taxa-b.taxa,inv:false},
     {l:'Atrasadas',va:a.late,vb:b.late,inv:true},
   ];
-  let html='<table style="width:100%;border-collapse:collapse;font-size:.72rem">';
+  let html='<table style="width:100%;min-width:820px;border-collapse:collapse;font-size:.72rem">';
   html+='<thead><tr style="border-bottom:2px solid var(--red3)">';
   html+='<th style="text-align:left;padding:5px 6px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Métrica</th>';
   html+='<th style="text-align:center;padding:5px 6px;color:var(--t2);font-size:.6rem">Sem. Anterior<br><span style="color:var(--t3)">'+semanaLabel(semAnt)+'</span></th>';
@@ -7275,7 +7275,7 @@ function renderAmazon(){
           <span style="font-size:.75rem;color:var(--t2);font-weight:600">${ops_st.length} viagem(s)</span>
         </div>
         <div style="border:1px solid var(--bd);border-top:none;border-radius:0 0 6px 6px;overflow:hidden">
-          <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+          <table style="width:100%;min-width:820px;border-collapse:collapse;font-size:.72rem">
             <thead>
               <tr style="background:var(--bg2);color:var(--t2);font-size:.65rem">
                 <th style="padding:6px 8px;text-align:left;font-weight:600">ID / SM</th>
