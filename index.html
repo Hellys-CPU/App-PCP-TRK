@@ -456,6 +456,18 @@ body.dark .an-card h3{color:var(--gray2);}
 @media(max-width:768px){
   #_cafSlaBanner{bottom:58px !important;border-radius:8px 8px 0 0}
 }
+/* Bolha flutuante "Mais" SÓ pode aparecer em telas mobile — nunca no desktop */
+@media(min-width:769px){
+  #btnMobileMaisFlutuante{display:none !important}
+}
+/* Animação de abertura do painel "Mais" */
+#mobileMorePanel{opacity:0;transition:opacity .22s ease}
+#mobileMorePanel.open{opacity:1}
+#mobileMorePanel>div{transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,.35,1)}
+#mobileMorePanel.open>div{transform:translateY(0)}
+@keyframes pulseBolha{0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 0 0 rgba(204,0,0,.5)}50%{box-shadow:0 4px 14px rgba(0,0,0,.35),0 0 0 8px rgba(204,0,0,0)}}
+#btnMobileMaisFlutuante{animation:pulseBolha 2.5s ease-in-out infinite}
+#btnMobileMaisFlutuante:active{transform:scale(.9);animation:none}
 body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 @media(max-width:768px){
@@ -541,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v204</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v205</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -4506,7 +4518,14 @@ function _organizarNavMobile(abasVisiveis){
 function toggleMobileMore(){
   const p=document.getElementById('mobileMorePanel');
   if(!p)return;
-  p.style.display=p.style.display==='none'?'block':'none';
+  const abrindo=p.style.display==='none'||!p.style.display;
+  if(abrindo){
+    p.style.display='block';
+    requestAnimationFrame(()=>p.classList.add('open')); // garante a transição rodar (não pular direto pro estado final)
+  }else{
+    p.classList.remove('open');
+    setTimeout(()=>{p.style.display='none';},220); // espera a animação de fechar terminar antes de sumir
+  }
 }
 function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
 
