@@ -442,10 +442,20 @@ body.dark .an-card h3{color:var(--gray2);}
 
 /* MOBILE BOTTOM NAV */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);z-index:150;padding:4px 0 max(4px,env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.1);}
-.mobile-nav-inner{display:flex;justify-content:space-around;}
-.mnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--t2);padding:5px 4px;cursor:pointer;font-size:.54rem;font-weight:600;text-transform:uppercase;letter-spacing:.2px;flex:1;transition:.15s;min-width:0;}
+.mobile-nav-inner{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.mobile-nav-inner::-webkit-scrollbar{display:none;}
+.mnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--t2);padding:6px 8px;cursor:pointer;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.2px;flex:0 0 auto;min-width:56px;transition:.15s;white-space:nowrap;}
 .mnav-btn.active{color:var(--red);}
 .mnav-btn .mni{font-size:1.05rem;line-height:1;}
+
+.mnav-btn-more{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--bd);border-radius:12px;color:var(--text);padding:14px 6px;cursor:pointer;font-size:.68rem;font-weight:600;}
+.mnav-btn-more .mni{font-size:1.4rem;}
+.mnav-btn-more:active{background:var(--bg4);}
+
+/* Banner de SLA de CAF não pode sobrepor o menu inferior mobile */
+@media(max-width:768px){
+  #_cafSlaBanner{bottom:58px !important;border-radius:8px 8px 0 0}
+}
 body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 @media(max-width:768px){
@@ -464,8 +474,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .fgrid.c3{grid-template-columns:1fr 1fr;}
   .col{width:240px;}
   /* ── Mobile v103: usabilidade ── */
-  .toolbar{padding:6px 8px;gap:5px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
-  .toolbar input,.toolbar select{font-size:16px;min-height:38px;} /* 16px evita zoom automático do iOS */
+  .toolbar{padding:6px 8px;gap:6px;flex-wrap:wrap;}
+  .toolbar input,.toolbar select{font-size:16px;min-height:38px;flex:1 1 calc(50% - 6px);min-width:130px;} /* 16px evita zoom automático do iOS */
   .toolbar input[type="date"]{min-width:130px;}
   .btn{min-height:38px;} /* área de toque mínima 38px */
   table{font-size:.68rem;}
@@ -531,7 +541,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v202</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v203</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -658,7 +668,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
 
-<!-- D-1 -->
+<!-- GESTÃO DE DOCA -->
 <div class="view" id="view-prog">
   <div class="toolbar" style="flex-wrap:wrap;gap:8px">
     <span style="font-size:.8rem;font-weight:700;color:var(--red)">🚪 Gestão de Doca — Pátio de Carregamento</span>
@@ -1029,17 +1039,29 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-nav" id="mobileNav">
-  <div class="mobile-nav-inner">
+  <div class="mobile-nav-inner" style="overflow-x:visible;justify-content:space-around">
     <button class="mnav-btn active" id="mn-painel" onclick="setView('painel')"><span class="mni">📊</span>Painel</button>
     <button class="mnav-btn" id="mn-lista" onclick="setView('lista')"><span class="mni">☰</span>Lista</button>
-    <button class="mnav-btn" id="mn-prog" onclick="setView('prog')"><span class="mni">📅</span>D-1</button>
-    <button class="mnav-btn" id="mn-massa" onclick="setView('massa')"><span class="mni">⚡</span>Massa</button>
-    <button class="mnav-btn" id="mn-fup" onclick="setView('fup')"><span class="mni">📋</span>FUP</button>
-    <button class="mnav-btn" id="mn-amazon" onclick="setView('amazon')"><span class="mni">📦</span>Amazon</button>
+    <button class="mnav-btn" id="mn-prog" onclick="setView('prog')"><span class="mni">🚪</span>Doca</button>
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
-    <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
-    <button class="mnav-btn" id="mn-admin" onclick="setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
-    <button class="mnav-btn" onclick="openNew()"><span class="mni">➕</span>Nova Op</button>
+    <button class="mnav-btn" onclick="toggleMobileMore()" id="mn-more"><span class="mni">⋯</span>Mais</button>
+  </div>
+</div>
+
+<!-- PAINEL "MAIS" — abas secundárias + Nova Op, evita scroll horizontal escondido -->
+<div id="mobileMorePanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:160" onclick="if(event.target===this)toggleMobileMore()">
+  <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);border-radius:16px 16px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.3)">
+    <div style="width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px"></div>
+    <button class="btn btn-s" style="width:100%;margin-bottom:14px;font-size:.85rem;padding:10px" onclick="toggleMobileMore();openNew()">➕ Nova Operação</button>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <button class="mnav-btn-more" id="mn-massa" onclick="toggleMobileMore();setView('massa')"><span class="mni">⚡</span>Em Massa</button>
+      <button class="mnav-btn-more" id="mn-fup" onclick="toggleMobileMore();setView('fup')"><span class="mni">📋</span>FUP FC</button>
+      <button class="mnav-btn-more" id="mn-amazon" onclick="toggleMobileMore();setView('amazon')"><span class="mni">📦</span>FUP Amazon</button>
+      <button class="mnav-btn-more" id="mn-analise" onclick="toggleMobileMore();setView('analise')"><span class="mni">📈</span>Análise</button>
+      <button class="mnav-btn-more" id="mn-tv" onclick="toggleMobileMore();setView('tv')"><span class="mni">📺</span>TV</button>
+      <button class="mnav-btn-more" id="mn-tv-yard" onclick="toggleMobileMore();setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
+      <button class="mnav-btn-more" id="mn-admin" onclick="toggleMobileMore();setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
+    </div>
   </div>
 </div>
 
@@ -1670,7 +1692,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão Doca',massa:'Massa',fup:'FUP FC',caf:'CAFs',analise:'Análise',yard:'TV Yard',tv:'TV',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -1678,7 +1700,7 @@ function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localSt
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'D-1',massa:'Massa',fup:'FUP FC',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1705,7 +1727,7 @@ function installPWA(){
   pwaInstallEvent.prompt();
   pwaInstallEvent.userChoice.then(r=>{if(r.outcome==='accepted')showToast('✅ Instalando...','ok');pwaInstallEvent=null;});
 }
-// SW e Manifest: manifest.json + sw.js prontos — subir junto do index.html no repo
+// SW e Manifest: adicione manifest.json + sw.js estaticos ao repo para PWA funcional no GitHub Pages
 
 // ══════════════════════════════════════════════════════════════════
 // AUTH + USUÁRIOS
@@ -1904,7 +1926,7 @@ async function bootApp(){
     const aba=el.id.replace('tb-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
   });
-  document.querySelectorAll('.mnav-btn[id^="mn-"]').forEach(el=>{
+  document.querySelectorAll('.mnav-btn[id^="mn-"], .mnav-btn-more[id^="mn-"]').forEach(el=>{
     const aba=el.id.replace('mn-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
   });
@@ -4432,6 +4454,12 @@ function _tempoNoStatusAtualCAF(c){
   }
   return c.criadoEm?new Date(c.criadoEm).getTime():Date.now();
 }
+// Painel "Mais" do menu mobile — abas secundárias
+function toggleMobileMore(){
+  const p=document.getElementById('mobileMorePanel');
+  if(!p)return;
+  p.style.display=p.style.display==='none'?'block':'none';
+}
 function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
 
 // Supabase CAF CRUD
@@ -6719,7 +6747,7 @@ function _updateRTIndicator(){
 async function _renderOnlinePresence(){
   const el=document.getElementById('onlineBar');
   if(!el)return;
-  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão Doca',massa:'Massa',fup:'FUP FC',caf:'CAFs',analise:'Análise',yard:'TV Yard',tv:'TV',admin:'Admin'};
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
   let lista=[];
   // 1ª fonte: Ably Presence (tempo real)
   if(_ablyChannel&&_ablyOK){
