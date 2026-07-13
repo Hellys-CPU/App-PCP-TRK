@@ -541,7 +541,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v203</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v204</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1039,29 +1039,30 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- MOBILE BOTTOM NAV -->
 <div class="mobile-nav" id="mobileNav">
-  <div class="mobile-nav-inner" style="overflow-x:visible;justify-content:space-around">
+  <div class="mobile-nav-inner" id="mobileNavInner" style="overflow-x:visible;justify-content:space-around">
     <button class="mnav-btn active" id="mn-painel" onclick="setView('painel')"><span class="mni">📊</span>Painel</button>
     <button class="mnav-btn" id="mn-lista" onclick="setView('lista')"><span class="mni">☰</span>Lista</button>
     <button class="mnav-btn" id="mn-prog" onclick="setView('prog')"><span class="mni">🚪</span>Doca</button>
+    <button class="mnav-btn" id="mn-massa" onclick="setView('massa')"><span class="mni">⚡</span>Em Massa</button>
+    <button class="mnav-btn" id="mn-fup" onclick="setView('fup')"><span class="mni">📋</span>FUP FC</button>
+    <button class="mnav-btn" id="mn-amazon" onclick="setView('amazon')"><span class="mni">📦</span>Amazon</button>
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
-    <button class="mnav-btn" onclick="toggleMobileMore()" id="mn-more"><span class="mni">⋯</span>Mais</button>
+    <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
+    <button class="mnav-btn" id="mn-tv" onclick="setView('tv')"><span class="mni">📺</span>TV</button>
+    <button class="mnav-btn" id="mn-tv-yard" onclick="setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
+    <button class="mnav-btn" id="mn-admin" onclick="setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
   </div>
 </div>
 
-<!-- PAINEL "MAIS" — abas secundárias + Nova Op, evita scroll horizontal escondido -->
+<!-- Bolha flutuante "Mais" — só aparece se o perfil tiver mais de 4 abas -->
+<button id="btnMobileMaisFlutuante" onclick="toggleMobileMore()" style="display:none;position:fixed;bottom:70px;right:14px;z-index:155;width:52px;height:52px;border-radius:50%;background:rgba(204,0,0,.72);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:1.4rem;box-shadow:0 4px 14px rgba(0,0,0,.35);align-items:center;justify-content:center">⋯</button>
+
+<!-- PAINEL "MAIS" — populado dinamicamente via JS conforme as abas que não couberam na barra -->
 <div id="mobileMorePanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:160" onclick="if(event.target===this)toggleMobileMore()">
   <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);border-radius:16px 16px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.3)">
     <div style="width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px"></div>
     <button class="btn btn-s" style="width:100%;margin-bottom:14px;font-size:.85rem;padding:10px" onclick="toggleMobileMore();openNew()">➕ Nova Operação</button>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-      <button class="mnav-btn-more" id="mn-massa" onclick="toggleMobileMore();setView('massa')"><span class="mni">⚡</span>Em Massa</button>
-      <button class="mnav-btn-more" id="mn-fup" onclick="toggleMobileMore();setView('fup')"><span class="mni">📋</span>FUP FC</button>
-      <button class="mnav-btn-more" id="mn-amazon" onclick="toggleMobileMore();setView('amazon')"><span class="mni">📦</span>FUP Amazon</button>
-      <button class="mnav-btn-more" id="mn-analise" onclick="toggleMobileMore();setView('analise')"><span class="mni">📈</span>Análise</button>
-      <button class="mnav-btn-more" id="mn-tv" onclick="toggleMobileMore();setView('tv')"><span class="mni">📺</span>TV</button>
-      <button class="mnav-btn-more" id="mn-tv-yard" onclick="toggleMobileMore();setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
-      <button class="mnav-btn-more" id="mn-admin" onclick="toggleMobileMore();setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
-    </div>
+    <div id="mobileMoreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
   </div>
 </div>
 
@@ -1926,10 +1927,11 @@ async function bootApp(){
     const aba=el.id.replace('tb-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
   });
-  document.querySelectorAll('.mnav-btn[id^="mn-"], .mnav-btn-more[id^="mn-"]').forEach(el=>{
+  document.querySelectorAll('.mnav-btn[id^="mn-"]').forEach(el=>{
     const aba=el.id.replace('mn-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
   });
+  _organizarNavMobile(_abasVisiveis);
 
   aplicarPermissoesUI(currentUser.perfil);
   loading(true);
@@ -4455,6 +4457,52 @@ function _tempoNoStatusAtualCAF(c){
   return c.criadoEm?new Date(c.criadoEm).getTime():Date.now();
 }
 // Painel "Mais" do menu mobile — abas secundárias
+// Labels e ícones de cada aba (pro painel "Mais" dinâmico)
+const ABAS_INFO = {
+  painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
+  massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
+  caf:{ic:'📦',lb:'CAFs'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
+  'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
+};
+// Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
+const ABAS_PRIORIDADE = ['painel','lista','prog','caf','massa','fup','amazon','analise','tv','tv-yard','admin'];
+
+// Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
+// na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
+// Se tem 4 ou menos, mostra tudo na barra e esconde a bolha — não precisa de "Mais".
+function _organizarNavMobile(abasVisiveis){
+  const ordenadas=ABAS_PRIORIDADE.filter(a=>abasVisiveis.includes(a));
+  const bolha=document.getElementById('btnMobileMaisFlutuante');
+  const grid=document.getElementById('mobileMoreGrid');
+
+  if(ordenadas.length<=4){
+    // Cabe tudo na barra — sem bolha, sem "Mais"
+    if(bolha)bolha.style.display='none';
+    if(grid)grid.innerHTML='';
+    return;
+  }
+
+  const fixas=ordenadas.slice(0,4);
+  const extras=ordenadas.slice(4);
+
+  // Mostra só as 4 fixas na barra, esconde as demais dali (elas continuam existindo, só ocultas)
+  ordenadas.forEach(aba=>{
+    const btn=document.getElementById('mn-'+aba);
+    if(btn)btn.style.display=fixas.includes(aba)?'':'none';
+  });
+
+  // Popula o painel "Mais" com as abas extras
+  if(grid){
+    grid.innerHTML=extras.map(aba=>{
+      const info=ABAS_INFO[aba]||{ic:'📄',lb:aba};
+      return`<button class="mnav-btn-more" onclick="toggleMobileMore();setView('${aba}')"><span class="mni">${info.ic}</span>${info.lb}</button>`;
+    }).join('');
+  }
+
+  // Mostra a bolha flutuante semitransparente
+  if(bolha)bolha.style.display='flex';
+}
+
 function toggleMobileMore(){
   const p=document.getElementById('mobileMorePanel');
   if(!p)return;
