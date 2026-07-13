@@ -553,7 +553,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v205</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v206</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1382,37 +1382,11 @@ async function _rpc(fn,params){
 // ── Controle de visibilidade de menus/abas por perfil ──
 function aplicarPermissoesUI(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  const ids={
-    painel:['tb-painel','mn-painel'], lista:['tb-lista','mn-lista'],
-    prog:['tb-prog','mn-prog'], massa:['tb-massa','mn-massa'],
-    fup:['tb-fup','mn-fup'], amazon:['tb-amazon','mn-amazon'],
-    caf:['tb-caf','mn-caf'], analise:['tb-analise','mn-analise'],
-    tvyard:['tb-tv-yard'], tv:['tb-tv'], admin:['tb-admin','mn-admin'],
-  };
-  const set=(keys,visivel)=>keys.forEach(k=>(ids[k]||[]).forEach(id=>{
-    const el=document.getElementById(id);if(el)el.style.display=visivel?'':'none';
-  }));
-  // Esconde tudo, depois libera por perfil
-  set(Object.keys(ids),false);
-  switch(p){
-    case 'admin':
-    case 'supervisor':
-      set(['painel','lista','prog','massa','fup','amazon','caf','analise','tvyard','tv','admin'],true);
-      break;
-    case 'torre_controle':
-      set(['painel','lista','prog','massa','fup','amazon','caf','analise','tvyard','tv'],true);
-      break;
-    case 'doca':
-      set(['painel','lista','prog','tvyard','tv'],true);
-      break;
-    case 'operador_caf':
-      set(['painel','lista','caf'],true);
-      break;
-    case 'visualizador':
-    default:
-      set(['painel','lista','caf','analise','tvyard','tv'],true);
-  }
-  // Botão de exportar PPTX é exclusivo do admin (regra do backend: validar_permissao/exportar_pptx)
+  // NOTA: a visibilidade de abas (tb-X / mn-X) já é 100% controlada por
+  // _resolveAbas() + _organizarNavMobile() no bootApp — inclusive respeitando
+  // permissões customizadas por usuário. Esta função antiga sobrescrevia
+  // tudo de novo com um switch-case fixo por perfil (sem saber do "Mais"/bolha
+  // nem de overrides), desfazendo aquele trabalho. Mantida só pro botão PPTX.
   document.querySelectorAll('.btn-exportar-pptx').forEach(el=>el.style.display=(p==='admin')?'':'none');
 }
 
