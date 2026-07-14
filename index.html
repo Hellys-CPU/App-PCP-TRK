@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v217</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v218</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -2644,14 +2644,14 @@ function _gerarExtracaoCompleta(){
       'TMS':op.tms||'',
       'Status':stLb[op.status]||op.status,
       'Pl. Apresentação':op.planApres||'',
-      'Rl. Apresentação':op.realApres?`${fmtD(op.dataOp)} ${op.realApres}`:'',
+      'Rl. Apresentação':op.realApres?`${fmtD(op.dataOp)} ${toTime(op.realApres)}`:'',
       'Pl. Saída':op.planSaida||'',
-      'Rl. Saída':op.realSaida?`${fmtD(op.dataOp)} ${op.realSaida}`:'',
+      'Rl. Saída':op.realSaida?`${fmtD(op.dataOp)} ${toTime(op.realSaida)}`:'',
       'Δ Saída (min)':dS??'',
       'Pl. Chegada FC':op.planChegFC||'',
-      'Rl. Chegada FC':op.realChegFC?`${fmtD(op.dataOp)} ${op.realChegFC}`:'',
+      'Rl. Chegada FC':op.realChegFC?`${fmtD(op.dataOp)} ${toTime(op.realChegFC)}`:'',
       'Δ FC (min)':dC??'',
-      'Descarga Real':op.realDescarga?`${fmtD(op.dataOp)} ${op.realDescarga}`:'',
+      'Descarga Real':op.realDescarga?`${fmtD(op.dataOp)} ${toTime(op.realDescarga)}`:'',
       'Qtd. CAFs':(op.cafs||[]).length,
       'CAF(s) — Número':cafsNumeros,
       'CAF(s) — Status':cafsStatusTxt,
@@ -5465,29 +5465,27 @@ async function autoVincularCAFs(op){
     if(!cafRef.num)continue;
     const c=cafsDB.find(x=>x.num===cafRef.num);
     if(!c)continue; // CAF manual (não está no banco de CAFs)
-    // Já vinculada a esta mesma op — nada a fazer
-    if(c.opId===op.id&&c.status==='Vinculada a Veículo')continue;
-    // ── BLOQUEIO: CAF já vinculada a OUTRA viagem — nunca sobrescreve ──
-    if(c.opId&&c.opId!==op.id&&c.status!=='Produzida'){
+    // ── Já vinculada a ESTA MESMA operação — nada a fazer, independente de qual status ela já alcançou ──
+    // (Vinculada a Veículo, Processo de Entrega, Entrega Realizada são todos avanços normais do
+    // ciclo de vida da própria CAF — não é motivo pra bloquear/remover do array da viagem)
+    if(c.opId===op.id)continue;
+    // ── BLOQUEIO: CAF já vinculada a OUTRA viagem (opId diferente) — nunca sobrescreve ──
+    if(c.opId&&c.opId!==op.id){
       bloqueadas.push(c.num);
       op.cafs=op.cafs.filter(x=>x.num!==c.num); // remove da viagem atual — não pode ficar "fantasma"
       continue;
     }
-    // ── BLOQUEIO: só pode vincular CAF que esteja "Produzida" — nunca em Auditoria GRIS ou qualquer outro status ──
+    // ── BLOQUEIO: só pode vincular CAF NOVA (sem opId ainda) que esteja "Produzida" ──
     if(c.status!=='Produzida'){
       bloqueadas.push(`${c.num} (${c.status})`);
       op.cafs=op.cafs.filter(x=>x.num!==c.num);
       continue;
     }
     c.opId=op.id;
-    // Só muda para Vinculada a Veículo se estava Produzida (disponível para embarque)
-    // A rua NÃO é liberada aqui — só quando o status avançar para "Processo de Entrega"
-    if(c.status==='Produzida'){
-      if(!Array.isArray(c.hist))c.hist=[];
-      c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id} (Produzida → Vinculada a Veículo)`});
-      if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
-      c.status='Vinculada a Veículo';
-    }
+    if(!Array.isArray(c.hist))c.hist=[];
+    c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id} (Produzida → Vinculada a Veículo)`});
+    if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+    c.status='Vinculada a Veículo';
     await saveCAFToDB(c);
     changed=true;
   }
