@@ -255,6 +255,7 @@ body.dark .card-rota-badge{color:#e6edf3;}
 .b-inb{background:var(--green2);color:var(--green3);}
 .b-ext{background:var(--purple2);color:var(--purple);}
 .b-prod{background:rgba(249,115,22,.12);color:#ea580c;border:1px solid rgba(249,115,22,.3);}
+.b-gris{background:rgba(220,38,38,.14);color:#dc2626;border:1.5px solid rgba(220,38,38,.4);font-weight:800;}
 .ci{font-size:.69rem;color:var(--t2);display:flex;flex-direction:column;gap:2px;}
 .ci .row{display:flex;justify-content:space-between;}
 .ci .lbl{color:var(--t3);font-size:.65rem;}
@@ -553,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v214</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v216</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1206,6 +1207,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
           <select id="cafStatus">
             <option value="Em Produção">Em Produção</option>
             <option value="Produzida">Produzida</option>
+            <option value="Em Auditoria GRIS">Em Auditoria GRIS</option>
             <option value="Vinculada a Veículo">Vinculada a Veículo</option>
             <option value="Processo de Entrega">Proc. de Entrega</option>
             <option value="Entrega Realizada">Entrega Realizada</option>
@@ -1364,8 +1366,8 @@ function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
 function isReadOnly(){return _perfil()==='visualizador';}
 function _cafStatusPermitido(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada','Produzida'];
-  if(p==='operador_caf')return['Em Produção','Produzida'];
+  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada','Produzida','Em Auditoria GRIS'];
+  if(p==='operador_caf')return['Em Produção','Produzida','Em Auditoria GRIS'];
   if(p==='torre_controle')return['Processo de Entrega','Entrega Realizada'];
   return[];
 }
@@ -2202,7 +2204,7 @@ async function deleteUser(username){
 // CONSTANTES DINÂMICAS
 // ══════════════════════════════════════════════════════════════════
 let ROTAS=['TZX_GR8','TZX_XC9','TZX_JDU','TZX_GR9','TZX_GR5'];
-const TIPOS=['LTL','FLT','Inbound','Extra'];
+const TIPOS=['LTL','FLT','Inbound','NC'];
 const TIPOLS=['CARRETA','TOCO','TRUCK','VAN','UTILITÁRIO'];
 let TRANSPS=['FRATELLI','GALEGOS','PRC','FULLFLEX','HORIZONTE','SPEED','VOXEL','NEW ALPHA','REALUZ','SETAG','INNOVATION','SABOIA'];
 const STS=[{id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},{id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},{id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},{id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'PERN',lb:'EM PERNOITE'}];
@@ -2219,7 +2221,7 @@ const genId=()=>'OP-'+(++seq);
 const ts=()=>new Date().toLocaleString('pt-BR');
 const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'';
 const stObj=id=>STS.find(s=>s.id===id)||STS[0];
-const tCls=t=>({LTL:'b-ltl',FLT:'b-flt',Inbound:'b-inb',Extra:'b-ext'}[t]||'b-ltl');
+const tCls=t=>({LTL:'b-ltl',FLT:'b-flt',Inbound:'b-inb',NC:'b-ext'}[t]||'b-ltl');
 const pMin=t=>{if(!t)return null;const part=t.includes('T')?t.split('T')[1]:t;const[h,m]=part.split(':').map(Number);return h*60+m;};
 // Extrai só HH:MM de um valor que pode ser datetime-local ou time
 const toTime=v=>v?(v.includes('T')?v.split('T')[1].substring(0,5):v.substring(0,5)):'';
@@ -2777,7 +2779,7 @@ function renderProg(){
   // Ocupação real de piso: conta pelo STATUS da CAF (não depende de op vinculada)
   // Aparece enquanto: Em Produção, Produzida ou Vinculada a Veículo
   // Some do piso somente ao chegar em Processo de Entrega / Entrega Realizada / Cancelada
-  const cafsDia=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status));
+  const cafsDia=cafsDB.filter(c=>['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo'].includes(c.status));
   const cafCount=cafsDia.length;
   // Pallets reais: soma os pallets de cada CAF (campo pallets do banco)
   const palCount=Math.round(cafsDia.reduce((s,c)=>s+(Number(c.pallets)||0),0));
@@ -2924,8 +2926,8 @@ function renderProg(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
-              const cor=c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
-              const bg=c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
+              const cor=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
+              const bg=c.status==='Em Auditoria GRIS'?'rgba(220,38,38,.15)':c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
               const ruaN=ruaNumeroDe(c.ruaId);
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
                 style="background:${bg};color:${cor};border:1.5px solid ${cor};border-radius:6px;padding:6px 10px;font-size:.85rem;font-weight:800;display:inline-flex;align-items:center;gap:6px">
@@ -3972,12 +3974,13 @@ function renderAnalise(){
     const totalC=cafsPeriodo.length;
     const emProd=cafsPeriodo.filter(c=>c.status==='Em Produção').length;
     const produzidas=cafsPeriodo.filter(c=>c.status==='Produzida').length;
+    const emAuditoriaGRIS=cafsPeriodo.filter(c=>c.status==='Em Auditoria GRIS').length;
     const vinculadas=cafsPeriodo.filter(c=>c.status==='Vinculada a Veículo').length;
     const procEntrega=cafsPeriodo.filter(c=>c.status==='Processo de Entrega').length;
     const entregues=cafsPeriodo.filter(c=>c.status==='Entrega Realizada').length;
     const canceladas=cafsPeriodo.filter(c=>c.status==='cancelada').length;
     const comRua=cafsPeriodo.filter(c=>c.ruaId).length;
-    const semRua=cafsPeriodo.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
+    const semRua=cafsPeriodo.filter(c=>['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
     // Viagens do período com CAF vs sem
     const viagensComCAF=data.filter(o=>o.cafs&&o.cafs.length>0).length;
     const viagensSemCAF=data.filter(o=>!o.cafs||!o.cafs.length).length;
@@ -3993,6 +3996,7 @@ function renderAnalise(){
       <div class="met-box"><div class="mv" style="color:var(--text)">${totalC}</div><div class="ml">Total CAFs</div></div>
       <div class="met-box"><div class="mv" style="color:#6b7280">${emProd}</div><div class="ml">Em Produção</div></div>
       <div class="met-box"><div class="mv" style="color:#14b8a6">${produzidas}</div><div class="ml">Produzidas</div></div>
+      <div class="met-box"><div class="mv" style="color:var(--red)">${emAuditoriaGRIS}</div><div class="ml">⚠ Em Auditoria GRIS</div></div>
       <div class="met-box"><div class="mv" style="color:var(--green)">${vinculadas}</div><div class="ml">Vinculadas</div></div>
       <div class="met-box"><div class="mv" style="color:var(--blue)">${procEntrega}</div><div class="ml">Proc. Entrega</div></div>
       <div class="met-box"><div class="mv" style="color:var(--green)">${entregues}</div><div class="ml">Entregues</div></div>
@@ -4029,6 +4033,9 @@ function renderAnalise(){
     const porFC={};
     grupos.forEach(g=>{(porFC[g.fc]=porFC[g.fc]||{casos:0,extras:0});porFC[g.fc].casos++;porFC[g.fc].extras+=g.cafs.length-1;});
     const fcOrdenado=Object.entries(porFC).sort((a,b)=>b[1].extras-a[1].extras);
+
+    // Formata o vencimento pro display — pode ser data pura (YYYY-MM-DD) ou o rótulo especial de atrasado+hoje
+    const _fmtVencGrupo=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)?fmtD(v):v;
 
     // Agrupa POR DATA de vencimento (quando)
     const porData={};
@@ -4076,7 +4083,7 @@ function renderAnalise(){
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${dataOrdenada.map(([venc,d])=>`<div style="background:var(--bg3);border:1px solid var(--yellow);border-radius:6px;padding:6px 10px;text-align:center;min-width:80px">
           <div style="font-size:.85rem;font-weight:800;color:var(--red)">${d.extras}</div>
-          <div style="font-size:.58rem;color:var(--t2)">${fmtD(venc)}</div>
+          <div style="font-size:.58rem;color:var(--t2)">${_fmtVencGrupo(venc)}</div>
         </div>`).join('')}
       </div>
     </div>
@@ -4087,7 +4094,7 @@ function renderAnalise(){
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
         ${grupos.map(g=>`<div style="background:var(--bg3);border-left:3px solid var(--yellow);border-radius:6px;padding:10px 12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <span style="font-size:.78rem;font-weight:800;color:var(--text)">📍 Destino ${esc(g.fc)} · Vencimento ${fmtD(g.venc)}</span>
+            <span style="font-size:.78rem;font-weight:800;color:var(--text)">📍 Destino ${esc(g.fc)} · Vencimento ${_fmtVencGrupo(g.venc)}${g.misturaAtrasado?' <span style="background:#7c2d12;color:#fed7aa;font-size:.55rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px">⏰ atrasado absorvido em hoje</span>':''}</span>
             <span style="font-size:.65rem;color:var(--yellow);font-weight:700">${g.cafs.length} CAFs (poderia ser 1)</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px">
@@ -4820,8 +4827,8 @@ function renderCAFs(){
   }
 
   // Table
-  const stCls={'Em Produção':'b-ext','Produzida':'b-inb','Processo de Entrega':'b-flt','Entrega Realizada':'b-ltl','Vinculada a Veículo':'b-prod','cancelada':'b-flt'};
-  const stLbl={'Em Produção':'Em Produção','Produzida':'Produzida','Processo de Entrega':'Proc. Entrega','Entrega Realizada':'Entrega Realizada','Vinculada a Veículo':'Vinculada a Veículo','cancelada':'Cancelada'};
+  const stCls={'Em Produção':'b-ext','Produzida':'b-inb','Em Auditoria GRIS':'b-gris','Processo de Entrega':'b-flt','Entrega Realizada':'b-ltl','Vinculada a Veículo':'b-prod','cancelada':'b-flt'};
+  const stLbl={'Em Produção':'Em Produção','Produzida':'Produzida','Em Auditoria GRIS':'⚠ Auditoria GRIS','Processo de Entrega':'Proc. Entrega','Entrega Realizada':'Entrega Realizada','Vinculada a Veículo':'Vinculada a Veículo','cancelada':'Cancelada'};
   const vencCls=c=>{if(!c.venc)return'';if(['Entrega Realizada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -4897,7 +4904,7 @@ function openNewCAF(){
     rotaSel.addEventListener('change',()=>{
       const r=rotaSel.value||'';
       const tp=document.getElementById('cafTipo');if(!tp)return;
-      if(r.toUpperCase().endsWith('_EX'))tp.value='Extra';
+      if(r.toUpperCase().endsWith('_EX'))tp.value='NC';
       else if(r.toUpperCase().includes('_LTL'))tp.value='LTL';
       else tp.value='Inbound';
     });
@@ -5465,6 +5472,12 @@ async function autoVincularCAFs(op){
       op.cafs=op.cafs.filter(x=>x.num!==c.num); // remove da viagem atual — não pode ficar "fantasma"
       continue;
     }
+    // ── BLOQUEIO: só pode vincular CAF que esteja "Produzida" — nunca em Auditoria GRIS ou qualquer outro status ──
+    if(c.status!=='Produzida'){
+      bloqueadas.push(`${c.num} (${c.status})`);
+      op.cafs=op.cafs.filter(x=>x.num!==c.num);
+      continue;
+    }
     c.opId=op.id;
     // Só muda para Vinculada a Veículo se estava Produzida (disponível para embarque)
     // A rua NÃO é liberada aqui — só quando o status avançar para "Processo de Entrega"
@@ -5815,11 +5828,12 @@ function renderTV(){
     const st={
       'Em Produção':{cor:'#6b7280',ic:'🏭'},
       'Produzida':{cor:'var(--blue)',ic:'✅'},
+      'Em Auditoria GRIS':{cor:'var(--red)',ic:'⚠️'},
       'Vinculada a Veículo':{cor:'var(--green)',ic:'🚛'},
       'Processo de Entrega':{cor:'#bc8cff',ic:'📦'},
     };
     const counts=Object.keys(st).map(s=>({s,n:cafsDB.filter(c=>c.status===s).length,...st[s]}));
-    const semRua=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
+    const semRua=cafsDB.filter(c=>['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo'].includes(c.status)&&!c.ruaId).length;
     return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
       <span style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase">📊 Pipeline de CAFs</span>
       ${counts.map(c=>`<div style="display:flex;align-items:center;gap:6px">
@@ -6300,7 +6314,7 @@ function renderTVYard(){
 
   // Ocupação de piso: conta pelo STATUS da CAF — some só ao chegar em Processo de Entrega/Entrega Realizada
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
-  const cafsPatio=cafsDB.filter(c=>['Em Produção','Produzida','Vinculada a Veículo'].includes(c.status));
+  const cafsPatio=cafsDB.filter(c=>['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo'].includes(c.status));
   const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
@@ -6430,7 +6444,7 @@ function renderTVYard(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:5px">
             ${cafsDaOp.map(c=>{
-              const cor2=c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Processo de Entrega'?'var(--blue)':c.status==='Entrega Realizada'?'var(--orange)':'var(--t3)';
+              const cor2=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Processo de Entrega'?'var(--blue)':c.status==='Entrega Realizada'?'var(--orange)':'var(--t3)';
               const alerta=!['Processo de Entrega','Entrega Realizada'].includes(c.status);
               const ruaN=ruaNumeroDe(c.ruaId);
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
@@ -6530,14 +6544,19 @@ function _calcSLAsSeparados(opsArr){
 // diferentes (nunca mistura dia 1 com dia 2) — só flagra quando é
 // EXATAMENTE o mesmo dia de vencimento + mesmo FC de destino.
 function _detectarConsolidacaoCAF(cafsArr,capacidadeRua=30){
-  // Agrupa por destino+vencimento (mesmo critério de antes)
+  const hoje=hojeLocal();
+  // Agrupa por destino+vencimento
+  // REGRA NOVA: vencimento PASSADO (atrasado) pode juntar com o vencimento de HOJE —
+  // já que ambos já precisam sair mesmo. Mas vencimento FUTURO nunca mistura com nada
+  // (nem com hoje, nem com atrasado) — fica isolado no seu próprio dia exato.
   const grupos={};
   cafsArr.forEach(c=>{
     if(c.status!=='Produzida')return; // regra: só aplica pra CAFs já Produzidas (prontas)
     if(!c.venc||!c.rota)return;
     const fc=_fcFromRota(c.rota);
-    const chave=c.venc+'|'+fc;
-    if(!grupos[chave])grupos[chave]={venc:c.venc,fc,cafs:[]};
+    const chaveVenc=(c.venc<=hoje)?'ATE_HOJE':c.venc; // atrasado ou hoje viram o mesmo balde; futuro fica isolado
+    const chave=chaveVenc+'|'+fc;
+    if(!grupos[chave])grupos[chave]={vencKey:chaveVenc,fc,cafs:[]};
     grupos[chave].cafs.push(c);
   });
 
@@ -6560,10 +6579,16 @@ function _detectarConsolidacaoCAF(cafsArr,capacidadeRua=30){
     });
     // Só os lotes com 2+ CAFs representam uma consolidação real perdida
     lotes.filter(l=>l.cafs.length>1).forEach(l=>{
+      // Rótulo de vencimento pro lote: se é o balde "atrasado+hoje", mostra o range real de datas envolvidas
+      const vencsUnicos=[...new Set(l.cafs.map(c=>c.venc))].sort();
+      const vencLabel=g.vencKey==='ATE_HOJE'
+        ?(vencsUnicos.length>1?`${vencsUnicos[0]} a ${vencsUnicos[vencsUnicos.length-1]} (atrasado→hoje)`:vencsUnicos[0])
+        :vencsUnicos[0];
       resultado.push({
-        venc:g.venc,fc:g.fc,cafs:l.cafs,
+        venc:vencLabel,fc:g.fc,cafs:l.cafs,
         totalPallets:l.soma,
         totalVolume:l.cafs.reduce((s,c)=>s+(Number(c.vol)||0),0),
+        misturaAtrasado:g.vencKey==='ATE_HOJE'&&vencsUnicos.length>1,
       });
     });
   });
@@ -7189,7 +7214,7 @@ async function importarPlanilhaBase(event){
     const tipoRota = r => {
       if(!r) return 'Inbound';
       const u = String(r).toUpperCase().trim();
-      if(u.endsWith('_EX')) return 'Extra';
+      if(u.endsWith('_EX')) return 'NC';
       if(u.includes('_LTL')) return 'LTL';
       return 'Inbound';
     };
