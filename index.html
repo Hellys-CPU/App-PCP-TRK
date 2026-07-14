@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v216</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v217</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1201,7 +1201,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div class="fgrid" style="gap:11px">
         <div class="fg"><label>Nº da CAF</label><input id="cafNum" placeholder="Ex: 23081234" style="font-weight:700;font-size:1rem"></div>
         <div class="fg"><label>Tipo de Carga</label>
-          <select id="cafTipo"><option>LTL</option><option>Inbound</option><option>FLT</option><option>Extra</option></select>
+          <select id="cafTipo"><option>LTL</option><option>Inbound</option><option>FLT</option><option>NC</option></select>
         </div>
         <div class="fg"><label>Status da CAF</label>
           <select id="cafStatus">
@@ -2204,7 +2204,8 @@ async function deleteUser(username){
 // CONSTANTES DINÂMICAS
 // ══════════════════════════════════════════════════════════════════
 let ROTAS=['TZX_GR8','TZX_XC9','TZX_JDU','TZX_GR9','TZX_GR5'];
-const TIPOS=['LTL','FLT','Inbound','NC'];
+const TIPOS=['LTL','FLT','Inbound','Extra']; // tipo de carga da VIAGEM — mantém Extra
+const TIPOS_CAF=['LTL','FLT','Inbound','NC']; // tipo da CAF em si — usa NC no lugar de Extra
 const TIPOLS=['CARRETA','TOCO','TRUCK','VAN','UTILITÁRIO'];
 let TRANSPS=['FRATELLI','GALEGOS','PRC','FULLFLEX','HORIZONTE','SPEED','VOXEL','NEW ALPHA','REALUZ','SETAG','INNOVATION','SABOIA'];
 const STS=[{id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},{id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},{id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},{id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'PERN',lb:'EM PERNOITE'}];
@@ -4708,7 +4709,7 @@ function buildCAFSelects(){
   const tSel=document.getElementById('cafFTipo');
   if(rSel){const cur=rSel.value;rSel.innerHTML='<option value="">Todas as Rotas</option>'+ROTAS.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');}
   if(rModal){rModal.innerHTML='<option value="">Selecione a rota</option>'+ROTAS.map(r=>`<option>${r}</option>`).join('');}
-  if(tSel&&tSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});}
+  if(tSel&&tSel.options.length<=1){TIPOS_CAF.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});}
 }
 
 // ── Ordenação da tabela CAFs ──
@@ -7214,7 +7215,7 @@ async function importarPlanilhaBase(event){
     const tipoRota = r => {
       if(!r) return 'Inbound';
       const u = String(r).toUpperCase().trim();
-      if(u.endsWith('_EX')) return 'NC';
+      if(u.endsWith('_EX')) return 'Extra';
       if(u.includes('_LTL')) return 'LTL';
       return 'Inbound';
     };
