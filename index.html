@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v219</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v220</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -5903,19 +5903,19 @@ function renderTV(){
         </div>
 
         <!-- Lista COMPLETA de todas as CAFs ocupando rua, agrupada por FC -->
-        <div style="flex:1;min-width:320px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+        <div style="flex:1;min-width:320px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
           ${fcsOrdenados.length?fcsOrdenados.map(fc=>{
             const lista=porFC[fc];
             const critFC=lista.filter(d=>d.nivel==='critico'||d.emAuditoria).length;
-            return`<div style="background:var(--bg3);border-radius:8px;padding:8px;border-left:3px solid ${critFC?'var(--red)':'var(--blue)'}">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <span style="font-size:.75rem;font-weight:800;color:var(--text)">📍 FC ${esc(fc)}</span>
-                <span style="font-size:.62rem;color:var(--t2)">${lista.length} rua${lista.length>1?'s':''}</span>
+            return`<div style="background:var(--bg3);border-radius:8px;padding:12px;border-left:4px solid ${critFC?'var(--red)':'var(--blue)'}">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--bd)">
+                <span style="font-size:1.05rem;font-weight:800;color:var(--text)">📍 RUA · FC ${esc(fc)}</span>
+                <span style="font-size:.75rem;color:var(--t2);font-weight:600">${lista.length} rua${lista.length>1?'s':''}</span>
               </div>
-              <div style="max-height:260px;overflow-y:auto">
-                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:.66rem;padding:3px 0;border-top:1px solid var(--bd)">
-                  <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)} · <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
-                  <span style="color:${d.cor};font-weight:700;white-space:nowrap">${d.emAuditoria?'⚠ Auditoria '+d.tempoTxt:d.pronta?'✓ Produzida':d.tempoTxt}</span>
+              <div>
+                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:7px 2px;border-top:1px solid var(--bd)">
+                  <span style="color:var(--t2)">Rua <b style="color:var(--text);font-size:.95rem">${d.numero}</b> <span style="color:var(--t3)">·</span> ${esc(d.caf)} <span style="color:var(--t3)">·</span> <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
+                  <span style="color:${d.cor};font-weight:800;white-space:nowrap;font-size:.85rem">${d.emAuditoria?'⚠ Auditoria '+d.tempoTxt:d.pronta?'✓ Produzida':d.tempoTxt}</span>
                 </div>`).join('')}
               </div>
             </div>`;
