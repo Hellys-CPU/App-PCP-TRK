@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v220</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v221</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -870,6 +870,16 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- ADMIN -->
 <div class="view" id="view-admin">
   <div class="admin-grid">
+    <div class="admin-card" id="adm-ruas">
+      <h3>🏗️ Ruas — Andares (Mezanino)</h3>
+      <div id="ruasAndaresList" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <div class="fg" style="flex:1;margin:0"><label style="font-size:.62rem">Rua nº</label><input id="admRuaNum" type="number" min="1" style="width:100%"></div>
+        <div class="fg" style="flex:1;margin:0"><label style="font-size:.62rem">Capacidade (pal.)</label><input id="admRuaCap" type="number" value="28" style="width:100%"></div>
+        <button class="btn btn-s" style="font-size:.72rem" onclick="_adicionarAndarRua()">+ Add. Andar</button>
+      </div>
+      <div style="font-size:.6rem;color:var(--t2);margin-top:6px">Adiciona um novo andar/nível pra uma rua que já existe — vira uma posição física independente, mesma lógica das ruas 23-27.</div>
+    </div>
     <div class="admin-card" id="adm-users">
       <h3>👥 Gestão de Usuários</h3>
       <div class="user-list" id="userList"></div>
@@ -3722,6 +3732,9 @@ function setView(name){
     document.querySelectorAll('.btn-del,.btn[onclick*="openEditUser"]').forEach(el=>{
       if(!isAdmin)el.style.display='none';
     });
+    // Gestão de ruas/andares — restrita a admin puro (configuração estrutural do pátio)
+    const admRuasCard=document.getElementById('adm-ruas');
+    if(admRuasCard)admRuasCard.style.display=isAdmin?'':'none';
   }
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
   if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
@@ -3752,7 +3765,7 @@ function setView(name){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
-  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();}
+  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();}
   curPage=name;pingOnlineDB().then(()=>_renderOnlinePresence()).catch(()=>{});
 }
 
@@ -4420,7 +4433,7 @@ let cafsDB=[],editCAFId=null,ruasDB=[];
 async function loadRuas(){
   if(!supabaseOK)return;
   try{
-    const data=await sbFetch(`${TABELA_RUAS}?order=numero.asc`);
+    const data=await sbFetch(`${TABELA_RUAS}?order=numero.asc,andar.asc`);
     if(Array.isArray(data))ruasDB=data;
   }catch(e){console.error('loadRuas error:',e);}
 }
@@ -4584,6 +4597,43 @@ const ABAS_PRIORIDADE = ['painel','lista','prog','caf','massa','fup','amazon','a
 // Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
 // Se tem 4 ou menos, mostra tudo na barra e esconde a bolha — não precisa de "Mais".
+// ── Gestão de Ruas/Andares no Admin ──
+function _renderRuasAndares(){
+  const el=document.getElementById('ruasAndaresList');if(!el)return;
+  // Agrupa por número, só mostra ruas que já têm mais de 1 andar (as "torres")
+  const porNumero={};
+  ruasDB.forEach(r=>{(porNumero[r.numero]=porNumero[r.numero]||[]).push(r);});
+  const comAndares=Object.entries(porNumero).filter(([,arr])=>arr.length>1).sort((a,b)=>Number(a[0])-Number(b[0]));
+  if(!comAndares.length){el.innerHTML='<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:10px">Nenhuma rua com múltiplos andares ainda</div>';return;}
+  el.innerHTML=comAndares.map(([num,arr])=>{
+    const ordenado=[...arr].sort((a,b)=>a.andar-b.andar);
+    return`<div style="background:var(--bg3);border-radius:6px;padding:6px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.72rem;font-weight:700">Rua ${esc(num)}</span>
+      <span style="font-size:.65rem;color:var(--t2)">${ordenado.map(r=>`${r.andar>1?r.andar+'º':'Térreo'} (${r.capacidade_pallets}pal.)`).join(' · ')}</span>
+    </div>`;
+  }).join('');
+}
+
+async function _adicionarAndarRua(){
+  const num=parseInt(document.getElementById('admRuaNum')?.value||'',10);
+  const cap=parseInt(document.getElementById('admRuaCap')?.value||'28',10);
+  if(!num){showToast('Informe o número da rua','err');return;}
+  const existentes=ruasDB.filter(r=>r.numero===num);
+  if(!existentes.length){showToast(`Rua ${num} não existe no sistema`,'err');return;}
+  const proximoAndar=Math.max(...existentes.map(r=>r.andar||1))+1;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${TABELA_RUAS}`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({numero:num,andar:proximoAndar,capacidade_pallets:cap,ocupada:false})
+    });
+    if(!res.ok)throw new Error(await res.text());
+    showToast(`✅ Rua ${num} — ${proximoAndar}º andar criado (${cap} pallets)`,'ok');
+    await loadRuas();
+    _renderRuasAndares();
+  }catch(e){showToast('❌ Erro ao criar andar: '+e.message,'err');}
+}
+
 function _organizarNavMobile(abasVisiveis){
   const ordenadas=ABAS_PRIORIDADE.filter(a=>abasVisiveis.includes(a));
   const bolha=document.getElementById('btnMobileMaisFlutuante');
@@ -4629,7 +4679,10 @@ function toggleMobileMore(){
     setTimeout(()=>{p.style.display='none';},220); // espera a animação de fechar terminar antes de sumir
   }
 }
-function ruaNumeroDe(ruaId){const r=ruasDB.find(x=>x.id===ruaId);return r?r.numero:null;}
+function ruaNumeroDe(ruaId){
+  const r=ruasDB.find(x=>x.id===ruaId);if(!r)return null;
+  return(r.andar&&r.andar>1)?`${r.numero} (${r.andar}º andar)`:r.numero;
+}
 
 // Supabase CAF CRUD
 async function loadCAFs(){
@@ -4864,7 +4917,8 @@ function popularSelectRua(cafAtualId,ruaIdAtual){
     const opt=document.createElement('option');
     opt.value=r.id;
     const ocupadaPorOutra=r.ocupada&&r.caf_id&&r.caf_id!==cafAtualId;
-    opt.textContent=`Rua ${r.numero} (${r.capacidade_pallets} pal.)`+(ocupadaPorOutra?' — ocupada':'');
+    const andarLabel=r.andar>1?` - ${r.andar}º andar`:(r.andar?' - Térreo':'');
+    opt.textContent=`Rua ${r.numero}${andarLabel} (${r.capacidade_pallets} pal.)`+(ocupadaPorOutra?' — ocupada':'');
     opt.disabled=ocupadaPorOutra;
     sel.appendChild(opt);
   });
@@ -5853,7 +5907,7 @@ function renderTV(){
       else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
       const corPallets=pallets>=26?'var(--red)':pallets>=20?'var(--yellow)':'var(--green)';
       const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
-      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,pronta,emAuditoria,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+      return{ruaId:r.id,numero:r.numero,andar:r.andar||1,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,pronta,emAuditoria,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
     }).sort((a,b)=>b.horasParada-a.horasParada);
 
     const porFC={};
@@ -5888,14 +5942,16 @@ function renderTV(){
         <!-- Grid tabular de ruas — exatamente 5 por linha -->
         <div style="display:grid;grid-template-columns:repeat(5,56px);gap:8px;flex-shrink:0">
           ${ruasDB.map(r=>{
-            const d=detalhes.find(x=>x.numero===r.numero);
+            const d=detalhes.find(x=>x.ruaId===r.id);
             const cor=d?d.cor:'var(--bg4)';
             const borda=d?d.cor:'var(--bd)';
             const piscar=d&&d.emAuditoria?'animation:pulseAlert 1.5s infinite;':'';
-            return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
+            const andarTag=r.andar>1?`<span style="position:absolute;bottom:1px;left:2px;font-size:.5rem;font-weight:900;color:${d?cor:'var(--t3)'};background:var(--bg2);border-radius:3px;padding:0 3px">${r.andar}º</span>`:'';
+            return`<div title="Rua ${r.numero}${r.andar>1?` (${r.andar}º andar)`:''}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
               style="position:relative;width:56px;height:56px;border-radius:8px;background:${d?cor+'18':'var(--bg3)'};border:2px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:${d?cor:'var(--t3)'};${piscar}">
               ${d?`<span style="width:15px;height:15px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 6px ${d.corPallets};margin-bottom:2px"></span>`:''}
               ${r.numero}
+              ${andarTag}
               ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
               ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
             </div>`;
@@ -5913,8 +5969,12 @@ function renderTV(){
                 <span style="font-size:.75rem;color:var(--t2);font-weight:600">${lista.length} rua${lista.length>1?'s':''}</span>
               </div>
               <div>
-                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:7px 2px;border-top:1px solid var(--bd)">
-                  <span style="color:var(--t2)">Rua <b style="color:var(--text);font-size:.95rem">${d.numero}</b> <span style="color:var(--t3)">·</span> ${esc(d.caf)} <span style="color:var(--t3)">·</span> <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
+                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--bd)">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.8rem;font-weight:800;color:var(--text)">Rua ${d.numero}${d.andar>1?` <span style="color:var(--yellow)">(${d.andar}º)</span>`:''}</span>
+                    <span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.8rem;font-weight:700;color:var(--t2)">${esc(d.caf)}</span>
+                    <span style="background:${d.corPallets}22;border:1px solid ${d.corPallets};border-radius:5px;padding:3px 9px;font-size:.8rem;font-weight:800;color:${d.corPallets}">${d.pallets} pal.</span>
+                  </div>
                   <span style="color:${d.cor};font-weight:800;white-space:nowrap;font-size:.85rem">${d.emAuditoria?'⚠ Auditoria '+d.tempoTxt:d.pronta?'✓ Produzida':d.tempoTxt}</span>
                 </div>`).join('')}
               </div>
