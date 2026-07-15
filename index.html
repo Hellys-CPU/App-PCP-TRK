@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v218</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v219</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -5807,21 +5807,6 @@ function renderTV(){
     </div>
   </div>
 
-  <!-- KPIs -->
-  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px">
-    ${[
-      {v:total,l:'Total',c:'var(--text)'},
-      {v:prog,l:'Aguardando',c:'#9ca3af'},
-      {v:tran,l:'Em Trânsito',c:'var(--blue)'},
-      {v:aguDesc,l:'Ag. Descarga',c:'#bc8cff'},
-      {v:fin,l:'Finalizadas',c:'var(--green)'},
-      {v:atrasadas,l:'⚠ Atrasadas',c:'var(--red)'},
-    ].map(k=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px;text-align:center">
-      <div style="font-size:2rem;font-weight:800;color:${k.c};line-height:1">${k.v}</div>
-      <div style="font-size:.58rem;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">${k.l}</div>
-    </div>`).join('')}
-  </div>
-
   <!-- PIPELINE DE CAFs (visão operacional) -->
   ${(()=>{
     const st={
@@ -5844,92 +5829,100 @@ function renderTV(){
     </div>`;
   })()}
 
-  <!-- OCUPAÇÃO DE RUAS (heatmap por FC) -->
+  <!-- OCUPAÇÃO DE RUAS (tabular + lista completa lado a lado) -->
   ${(()=>{
     const agora=Date.now();
     const ruasOcup=ruasDB.filter(r=>r.ocupada&&r.caf_id);
-    const ruasLivres=ruasDB.filter(r=>!r.ocupada);
     const totalRuas=ruasDB.length||1;
     const pctOcup=Math.round(ruasOcup.length/totalRuas*100);
     const corOcup=pctOcup>=90?'var(--red)':pctOcup>=70?'var(--yellow)':'var(--green)';
 
-    // Monta detalhe de cada rua ocupada: CAF, FC (via rota), tempo parada
     const detalhes=ruasOcup.map(r=>{
       const c=cafsDB.find(x=>x.id===r.caf_id);
       const fc=c?_fcFromRota(c.rota):null;
-      // Tempo REAL desde que o status atual da CAF foi aplicado (não desde a atribuição da rua)
       const desde=c?_tempoNoStatusAtualCAF(c):(r.atualizado_em?new Date(r.atualizado_em).getTime():agora);
       const horasParada=(agora-desde)/3600000;
       const pronta=c?.status==='Produzida';
+      const emAuditoria=c?.status==='Em Auditoria GRIS';
       const pallets=c?.pallets||0;
       let cor='var(--green)',nivel='ok';
-      if(pronta){cor='#14b8a6';nivel='pronta';} // Produzida = cor própria (teal), não segue o "tempo parado"
+      if(emAuditoria){cor='var(--red)';nivel='auditoria';}
+      else if(pronta){cor='#14b8a6';nivel='pronta';}
       else if(horasParada>=6){cor='var(--red)';nivel='critico';}
       else if(horasParada>=3){cor='var(--yellow)';nivel='atencao';}
       else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
-      // Cor da bolinha de ocupação (pallets): <20 verde · 20-25 amarelo · ≥26 vermelho
       const corPallets=pallets>=26?'var(--red)':pallets>=20?'var(--yellow)':'var(--green)';
       const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
-      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,pronta,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+      return{numero:r.numero,caf:c?.num||'—',fc:fc||'—',horasParada,cor,nivel,pronta,emAuditoria,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
     }).sort((a,b)=>b.horasParada-a.horasParada);
 
-    // Agrupa por FC
     const porFC={};
     detalhes.forEach(d=>{(porFC[d.fc]=porFC[d.fc]||[]).push(d);});
     const fcsOrdenados=Object.keys(porFC).sort((a,b)=>porFC[b].length-porFC[a].length);
-
     const travadas=detalhes.filter(d=>d.nivel==='critico').length;
+    const emAuditoriaCount=detalhes.filter(d=>d.emAuditoria).length;
 
     return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-size:.72rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">🔥 Ocupação de Ruas</span>
         <div style="display:flex;gap:14px;align-items:center">
+          ${emAuditoriaCount>0?`<span style="font-size:.68rem;color:var(--red);font-weight:800">⚠ ${emAuditoriaCount} em auditoria GRIS</span>`:''}
           ${travadas>0?`<span style="font-size:.68rem;color:var(--red);font-weight:800">⚠ ${travadas} travada${travadas>1?'s':''} (+6h)</span>`:''}
           <span style="font-size:1.1rem;font-weight:800;color:${corOcup}">${ruasOcup.length}/${totalRuas}</span>
           <span style="font-size:.62rem;color:var(--t2)">ruas ocupadas (${pctOcup}%)</span>
         </div>
       </div>
 
-      <!-- Grid heatmap de todas as ruas -->
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:.6rem;flex-wrap:wrap">
-        <span style="font-weight:700;color:var(--t2)">🎯 Ocupação (pallets):</span>
-        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:middle"></span>até 19 pal.</span>
-        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--yellow);margin-right:4px;vertical-align:middle"></span>20-25 pal.</span>
-        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--red);margin-right:4px;vertical-align:middle"></span>26+ pal.</span>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:.6rem;flex-wrap:wrap">
+        <span style="font-weight:700;color:var(--t2)">🎯 Pallets:</span>
+        <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--green);margin-right:3px;vertical-align:middle"></span>até 19</span>
+        <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--yellow);margin-right:3px;vertical-align:middle"></span>20-25</span>
+        <span><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--red);margin-right:3px;vertical-align:middle"></span>26+</span>
+        <span style="margin-left:10px">✓ <span style="color:#14b8a6;font-weight:700">verde-água</span> = Produzida</span>
+        <span style="margin-left:6px">⚠ <span style="color:var(--red);font-weight:700">vermelho piscando</span> = Em Auditoria GRIS</span>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:flex-start">
-        ${ruasDB.map(r=>{
-          const d=detalhes.find(x=>x.numero===r.numero);
-          const cor=d?d.cor:'var(--bg4)';
-          const borda=d?d.cor:'var(--bd)';
-          return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
-            style="position:relative;width:52px;height:52px;border-radius:8px;background:${d?cor+'18':'var(--bg3)'};border:2px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;color:${d?cor:'var(--t3)'}">
-            ${d?`<span style="width:16px;height:16px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 7px ${d.corPallets};margin-bottom:2px"></span>`:''}
-            ${r.numero}
-            ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="font-size:.56rem;color:var(--t3);margin-top:-8px;margin-bottom:10px">✓ <span style="color:#14b8a6;font-weight:700">verde-água</span> = CAF "Produzida" (pronta, aguardando veículo)</div>
 
-      <!-- Detalhe por FC -->
-      ${fcsOrdenados.length?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
-        ${fcsOrdenados.map(fc=>{
-          const lista=porFC[fc];
-          const critFC=lista.filter(d=>d.nivel==='critico').length;
-          return`<div style="background:var(--bg3);border-radius:8px;padding:8px;border-left:3px solid ${critFC?'var(--red)':'var(--blue)'}">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-              <span style="font-size:.72rem;font-weight:800;color:var(--text)">📍 FC ${esc(fc)}</span>
-              <span style="font-size:.6rem;color:var(--t2)">${lista.length} rua${lista.length>1?'s':''}</span>
-            </div>
-            ${lista.slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;font-size:.64rem;padding:2px 0;border-top:1px solid var(--bd)">
-              <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)} · <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
-              <span style="color:${d.cor};font-weight:700">${d.pronta?'✓ Produzida':d.tempoTxt}</span>
-            </div>`).join('')}
-            ${lista.length>5?`<div style="font-size:.58rem;color:var(--t3);margin-top:3px">+${lista.length-5} outras...</div>`:''}
-          </div>`;
-        }).join('')}
-      </div>`:`<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:8px">Nenhuma rua ocupada no momento — pátio livre ✅</div>`}
+      <!-- LAYOUT LADO A LADO: grid tabular (5 colunas) à esquerda + lista completa à direita -->
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+
+        <!-- Grid tabular de ruas — exatamente 5 por linha -->
+        <div style="display:grid;grid-template-columns:repeat(5,56px);gap:8px;flex-shrink:0">
+          ${ruasDB.map(r=>{
+            const d=detalhes.find(x=>x.numero===r.numero);
+            const cor=d?d.cor:'var(--bg4)';
+            const borda=d?d.cor:'var(--bd)';
+            const piscar=d&&d.emAuditoria?'animation:pulseAlert 1.5s infinite;':'';
+            return`<div title="Rua ${r.numero}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
+              style="position:relative;width:56px;height:56px;border-radius:8px;background:${d?cor+'18':'var(--bg3)'};border:2px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:${d?cor:'var(--t3)'};${piscar}">
+              ${d?`<span style="width:15px;height:15px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 6px ${d.corPallets};margin-bottom:2px"></span>`:''}
+              ${r.numero}
+              ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
+              ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Lista COMPLETA de todas as CAFs ocupando rua, agrupada por FC -->
+        <div style="flex:1;min-width:320px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px">
+          ${fcsOrdenados.length?fcsOrdenados.map(fc=>{
+            const lista=porFC[fc];
+            const critFC=lista.filter(d=>d.nivel==='critico'||d.emAuditoria).length;
+            return`<div style="background:var(--bg3);border-radius:8px;padding:8px;border-left:3px solid ${critFC?'var(--red)':'var(--blue)'}">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                <span style="font-size:.75rem;font-weight:800;color:var(--text)">📍 FC ${esc(fc)}</span>
+                <span style="font-size:.62rem;color:var(--t2)">${lista.length} rua${lista.length>1?'s':''}</span>
+              </div>
+              <div style="max-height:260px;overflow-y:auto">
+                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:.66rem;padding:3px 0;border-top:1px solid var(--bd)">
+                  <span style="color:var(--t2)">Rua <b style="color:var(--text)">${d.numero}</b> · ${esc(d.caf)} · <b style="color:${d.corPallets}">${d.pallets} pal.</b></span>
+                  <span style="color:${d.cor};font-weight:700;white-space:nowrap">${d.emAuditoria?'⚠ Auditoria '+d.tempoTxt:d.pronta?'✓ Produzida':d.tempoTxt}</span>
+                </div>`).join('')}
+              </div>
+            </div>`;
+          }).join(''):'<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:20px;grid-column:1/-1">Nenhuma rua ocupada no momento — pátio livre ✅</div>'}
+        </div>
+
+      </div>
     </div>`;
   })()}
 </div>`;
@@ -6005,7 +5998,8 @@ function _gSearchFilter(q){
   const el=document.getElementById('_gSearchResults');if(!el)return;
   const ql=q.toLowerCase().trim();
   const results=ql?ops.filter(o=>[o.id,o.codigoCurto,o.placa,o.mot,o.sm,o.tms,o.rota,o.transp].join('|').toLowerCase().includes(ql)).slice(0,10):ops.slice(0,8);
-  if(!results.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Nenhuma operação encontrada</div>';return;}
+  if(!results.length){
+  el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Nenhuma operação encontrada</div>';return;}
   el.innerHTML=results.map(o=>{
     const sla=getSLA(o);
     const sc=sla==='ok'?'var(--green)':sla==='late'?'var(--red)':'var(--t3)';
