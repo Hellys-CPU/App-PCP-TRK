@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v224</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v225</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3752,10 +3752,10 @@ function setView(name){
     if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
   }
   if(name==='tv'){
-    loadRuas().catch(()=>{});
+    Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
-    _tvInterval=setInterval(()=>{if(curPage==='tv'){loadRuas().catch(()=>{});renderTV();}},30000);
+    _tvInterval=setInterval(()=>{if(curPage==='tv'){Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());}},15000);
     // Fullscreen
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
@@ -5898,6 +5898,7 @@ function renderTV(){
       const horasParada=(agora-desde)/3600000;
       const pronta=c?.status==='Produzida';
       const emAuditoria=c?.status==='Em Auditoria GRIS';
+      const vinculada=c?.status==='Vinculada a Veículo';
       const pallets=c?.pallets||0;
       let cor='var(--green)',nivel='ok';
       if(emAuditoria){cor='var(--red)';nivel='auditoria';}
@@ -5907,12 +5908,12 @@ function renderTV(){
       else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
       const corPallets=pallets>=26?'var(--red)':pallets>=20?'var(--yellow)':'var(--green)';
       const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
-      return{ruaId:r.id,numero:r.numero,andar:r.andar||1,caf:c?.num||'—',fc:fc||'—',venc:c?.venc||'',status2:c?.status||'',horasParada,cor,nivel,pronta,emAuditoria,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+      return{ruaId:r.id,numero:r.numero,andar:r.andar||1,caf:c?.num||'—',fc:fc||'—',venc:c?.venc||'',status2:c?.status||'',horasParada,cor,nivel,pronta,emAuditoria,vinculada,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
     }).sort((a,b)=>b.horasParada-a.horasParada);
 
     const porFC={};
     // Lista lateral: só mostra CAFs em produção (Em Produção/Produzida) — visão operacional de rastreio
-    detalhes.filter(d=>['Em Produção','Produzida'].includes(d.status2)).forEach(d=>{(porFC[d.fc]=porFC[d.fc]||[]).push(d);});
+    detalhes.filter(d=>['Em Produção','Produzida','Vinculada a Veículo'].includes(d.status2)).forEach(d=>{(porFC[d.fc]=porFC[d.fc]||[]).push(d);});
     const fcsOrdenados=Object.keys(porFC).sort((a,b)=>porFC[b].length-porFC[a].length);
     const travadas=detalhes.filter(d=>d.nivel==='critico').length;
     const emAuditoriaCount=detalhes.filter(d=>d.emAuditoria).length;
@@ -5954,6 +5955,7 @@ function renderTV(){
               ${d?`<span style="font-size:.68rem;font-weight:800;color:${d.corPallets};margin-top:2px">${d.pallets} PAL.</span>`:''}
               ${andarTag}
               ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
+              ${d&&d.vinculada?'<span style="position:absolute;top:-8px;left:-7px;background:var(--green);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">🚛</span>':''}
               ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
             </div>`;
           }).join('')}
