@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v222</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v224</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -5941,20 +5941,20 @@ function renderTV(){
       <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
 
         <!-- Grid tabular de ruas — exatamente 5 por linha -->
-        <div style="display:grid;grid-template-columns:repeat(5,56px);gap:8px;flex-shrink:0">
+        <div style="display:grid;grid-template-columns:repeat(5,78px);gap:10px;flex-shrink:0">
           ${ruasDB.map(r=>{
             const d=detalhes.find(x=>x.ruaId===r.id);
             const cor=d?d.cor:'var(--bg4)';
             const borda=d?d.cor:'var(--bd)';
             const piscar=d&&d.emAuditoria?'animation:pulseAlert 1.5s infinite;':'';
-            const andarTag=r.andar>1?`<span style="position:absolute;bottom:1px;left:2px;font-size:.5rem;font-weight:900;color:${d?cor:'var(--t3)'};background:var(--bg2);border-radius:3px;padding:0 3px">${r.andar}º</span>`:'';
+            const andarTag=r.andar>1?`<span style="position:absolute;bottom:2px;left:3px;font-size:.58rem;font-weight:900;color:${d?cor:'var(--t3)'};background:var(--bg2);border-radius:3px;padding:0 4px">${r.andar}º</span>`:'';
             return`<div title="Rua ${r.numero}${r.andar>1?` (${r.andar}º andar)`:''}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
-              style="position:relative;width:56px;height:56px;border-radius:8px;background:${d?cor+'18':'var(--bg3)'};border:2px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:${d?cor:'var(--t3)'};${piscar}">
-              ${d?`<span style="width:15px;height:15px;border-radius:50%;background:${d.corPallets};box-shadow:0 0 6px ${d.corPallets};margin-bottom:2px"></span>`:''}
+              style="position:relative;width:78px;height:78px;border-radius:10px;background:${d?cor+'18':'var(--bg3)'};border:3px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:${d?cor:'var(--t3)'};${piscar}">
               ${r.numero}
+              ${d?`<span style="font-size:.68rem;font-weight:800;color:${d.corPallets};margin-top:2px">${d.pallets} PAL.</span>`:''}
               ${andarTag}
-              ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
-              ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
+              ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
+              ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
             </div>`;
           }).join('')}
         </div>
@@ -5970,15 +5970,17 @@ function renderTV(){
                 <span style="font-size:.75rem;color:var(--t2);font-weight:600">${lista.length} rua${lista.length>1?'s':''}</span>
               </div>
               <div>
-                ${lista.map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--bd)">
+                ${lista.map(d=>{
+                  const hojeStr=hojeLocal();
+                  const vencido=d.venc&&d.venc<hojeStr;
+                  return`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--bd)">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.78rem;font-weight:800;color:var(--text);text-transform:uppercase">RUA ${d.numero}${d.andar>1?` <span style="color:var(--yellow)">(${d.andar}º)</span>`:''}</span>
                     <span style="background:var(--bg4);border-radius:5px;padding:4px 11px;font-size:1.05rem;font-weight:900;color:var(--green);letter-spacing:.3px">${esc(d.caf)}</span>
-                    <span style="background:${d.corPallets}22;border:1px solid ${d.corPallets};border-radius:5px;padding:3px 9px;font-size:.78rem;font-weight:800;color:${d.corPallets};text-transform:uppercase">${d.pallets} PAL.</span>
-                    ${d.venc?`<span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.72rem;font-weight:700;color:var(--yellow);text-transform:uppercase">VENC. ${fmtD(d.venc)}</span>`:''}
+                    ${d.venc?`<span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.72rem;font-weight:700;color:${vencido?'var(--red)':'var(--t2)'};text-transform:uppercase">VENC. ${fmtD(d.venc)}</span>`:''}
                   </div>
                   <span style="color:${d.cor};font-weight:800;white-space:nowrap;font-size:.85rem;text-transform:uppercase">${d.emAuditoria?'⚠ AUDITORIA '+d.tempoTxt:d.pronta?'✓ PRODUZIDA':d.tempoTxt.toUpperCase()}</span>
-                </div>`).join('')}
+                </div>`;}).join('')}
               </div>
             </div>`;
           }).join(''):'<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:20px;grid-column:1/-1">Nenhuma rua ocupada no momento — pátio livre ✅</div>'}
