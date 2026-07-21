@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v225</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v233</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -563,6 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
     <button class="tab" id="tb-amazon" onclick="setView('amazon')">📦 FUP Amazon</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
+    <button class="tab" id="tb-pallets" onclick="setView('pallets')" style="color:#f59e0b">🔄 Retorno de Pallets</button>
     <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
     <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard')" style="color:#22c55e;display:none" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
     <button class="tab" id="tb-tv" onclick="setView('tv')" style="color:#0891b2;display:none" title="Modo TV - tela cheia para telão">📺 TV</button>
@@ -619,6 +620,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- LISTA -->
 <div class="view" id="view-lista">
   <div class="toolbar">
+    <button class="btn btn-s" id="lModoViagens" onclick="setListaModo('viagens')" style="font-size:.72rem">🚚 Viagens</button>
+    <button class="btn btn-g" id="lModoPallets" onclick="setListaModo('pallets')" style="font-size:.72rem">🔄 Retorno Pallets</button>
+    <div class="sp"></div>
     <input id="lQ" placeholder="🔍 VG, ID, placa, motorista, SM..." oninput="renderList()" style="width:190px"/>
     <input type="date" id="lFData" onchange="renderList()" title="Filtrar por data"/>
     <div class="sp"></div>
@@ -628,7 +632,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <span id="listCnt" style="font-size:.68rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="clrFList()" style="font-size:.7rem">✕</button>
   </div>
-  <div class="lt-wrap">
+  <div class="lt-wrap" id="listaViagensWrap">
     <table>
       <thead>
 <tr style="font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;color:var(--t3)">
@@ -679,6 +683,19 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <tbody id="listBody"></tbody>
     </table>
   </div>
+  <div class="lt-wrap" id="listaPalletsWrap" style="display:none">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px;color:var(--t2);padding:4px 2px">#</th>
+          <th>FC</th><th>Data</th><th>Transportadora</th><th>Motorista</th><th>Placa</th>
+          <th>Saída FC</th><th>Chegada TZX</th><th>Descarga</th>
+          <th>Previsto</th><th>Recebido</th><th>Δ Auditoria</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="listPalletsBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- GESTÃO DE DOCA -->
@@ -689,11 +706,13 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-g" onclick="document.getElementById('yardData').value='';renderProg()" style="font-size:.7rem">Hoje</button>
     <div class="sp"></div>
     <div id="yardPisoBar" style="display:flex;align-items:center;gap:8px"></div>
+    <div id="yardPalletsBar" style="display:flex;align-items:center;gap:8px"></div>
     <div class="sp"></div>
     <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
     <button class="btn btn-p" onclick="openNew()">+ Programar</button>
     </div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
+    <div id="progPalletsWrap" style="margin-top:16px"></div>
   </div>
 </div>
 
@@ -823,6 +842,95 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </tr></thead>
       <tbody id="cafBody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- RETORNO DE PALLETS -->
+<div class="view" id="view-pallets">
+  <div class="toolbar" style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:.8rem;font-weight:700;color:#f59e0b">🔄 Retorno de Pallets</span>
+    <select id="rpFFC" onchange="renderPallets()"><option value="">Todos os FCs</option></select>
+    <select id="rpFStatus" onchange="renderPallets()">
+      <option value="">Todos os Status</option>
+      <option value="EM_TRANSITO">Em Trânsito</option>
+      <option value="AGU_DESCARGA">Aguardando Descarga</option>
+      <option value="FINALIZADO">Finalizado</option>
+    </select>
+    <input type="date" id="rpFData" onchange="renderPallets()" title="Filtrar por data da operação"/>
+    <input id="rpBusca" placeholder="🔍 motorista, placa, transportadora..." oninput="renderPallets()" style="padding:4px 9px;width:210px;"/>
+    <div class="sp"></div>
+    <button class="btn btn-p" id="rpBtnNovo" onclick="openNewPallet()" style="background:#f59e0b">+ Novo Retorno</button>
+  </div>
+
+  <!-- KPIs de Auditoria (Análise) -->
+  <div style="padding:14px 16px 0">
+    <div class="sec" style="margin-top:0">📈 Auditoria de Pallets — Análise</div>
+    <div id="rpAuditKPIs" class="kpi-bar" style="margin-bottom:6px"></div>
+  </div>
+
+  <!-- Painel de Inventário por FC -->
+  <div style="padding:0 16px 0">
+    <div class="sec">📊 Saldo Devedor de Pallets por FC</div>
+    <div id="rpInventarioGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));margin-bottom:6px"></div>
+  </div>
+
+  <div style="padding:10px 16px 20px">
+    <div id="rpGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(255px,1fr))"></div>
+  </div>
+</div>
+
+<!-- MODAL RETORNO DE PALLETS -->
+<div class="overlay" id="overlayPallet">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr" style="border-top-color:#f59e0b">
+      <h2 id="rpMTitle" style="color:#f59e0b">🔄 Novo Retorno de Pallets</h2>
+      <div class="mhdr-actions">
+        <button class="btn btn-del" id="rpBtnDel" onclick="deletePallet()" style="display:none;font-size:.7rem">🗑 Excluir</button>
+        <button class="mclose" onclick="closePalletModal()">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div id="rpOrigemWrap" style="display:none;margin-bottom:10px"></div>
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>FC de Origem</label>
+          <select id="rpFC"><option value="">Selecione o FC</option></select>
+        </div>
+        <div class="fg"><label>Data da Operação</label><input id="rpData" type="date"></div>
+        <div class="fg"><label>Transportadora</label><input id="rpTransp" placeholder="Transportadora"></div>
+        <div class="fg"><label>Motorista</label><input id="rpMotorista" placeholder="Nome do motorista"></div>
+        <div class="fg"><label>Placa</label><input id="rpPlaca" placeholder="AAA0A00" style="text-transform:uppercase"></div>
+        <div class="fg"><label>Status</label>
+          <select id="rpStatus">
+            <option value="EM_TRANSITO">Em Trânsito</option>
+            <option value="AGU_DESCARGA">Aguardando Descarga</option>
+            <option value="FINALIZADO">Finalizado</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sec" style="margin-top:14px">🕐 Horários (Torre de Controle)</div>
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Saída do FC</label><input id="rpHoraSaidaFC" type="datetime-local"></div>
+        <div class="fg"><label>Chegada na TZX</label><input id="rpHoraChegadaTZX" type="datetime-local"></div>
+        <div class="fg"><label>Horário de Descarga</label><input id="rpHoraDescarga" type="datetime-local"></div>
+      </div>
+
+      <div class="sec" style="margin-top:14px">📋 Auditoria (Responsável pela Doca)</div>
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Qtd. Prevista (pallets)</label><input id="rpQtdPrevista" type="number" min="0" placeholder="0"></div>
+        <div class="fg" id="rpQtdRecebidaWrap" style="display:none"><label>Qtd. Recebida (pallets)</label><input id="rpQtdRecebida" type="number" min="0" placeholder="0"></div>
+      </div>
+
+      <div class="fg" style="margin-top:11px"><label>Observações</label><textarea id="rpObs" rows="2"></textarea></div>
+      <div id="rpHistWrap" style="margin-top:11px;display:none">
+        <div class="sec" style="margin-top:0">🕘 Histórico</div>
+        <div id="rpHistList" style="font-size:.72rem;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:8px 10px;max-height:160px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closePalletModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="savePallet()" style="background:#f59e0b">💾 Salvar Retorno</button>
+    </div>
   </div>
 </div>
 
@@ -1070,6 +1178,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-fup" onclick="setView('fup')"><span class="mni">📋</span>FUP FC</button>
     <button class="mnav-btn" id="mn-amazon" onclick="setView('amazon')"><span class="mni">📦</span>Amazon</button>
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
+    <button class="mnav-btn" id="mn-pallets" onclick="setView('pallets')"><span class="mni">🔄</span>Pallets</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
     <button class="mnav-btn" id="mn-tv" onclick="setView('tv')"><span class="mni">📺</span>TV</button>
     <button class="mnav-btn" id="mn-tv-yard" onclick="setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
@@ -1257,19 +1366,19 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:0},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,importar:0,exportar:0,admin:0,pptx:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
 };
 
 const ABAS_BASE = {
-  admin:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard','admin'],
-  supervisor:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard','admin'],
-  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','analise','tv','tv-yard'],
-  doca:['painel','lista','prog','tv','tv-yard'],
+  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard','admin'],
+  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard','admin'],
+  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard'],
+  doca:['painel','lista','prog','pallets','tv','tv-yard'],
   operador_caf:['painel','lista','caf'],
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
 };
@@ -1282,12 +1391,17 @@ const TODAS_PERMS = [
   {key:'caf_deletar',label:'Deletar CAFs'},{key:'caf_rua',label:'Atrelar rua à CAF'},
   {key:'importar',label:'Importar planilha'},{key:'exportar',label:'Exportar dados'},
   {key:'admin',label:'Acessar painel Admin'},{key:'pptx',label:'Exportar PPTX'},
+  {key:'pallet_gerir',label:'Registrar/avançar Retorno de Pallets'},
+  {key:'pallet_deletar',label:'Deletar Retorno de Pallets'},
+  {key:'pallet_inventario',label:'Editar inventário de pallets (limite/saldo)'},
+  {key:'pallet_horarios',label:'Retorno Pallets: editar horários (saída FC/chegada TZX/descarga)'},
+  {key:'pallet_auditoria',label:'Retorno Pallets: responsável pela doca (Qtd. Prevista/Recebida)'},
 ];
 
 const TODAS_ABAS = [
   {key:'painel',label:'Painel'},{key:'lista',label:'Lista'},{key:'prog',label:'Gestão de Doca'},
   {key:'massa',label:'Em Massa'},{key:'fup',label:'FUP FC'},{key:'amazon',label:'FUP Amazon'},
-  {key:'caf',label:'CAFs'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
+  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
   {key:'tv-yard',label:'TV Yard'},{key:'admin',label:'Admin'},
 ];
 
@@ -1363,7 +1477,8 @@ console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`)
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
-const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas';
+const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas',TABELA_PALLETS='retornos_pallets',TABELA_INV_PALLETS='inventario_pallets';
+const FCS_PALLETS=['GR8','XC9','GR9','GR5'];
 let supabaseOK=false,realtimeWS=null;
 
 // ── Status de CAF: agora o valor usado na UI é sempre o mesmo texto do banco (mapas mantidos como identidade por compatibilidade) ──
@@ -1509,7 +1624,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -1539,7 +1654,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -1576,7 +1691,7 @@ async function saveToSupabase(op){
   // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
   // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
   const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -1691,7 +1806,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -1699,7 +1814,7 @@ function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localSt
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1940,6 +2055,7 @@ async function bootApp(){
   try{await loadConfig();}catch(e){console.error('boot loadConfig:',e);}
   try{await loadCAFs();}catch(e){console.error('boot loadCAFs:',e);}
   try{await loadRuas();}catch(e){console.error('boot loadRuas:',e);}
+  try{await loadInventarioPallets();}catch(e){console.error('boot loadInventarioPallets:',e);}
   try{await exigirTurnoOperador(currentUser.perfil);}catch(e){console.error('boot turno:',e);}
   loading(false);
   // RENDERIZA IMEDIATAMENTE — antes de qualquer realtime/presença
@@ -2224,6 +2340,7 @@ const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',
 
 let ops=[],editId=null,seq=1000,mRows=[],fupGrouped=false,curPage='painel';
 let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:27,pisoPallets:30};
+let estoqueTZX={disponivel:0,atualizadoPor:'',atualizadoEm:''};
 
 // ══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -2314,6 +2431,7 @@ async function loadConfig(){
           if(r.chave==='rotas'&&Array.isArray(r.valor)&&r.valor.length){ROTAS=r.valor;}
           if(r.chave==='transportadoras'&&Array.isArray(r.valor)&&r.valor.length){TRANSPS=r.valor;}
           if(r.chave==='docas')DOCAS_CONFIG={...DOCAS_CONFIG,...(r.valor||{})};
+          if(r.chave==='estoque_pallets_tzx')estoqueTZX={...estoqueTZX,...(r.valor||{})};
         });
         try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));localStorage.setItem('trk_docas',JSON.stringify(DOCAS_CONFIG));}catch(e){}
         applyConfig();return;
@@ -2436,7 +2554,7 @@ function clrF(){['fRo','fSt','fTr','fTp','fData'].forEach(i=>{const e=document.g
 // ══════════════════════════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════════════════════════
-function render(){buildSels();renderKPIs();renderPainel();renderList();renderProg();renderDayBanner();if(curPage==='analise')renderAnalise();}
+function render(){buildSels();renderKPIs();renderPainel();renderList();renderListaPallets();renderProg();renderDayBanner();if(curPage==='analise')renderAnalise();}
 
 function renderDayBanner(){
   const el=document.getElementById('dayBanner');if(!el)return;
@@ -2463,12 +2581,20 @@ function renderDayBanner(){
 
 function renderKPIs(){
   const d=getFilt(),c=s=>d.filter(o=>o.status===s).length;
+  // Retorno de Pallets — carrega sob demanda (uma vez) para alimentar o tile do Painel
+  if(supabaseOK&&!_palletsLoadTried){
+    _palletsLoadTried=true;
+    loadPallets().then(()=>renderKPIs());
+  }
+  const palPendentes=pallets.filter(p=>['EM_TRANSITO','AGU_DESCARGA'].includes(p.status)).length;
+  const palDivergencia=pallets.filter(p=>p.status==='FINALIZADO'&&p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida).length;
   document.getElementById('kpiBar').innerHTML=[
     {cl:'c-red',v:d.length,l:'Total'},{cl:'c-gy',v:c('PROG'),l:'Programado'},
     {cl:'c-ye',v:c('AGUCARR'),l:'Ag.Carregamento'},{cl:'c-or',v:c('EMCARR'),l:'Em Carregamento'},
     {cl:'c-bl',v:c('TRAN'),l:'Em Trânsito'},{cl:'c-pu',v:c('AGUDESC'),l:'Ag.Descarga'},
     {cl:'c-gr',v:c('FIN'),l:'Finalizado'},{cl:'c-red',v:c('CANC')+c('REC'),l:'Canc/Recusado'},
-  ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+  ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('')
+  +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">🔄 ${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`;
 }
 
 function _quickStatusBtns(op){
@@ -2770,11 +2896,68 @@ function renderList(){
   }).join('');
 }
 
+// Alterna entre a tabela de Viagens e a tabela de Retorno de Pallets na aba Lista
+let _listaModo='viagens';
+function setListaModo(modo){
+  _listaModo=modo;
+  const wV=document.getElementById('listaViagensWrap'),wP=document.getElementById('listaPalletsWrap');
+  const bV=document.getElementById('lModoViagens'),bP=document.getElementById('lModoPallets');
+  if(wV)wV.style.display=modo==='viagens'?'':'none';
+  if(wP)wP.style.display=modo==='pallets'?'':'none';
+  if(bV)bV.className='btn '+(modo==='viagens'?'btn-s':'btn-g');
+  if(bP)bP.className='btn '+(modo==='pallets'?'btn-s':'btn-g');
+  if(modo==='pallets'&&supabaseOK&&!_palletsLoadTried){_palletsLoadTried=true;loadPallets().then(()=>renderListaPallets());}
+  else renderListaPallets();
+}
+
+// Renderiza a tabela de Retorno de Pallets dentro da aba Lista (visão "como uma viagem")
+function renderListaPallets(){
+  const el=document.getElementById('listPalletsBody');if(!el)return;
+  const q=(document.getElementById('lQ')?.value||'').toLowerCase();
+  const fData=document.getElementById('lFData')?.value||'';
+  let lista=[...pallets];
+  if(fData)lista=lista.filter(p=>p.dataOp===fData);
+  if(q)lista=lista.filter(p=>(p.motorista||'').toLowerCase().includes(q)||(p.placa||'').toLowerCase().includes(q)||(p.transp||'').toLowerCase().includes(q)||(p.fc||'').toLowerCase().includes(q));
+  lista.sort((a,b)=>(b.dataOp||'').localeCompare(a.dataOp||''));
+  if(_listaModo==='pallets'){const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=lista.length+' retorno(s)';}
+  el.innerHTML=lista.length?lista.map((p,i)=>{
+    const si=_palletStatusInfo(p.status);
+    const temDivergencia=p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida;
+    const diff=temDivergencia?(p.qtdRecebida-p.qtdPrevista):null;
+    return `<tr onclick="openEditPallet('${esc(p.id)}')" style="cursor:pointer">
+      <td style="color:var(--t2);font-size:.7rem">${i+1}</td>
+      <td style="color:#f59e0b;font-weight:700">${esc(p.fc)}</td>
+      <td>${fmtD(p.dataOp)}</td>
+      <td>${esc(p.transp)||'—'}</td>
+      <td>${esc(p.motorista)||'—'}</td>
+      <td><strong>${esc(p.placa)||'—'}</strong></td>
+      <td>${p.horaSaidaFC?new Date(p.horaSaidaFC).toLocaleString('pt-BR'):'—'}</td>
+      <td>${p.horaChegada?new Date(p.horaChegada).toLocaleString('pt-BR'):'—'}</td>
+      <td>${p.horaDescarga?new Date(p.horaDescarga).toLocaleString('pt-BR'):'—'}</td>
+      <td>${p.qtdPrevista||0}</td>
+      <td>${p.qtdRecebida??'—'}</td>
+      <td style="color:${temDivergencia?'var(--red)':'var(--t2)'};font-weight:700">${diff!=null?(diff>0?'+':'')+diff:'—'}</td>
+      <td><span style="background:${si.cor}22;color:${si.cor};border:1px solid ${si.cor}44;border-radius:4px;padding:2px 7px;font-size:.62rem;font-weight:700">${si.ic} ${si.lb}</span></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--t3)">Nenhum retorno de pallets encontrado.</td></tr>';
+}
+
 function renderProg(){
   // Garante que cafsDB está populado antes de renderizar
   if(supabaseOK&&!cafsDB.length){
     loadCAFs().then(()=>renderProg());
     return;
+  }
+  // Widget de saldo de pallets — carrega sob demanda se ainda não tiver dados
+  if(supabaseOK&&!inventarioPallets.length){
+    loadInventarioPallets().then(()=>{const w=document.getElementById('yardPalletsBar');if(w)w.innerHTML=_renderPalletsMiniWidget();});
+  }else{
+    const w=document.getElementById('yardPalletsBar');if(w)w.innerHTML=_renderPalletsMiniWidget();
+  }
+  // Retornos de Pallets — carrega sob demanda (uma vez) para exibir os cards na Gestão de Doca
+  if(supabaseOK&&!_palletsLoadTried){
+    _palletsLoadTried=true;
+    loadPallets().then(()=>renderProg());
   }
   // Filtro de dia — padrão = hoje
   const hoje=hojeLocal();
@@ -2799,7 +2982,10 @@ function renderProg(){
   const cafCor=cafPct>=90?'var(--red)':cafPct>=70?'var(--yellow)':'var(--green)';
   // ── Docas ocupadas (ops EM CARREGAMENTO com doca atribuída) ──
   const DOCAS_TOTAL=(CFG.docas&&CFG.docas.length)||DOCAS_CONFIG?.total||8;
-  const docasOcupadas=ops.filter(o=>o.dataOp===yardDt&&o.status==='EMCARR'&&o.doca).map(o=>({doca:o.doca,id:o.id,placa:o.placa}));
+  const docasOcupadas=[
+    ...ops.filter(o=>o.dataOp===yardDt&&o.status==='EMCARR'&&o.doca).map(o=>({doca:o.doca,id:o.id,placa:o.placa})),
+    ...pallets.filter(p=>p.dataOp===yardDt&&p.status==='AGU_DESCARGA'&&p.doca).map(p=>({doca:p.doca,id:'Retorno '+p.fc,placa:p.placa}))
+  ];
   const docasPct=Math.min(100,Math.round(docasOcupadas.length/DOCAS_TOTAL*100));
   const docasCor=docasPct>=90?'var(--red)':docasPct>=70?'var(--yellow)':'var(--green)';
   const palCor=palPct>=90?'var(--red)':palPct>=70?'var(--yellow)':'var(--green)';
@@ -2959,6 +3145,75 @@ function renderProg(){
       <div>Nenhuma operação no pátio em ${new Date(yardDt+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</div>
       <button class="btn btn-p" onclick="openNew()" style="margin-top:12px">+ Programar operação</button>
     </div>`;
+
+  // ── Retorno de Pallets no pátio (mesmo dia, ainda não finalizados) ──
+  const palWrap=document.getElementById('progPalletsWrap');
+  if(palWrap){
+    const palDia=pallets.filter(p=>p.dataOp===yardDt&&['EM_TRANSITO','AGU_DESCARGA'].includes(p.status));
+    if(!palDia.length){
+      palWrap.innerHTML='';
+    }else{
+      const podeGerir=hasPerm('pallet_gerir');
+      palWrap.innerHTML=`
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px;padding-top:10px;border-top:1px dashed var(--bd)">
+          <span style="font-size:.8rem;font-weight:700;color:#f59e0b">🔄 Retorno de Pallets no Pátio (${palDia.length})</span>
+        </div>
+        <div style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))">
+          ${palDia.map(p=>{
+            const si=_palletStatusInfo(p.status);
+            const proximoStatus={EM_TRANSITO:'AGU_DESCARGA',AGU_DESCARGA:'FINALIZADO'}[p.status];
+            const temDivergencia=p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida;
+            return `<div class="yard-card" onclick="openEditPallet('${esc(p.id)}')" style="border-left:3px solid #f59e0b">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+                <div>
+                  <div style="font-size:.9rem;font-weight:800;color:#f59e0b">🔄 ${esc(p.fc)}</div>
+                  <div style="font-size:.65rem;color:var(--t2);margin-top:1px">Retorno de Pallets · ${esc(p.transp)||'—'}</div>
+                  ${p.opOrigemId?`<div style="font-size:.6rem;color:var(--blue);margin-top:1px;cursor:pointer" onclick="event.stopPropagation();_abrirViagemOrigem('${esc(p.opOrigemId)}')">🚚 Veio da viagem ${esc(p.opOrigemId)}</div>`:''}
+                </div>
+                <span style="background:${si.cor}22;color:${si.cor};border:1px solid ${si.cor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${si.ic} ${si.lb}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                <div>
+                  <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
+                  <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(p.placa)||'—'}</div>
+                </div>
+                <div>
+                  <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
+                  <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.motorista)||'—'}</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--rs);padding:7px;margin-bottom:8px">
+                <div><div style="color:var(--t2);font-size:.56rem">Qtd. Prevista</div><div style="font-weight:800;font-size:.85rem">${p.qtdPrevista||0}</div></div>
+                <div><div style="color:var(--t2);font-size:.56rem">Qtd. Recebida</div><div style="font-weight:800;font-size:.85rem;color:${temDivergencia?'var(--red)':'inherit'}">${p.qtdRecebida??'—'}</div></div>
+              </div>
+              ${temDivergencia?`<div style="background:var(--red4);border:1px solid #fca5a5;border-radius:4px;padding:4px 7px;font-size:.6rem;color:var(--red);font-weight:700;margin-bottom:8px">⚠ Divergência na auditoria: ${(p.qtdRecebida-p.qtdPrevista)>0?'+':''}${p.qtdRecebida-p.qtdPrevista}</div>`:''}
+              <!-- Doca -->
+              <div style="margin-bottom:8px">
+                <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">🚪 Doca</div>
+                ${p.status==='AGU_DESCARGA'&&!isReadOnly()&&podeGerir?`
+                  <select onchange="atribuirDocaPallet('${esc(p.id)}',this.value)" onclick="event.stopPropagation()"
+                    style="background:var(--bg2);border:1.5px solid ${p.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
+                    <option value="">— selecione a doca —</option>
+                    ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
+                      const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+                      const emUsoOp=ops.find(o=>o.doca===nome&&o.status==='EMCARR'&&o.dataOp===p.dataOp);
+                      const emUsoPal=pallets.find(x=>x.id!==p.id&&x.doca===nome&&x.status==='AGU_DESCARGA'&&x.dataOp===p.dataOp);
+                      const emUso=emUsoOp||emUsoPal;
+                      const label=emUso?nome+' 🔒 ('+(emUsoOp?(emUsoOp.codigoCurto||emUsoOp.id):'Retorno '+emUsoPal.fc)+')':nome;
+                      return '<option value="'+nome+'"'+(p.doca===nome?' selected':'')+(emUso&&p.doca!==nome?' disabled':'')+'>'+label+'</option>';
+                    }).join('')}
+                  </select>
+                  ${!p.doca?'<div style="font-size:.6rem;color:var(--red);margin-top:2px;font-weight:700">⚠ Doca obrigatória para descarga</div>':''}
+                `:`<div style="font-weight:700;font-size:.68rem;color:${p.doca?'var(--green)':'var(--t3)'};background:${p.doca?'var(--green2)':'var(--bg4)'};border-radius:3px;padding:2px 6px;display:inline-block">
+                  ${p.doca||'Não vinculada'}
+                </div>`}
+              </div>
+              ${podeGerir&&proximoStatus?`<button class="btn btn-s" style="width:100%;font-size:.68rem" onclick="event.stopPropagation();avancarStatusPallet('${esc(p.id)}')">▶ Avançar para ${_palletStatusInfo(proximoStatus).lb}</button>`:''}
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+  }
 }
 
 
@@ -3253,6 +3508,7 @@ async function onDrop(e,sid){
       await saveOp(op);
       // Sincroniza status das CAFs vinculadas automaticamente
       await syncCAFsStatus(op,sid,prevStatus);
+      if(sid==='FIN'&&prevStatus!=='FIN')await _autoGerarRetornoPallets(op);
     }
     catch(err){
       op.status=prevStatus;op.hist.pop();
@@ -3261,6 +3517,40 @@ async function onDrop(e,sid){
     }
   }
   dragged=null;
+}
+
+// Gera automaticamente um registro de Retorno de Pallets a partir de uma viagem (operação)
+// finalizada, quando o checkbox "Gerar Retorno de Pallets automático" estiver marcado.
+// Idempotente: não gera de novo se op.retornoPalletsId já estiver preenchido.
+async function _autoGerarRetornoPallets(op){
+  if(!op.gerarRetornoPallets||op.retornoPalletsId)return;
+  const fc=_fcFromRota(op.rota);
+  if(!fc||!FCS_PALLETS.includes(fc))return;
+  const who=_nomeOperadorAtual?_nomeOperadorAtual():(currentUser?.nome||'Sistema');
+  const novoId=genPalletId();
+  const nowIso=new Date().toISOString();
+  // Qtd. Prevista NÃO é pré-preenchida — o operador informa assim que recebe a folha física
+  // com a quantidade a receber, e faz a auditoria (previsto x recebido) na chegada.
+  const retorno={
+    id:novoId,fc,dataOp:op.dataOp,transp:op.transp||'',motorista:op.mot||'',placa:op.placa||'',
+    qtdPrevista:0,qtdRecebida:null,status:'EM_TRANSITO',doca:'',horaChegada:null,horaDescarga:null,
+    opOrigemId:op.id,
+    obs:`Gerado automaticamente pela viagem ${op.codigoCurto||op.id}. Aguardando folha física para preencher qtd. prevista.`,
+    hist:[{t:nowIso,txt:`[${who}] Retorno gerado automaticamente a partir da viagem ${op.codigoCurto||op.id}`}],
+    criadoPor:who,criadoEm:nowIso,atualizadoPor:who
+  };
+  loading(true);
+  const ok=await savePalletToDB(retorno);
+  if(ok){
+    op.retornoPalletsId=novoId;
+    try{await saveOp(op);}catch(e){console.warn('vincular retornoPalletsId à viagem:',e);}
+    await loadPallets();
+    _publishAbly('pallets_update',{action:'insert'});
+    showToast(`🔄 Retorno de Pallets gerado automaticamente (${novoId}) — preencha a qtd. prevista com a folha`,'ok');
+  }else{
+    showToast('⚠ Viagem finalizada, mas houve erro ao gerar o Retorno de Pallets automático','err');
+  }
+  loading(false);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3335,6 +3625,7 @@ function imprimirCard(){
 document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('overlayUser').addEventListener('click',function(e){if(e.target===this)closeUserModal();});
 document.getElementById('overlayCAF').addEventListener('click',function(e){if(e.target===this)closeCAFModal();});
+document.getElementById('overlayPallet').addEventListener('click',function(e){if(e.target===this)closePalletModal();});
 
 const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
@@ -3398,6 +3689,10 @@ function buildForm(op){
 <div class="fgrid">
   <div class="fg"><label>Status Atual</label><select id="fStatus" onchange="toggleDocaField()">${slO(STS,o.status)}</select></div>
   <div class="fg"><label>Responsável</label><input id="fResp" value="${currentUser?currentUser.nome:o.updatedBy||''}" placeholder="Seu nome"></div>
+</div>
+<div style="margin-top:8px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:9px 11px;display:flex;align-items:center;gap:8px">
+  <input type="checkbox" id="fGerarRetorno" ${o.gerarRetornoPallets?'checked':''} style="width:16px;height:16px;cursor:pointer" ${o.retornoPalletsId?'disabled':''}>
+  <label for="fGerarRetorno" style="font-size:.72rem;color:var(--text);cursor:pointer;margin:0">🔄 Gerar Retorno de Pallets automático ao finalizar esta viagem${o.retornoPalletsId?` <span style="color:var(--green);font-weight:700">— já gerado (${esc(o.retornoPalletsId)})</span>`:''}</label>
 </div>
 <div id="wDocaField" style="${o.status==='EMCARR'?'':'display:none;'}margin-top:10px;background:var(--blue2);border:1.5px solid #93c5fd;border-radius:var(--rs);padding:10px">
   <div style="font-size:.72rem;font-weight:700;color:var(--blue);margin-bottom:7px">🚪 Doca de Carregamento <span style="color:var(--red)">*</span> <span style="font-size:.62rem;font-weight:400;color:var(--t2)">(obrigatório quando Em Carregamento)</span></div>
@@ -3504,6 +3799,7 @@ async function saveCard(){
     upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
     const statusAntes=op.status;
     upd('status',g('fStatus'));upd('doca',g('fDoca'));upd('obs',g('fObs'));
+    op.gerarRetornoPallets=!!document.getElementById('fGerarRetorno')?.checked;
     if(document.getElementById('fMotivoSaida'))upd('motivoAtrasoSaida',g('fMotivoSaida'));
     if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
     op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=ts();op.updatedBy=who;
@@ -3513,14 +3809,15 @@ async function saveCard(){
     await autoVincularCAFs(op);
     if(op.status!==statusAntes){
       await syncCAFsStatus(op,op.status,statusAntes);
-      if(op.status==='FIN')setTimeout(checkCAFsSemBaixa,1000);
+      if(op.status==='FIN'){setTimeout(checkCAFsSemBaixa,1000);await _autoGerarRetornoPallets(op);}
     }
   }else{
     const id=g('fId')||genId();
-    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who};
+    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
+    if(newOp.status==='FIN')await _autoGerarRetornoPallets(newOp);
   }
   loading(false);closeModal();
 }
@@ -3738,6 +4035,7 @@ function setView(name){
   }
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
   if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
+  if(name==='pallets'){loading(true);Promise.all([loadPallets(),loadInventarioPallets()]).then(()=>{loading(false);renderInventarioPallets();renderPallets();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
     loadRuas().catch(()=>{});
@@ -4588,11 +4886,11 @@ function _tempoNoStatusAtualCAF(c){
 const ABAS_INFO = {
   painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
   massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
-  caf:{ic:'📦',lb:'CAFs'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
+  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
   'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
 };
 // Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
-const ABAS_PRIORIDADE = ['painel','lista','prog','caf','massa','fup','amazon','analise','tv','tv-yard','admin'];
+const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','massa','fup','amazon','analise','tv','tv-yard','admin'];
 
 // Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
@@ -5089,6 +5387,19 @@ async function saveCAF(){
     }
   }
   await loadRuas();
+  // ── Auto-incrementa o saldo devedor do FC quando a CAF entra em "Processo de Entrega" ──
+  // (pallets saindo da TZX rumo ao FC — vira débito do FC até o retorno ser confirmado)
+  if(ok&&statusAnterior!=='Processo de Entrega'&&statusEscolhido==='Processo de Entrega'){
+    const fcDestino=_fcFromRota(rota);
+    const qtdPal=Math.round(Number(document.getElementById('cafPal')?.value||0)||0);
+    if(fcDestino&&FCS_PALLETS.includes(fcDestino)&&qtdPal>0){
+      try{
+        await ajustarSaldoFC(fcDestino,qtdPal,who);
+        await ajustarEstoqueTZX(-qtdPal,who);
+        if(curPage==='pallets')renderInventarioPallets();
+      }catch(e){console.warn('auto-incremento saldo pallets:',e);}
+    }
+  }
   loading(false);
   if(ok){_publishAbly('cafs_update',{action:editCAFId?'update':'insert'});showToast(editCAFId?'✅ CAF atualizada':'✅ CAF criada!','ok');closeCAFModal();renderCAFs();}
   else showToast('❌ Erro ao salvar CAF','err');
@@ -5112,6 +5423,498 @@ async function deleteCAF(){
   _publishAbly('cafs_update',{action:'delete'});
   closeCAFModal();renderCAFs();
   showToast('🗑 CAF excluída','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RETORNO DE PALLETS
+// ══════════════════════════════════════════════════════════════════
+let pallets=[];
+let _palletsLoadTried=false;
+let inventarioPallets=[];
+let editPalletId=null;
+
+function genPalletId(){return 'RTP-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();}
+
+function buildPalletFCSelects(){
+  const opts='<option value="">Selecione o FC</option>'+FCS_PALLETS.map(f=>`<option value="${f}">${f}</option>`).join('');
+  const optsF='<option value="">Todos os FCs</option>'+FCS_PALLETS.map(f=>`<option value="${f}">${f}</option>`).join('');
+  const sFC=document.getElementById('rpFC');if(sFC&&!sFC.dataset.built){sFC.innerHTML=opts;sFC.dataset.built='1';}
+  const sF=document.getElementById('rpFFC');if(sF&&!sF.dataset.built){sF.innerHTML=optsF;sF.dataset.built='1';}
+}
+
+async function loadPallets(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_PALLETS}?order=criado_em.desc&limit=1000`);
+    if(Array.isArray(data)){
+      pallets=data.map(r=>({
+        id:r.id,fc:r.fc||'',dataOp:r.data_op||'',transp:r.transportadora||'',
+        motorista:r.motorista||'',placa:r.placa||'',
+        qtdPrevista:r.qtd_prevista||0,qtdRecebida:r.qtd_recebida,
+        status:r.status||'EM_TRANSITO',doca:r.doca||'',
+        horaSaidaFC:r.horario_saida_fc||null,horaChegada:r.horario_chegada||null,horaDescarga:r.horario_descarga||null,
+        opOrigemId:r.op_origem_id||'',
+        obs:r.obs||'',hist:Array.isArray(r.hist)?r.hist:[],
+        criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
+        atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){
+      console.warn('Tabela retornos_pallets não existe no Supabase.');pallets=[];
+    }else{console.error('loadPallets error:',e);}
+  }
+}
+
+async function loadInventarioPallets(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_INV_PALLETS}?order=fc.asc`);
+    if(Array.isArray(data)){
+      inventarioPallets=data.map(r=>({
+        fc:r.fc,saldoDevedor:r.saldo_devedor||0,limiteHub:r.limite_hub,
+        atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){
+      console.warn('Tabela inventario_pallets não existe no Supabase.');inventarioPallets=[];
+    }else{console.error('loadInventarioPallets error:',e);}
+  }
+}
+
+async function savePalletToDB(p){
+  const row={
+    id:p.id,fc:p.fc,data_op:p.dataOp,transportadora:p.transp||null,
+    motorista:p.motorista||null,placa:p.placa||null,
+    qtd_prevista:p.qtdPrevista||0,qtd_recebida:(p.qtdRecebida===''||p.qtdRecebida===undefined)?null:p.qtdRecebida,
+    status:p.status,doca:p.doca||null,obs:p.obs||null,hist:p.hist||[],
+    op_origem_id:p.opOrigemId||null,
+    criado_por:p.criadoPor,criado_em:p.criadoEm,
+    atualizado_por:p.atualizadoPor,atualizado_em:new Date().toISOString()
+  };
+  row.horario_saida_fc=p.horaSaidaFC||null;
+  if(p.status==='AGU_DESCARGA'&&!p.horaChegada)row.horario_chegada=new Date().toISOString();
+  else row.horario_chegada=p.horaChegada||null;
+  if(p.status==='FINALIZADO'&&!p.horaDescarga)row.horario_descarga=new Date().toISOString();
+  else row.horario_descarga=p.horaDescarga||null;
+  try{await sbUpsert(TABELA_PALLETS,row,'id');return true;}
+  catch(e){console.error('savePalletToDB:',e);return false;}
+}
+
+async function _patchInventarioPallets(fc,patch){
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/${TABELA_INV_PALLETS}?fc=eq.${encodeURIComponent(fc)}`,{
+      method:'PATCH',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(patch)
+    });
+    if(!res.ok)throw new Error(await res.text());
+    return true;
+  }catch(e){console.error('_patchInventarioPallets:',e);return false;}
+}
+
+// Débito por FC (quantos pallets aquele FC tem em mãos e ainda não devolveu)
+async function ajustarSaldoFC(fc,delta,who){
+  const atual=inventarioPallets.find(i=>i.fc===fc);
+  const novoSaldo=Math.max(0,(atual?.saldoDevedor||0)+delta);
+  const ok=await _patchInventarioPallets(fc,{saldo_devedor:novoSaldo,atualizado_por:who,atualizado_em:new Date().toISOString()});
+  if(!ok){showToast('❌ Erro ao atualizar saldo do FC','err');return false;}
+  await loadInventarioPallets();
+  return true;
+}
+
+// ── Estoque de pallets na TZX — ÚNICO, compartilhado entre todos os FCs (não é por FC) ──
+// Diminui automaticamente quando uma CAF entra em "Processo de Entrega" (pallets saindo pra qualquer FC)
+// Aumenta automaticamente quando um Retorno de Pallets é finalizado (pallets voltando de qualquer FC)
+// Também pode ser ajustado/definido manualmente (contagem física, reposição de pool, correções).
+async function ajustarEstoqueTZX(delta,who){
+  const novoValor=Math.max(0,(estoqueTZX.disponivel||0)+delta);
+  return definirEstoqueTZX(novoValor,who);
+}
+
+async function definirEstoqueTZX(novoValor,who){
+  novoValor=Math.max(0,Math.round(Number(novoValor)||0));
+  const ok=await _saveCfgSupabase('estoque_pallets_tzx',{disponivel:novoValor,atualizado_por:who,atualizado_em:new Date().toISOString()});
+  if(!ok){showToast('❌ Erro ao atualizar o estoque de pallets na TZX','err');return false;}
+  estoqueTZX={disponivel:novoValor,atualizadoPor:who,atualizadoEm:new Date().toISOString()};
+  try{localStorage.setItem('trk_estoque_tzx',JSON.stringify(estoqueTZX));}catch(e){}
+  _publishAbly('cfg_update',{});
+  return true;
+}
+
+async function _promptDefinirEstoqueTZX(){
+  if(!hasPerm('pallet_inventario')){showToast('⛔ Sem permissão para editar inventário','err');return;}
+  const v=prompt(`Definir estoque disponível de pallets na TZX (atual: ${estoqueTZX.disponivel||0}):`,String(estoqueTZX.disponivel||0));
+  if(v===null)return;
+  const n=parseInt(v);
+  if(isNaN(n)||n<0){showToast('⚠ Informe uma quantidade válida (0 ou mais)','err');return;}
+  loading(true);
+  const ok=await definirEstoqueTZX(n,_nomeOperadorAtual());
+  loading(false);
+  if(ok){renderInventarioPallets();showToast('✅ Estoque na TZX atualizado','ok');}
+}
+
+function renderInventarioPallets(){
+  const el=document.getElementById('rpInventarioGrid');if(!el)return;
+  const podeAjustar=hasPerm('pallet_inventario');
+  // Card único do estoque compartilhado (TZX)
+  const cardTZX=`<div style="background:var(--bg2);border:1.5px solid #f59e0b66;border-radius:var(--r);padding:11px;box-shadow:var(--sh);grid-column:1/-1;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.3px">📦 Estoque de Pallets na TZX (compartilhado entre todos os FCs)</div>
+      <div style="font-size:1.6rem;font-weight:800;color:#f59e0b">${estoqueTZX.disponivel||0}<span style="font-size:.68rem;color:var(--t2);font-weight:600"> pallets disponíveis</span></div>
+      ${estoqueTZX.atualizadoEm?`<div style="font-size:.6rem;color:var(--t3)">Atualizado por ${esc(estoqueTZX.atualizadoPor||'—')} em ${new Date(estoqueTZX.atualizadoEm).toLocaleString('pt-BR')}</div>`:''}
+    </div>
+    ${podeAjustar?`<button class="btn btn-g" onclick="_promptDefinirEstoqueTZX()" style="font-size:.68rem">📦 Definir estoque</button>`:''}
+  </div>`;
+  // Cards de débito por FC (quanto cada FC tem em mãos, ainda não devolvido)
+  const cardsFC=FCS_PALLETS.map(fc=>{
+    const inv=inventarioPallets.find(i=>i.fc===fc)||{saldoDevedor:0};
+    return `<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:11px;box-shadow:var(--sh)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:800;font-size:.85rem;color:var(--text)">${esc(fc)}</span>
+        ${podeAjustar?`<div style="display:flex;gap:3px">
+          <button class="btn btn-g" onclick="_promptAjusteSaldo('${fc}',1)" title="Registrar envio manual ao FC (+ débito)" style="font-size:.6rem;padding:1px 6px">+</button>
+          <button class="btn btn-g" onclick="_promptAjusteSaldo('${fc}',-1)" title="Ajustar/corrigir débito do FC (-)" style="font-size:.6rem;padding:1px 6px">-</button>
+        </div>`:''}
+      </div>
+      <div style="font-size:1.3rem;font-weight:800;color:var(--text)">${inv.saldoDevedor||0}<span style="font-size:.65rem;color:var(--t2);font-weight:600"> pallets c/ FC</span></div>
+      <div style="font-size:.6rem;color:var(--t2);margin-top:3px">Débito (ainda não devolvido)</div>
+    </div>`;
+  }).join('');
+  el.innerHTML=cardTZX+cardsFC;
+}
+
+async function _promptAjusteSaldo(fc,sinal){
+  if(!hasPerm('pallet_inventario')){showToast('⛔ Sem permissão para ajustar inventário','err');return;}
+  const label=sinal>0?'Quantos pallets foram enviados a este FC (aumenta o débito e reduz o estoque na TZX)?':'Quantos pallets ajustar/remover do débito do FC?';
+  const v=prompt(label,'0');
+  if(v===null)return;
+  const n=parseInt(v);
+  if(!n||n<=0){showToast('⚠ Informe uma quantidade válida','err');return;}
+  loading(true);
+  const ok=await ajustarSaldoFC(fc,sinal*n,_nomeOperadorAtual());
+  if(ok&&sinal>0)await ajustarEstoqueTZX(-n,_nomeOperadorAtual());
+  loading(false);
+  if(ok){renderInventarioPallets();showToast('✅ Saldo atualizado','ok');}
+}
+
+function _palletStatusInfo(st){
+  return{
+    EM_TRANSITO:{lb:'Em Trânsito',cor:'var(--orange)',ic:'🚚'},
+    AGU_DESCARGA:{lb:'Aguardando Descarga',cor:'var(--yellow)',ic:'⏳'},
+    FINALIZADO:{lb:'Finalizado',cor:'var(--green)',ic:'✅'}
+  }[st]||{lb:st,cor:'var(--t2)',ic:'•'};
+}
+
+// KPIs de auditoria (Análise) — considera a lista já filtrada pelos filtros da aba
+function _renderPalletsAuditKPIs(lista){
+  const el=document.getElementById('rpAuditKPIs');if(!el)return;
+  const finalizados=lista.filter(p=>p.status==='FINALIZADO');
+  const totalPrevisto=finalizados.reduce((s,p)=>s+(p.qtdPrevista||0),0);
+  const totalRecebido=finalizados.reduce((s,p)=>s+(p.qtdRecebida||0),0);
+  const divergenciaTotal=totalRecebido-totalPrevisto;
+  const comDivergencia=finalizados.filter(p=>p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida).length;
+  const acuracia=finalizados.length?Math.round((finalizados.length-comDivergencia)/finalizados.length*100):100;
+  const emTransito=lista.filter(p=>p.status==='EM_TRANSITO').length;
+  const aguDescarga=lista.filter(p=>p.status==='AGU_DESCARGA').length;
+  const semPrevisto=lista.filter(p=>p.status!=='EM_TRANSITO'&&!p.qtdPrevista).length;
+  el.innerHTML=[
+    {cl:'c-gy',v:lista.length,l:'Total no Filtro'},
+    {cl:'c-bl',v:emTransito,l:'Em Trânsito'},
+    {cl:'c-ye',v:aguDescarga,l:'Ag. Descarga'},
+    {cl:'c-gr',v:finalizados.length,l:'Finalizados'},
+    {cl:'c-red',v:comDivergencia,l:'Com Divergência'},
+    {cl:acuracia>=95?'c-gr':acuracia>=85?'c-ye':'c-red',v:acuracia+'%',l:'Acurácia Auditoria'},
+    {cl:divergenciaTotal===0?'c-gy':divergenciaTotal<0?'c-red':'c-bl',v:(divergenciaTotal>0?'+':'')+divergenciaTotal,l:'Δ Previsto x Recebido'},
+    {cl:semPrevisto?'c-or':'c-gy',v:semPrevisto,l:'Sem Folha (previsto)'},
+  ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('');
+}
+
+// Abre a viagem (operação) que originou este Retorno de Pallets, a partir do card ou do modal
+function _abrirViagemOrigem(opId){
+  const op=ops.find(o=>o.id===opId);
+  if(!op){showToast('⚠ Viagem de origem não encontrada (pode ter sido excluída)','err');return;}
+  closePalletModal();
+  openEdit(opId);
+}
+
+function renderPallets(){
+  buildPalletFCSelects();
+  const fFC=document.getElementById('rpFFC')?.value||'';
+  const fStatus=document.getElementById('rpFStatus')?.value||'';
+  const fData=document.getElementById('rpFData')?.value||'';
+  const busca=(document.getElementById('rpBusca')?.value||'').toLowerCase();
+  const btnNovo=document.getElementById('rpBtnNovo');if(btnNovo)btnNovo.style.display=hasPerm('pallet_gerir')?'':'none';
+  let lista=[...pallets];
+  if(fFC)lista=lista.filter(p=>p.fc===fFC);
+  if(fStatus)lista=lista.filter(p=>p.status===fStatus);
+  if(fData)lista=lista.filter(p=>p.dataOp===fData);
+  if(busca)lista=lista.filter(p=>(p.motorista||'').toLowerCase().includes(busca)||(p.placa||'').toLowerCase().includes(busca)||(p.transp||'').toLowerCase().includes(busca));
+  lista.sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||''));
+  _renderPalletsAuditKPIs(lista);
+  const el=document.getElementById('rpGrid');if(!el)return;
+  if(!lista.length){el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--t2);font-size:.8rem">Nenhum retorno de pallets encontrado.</div>';return;}
+  el.innerHTML=lista.map(p=>{
+    const si=_palletStatusInfo(p.status);
+    const podeGerir=hasPerm('pallet_gerir');
+    const proximoStatus={EM_TRANSITO:'AGU_DESCARGA',AGU_DESCARGA:'FINALIZADO'}[p.status];
+    const temDivergencia=p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida;
+    return `<div class="yard-card" onclick="openEditPallet('${esc(p.id)}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:.9rem;font-weight:800;color:#f59e0b">${esc(p.fc)}</div>
+          <div style="font-size:.65rem;color:var(--t2);margin-top:1px">${fmtD(p.dataOp)} · ${esc(p.transp)||'—'}</div>
+          ${p.opOrigemId?`<div style="font-size:.6rem;color:var(--blue);margin-top:1px;cursor:pointer" onclick="event.stopPropagation();_abrirViagemOrigem('${esc(p.opOrigemId)}')">🚚 Veio da viagem ${esc(p.opOrigemId)}</div>`:''}
+        </div>
+        <span style="background:${si.cor}22;color:${si.cor};border:1px solid ${si.cor}44;border-radius:4px;padding:2px 7px;font-size:.58rem;font-weight:700">${si.ic} ${si.lb}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
+          <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(p.placa)||'—'}</div>
+        </div>
+        <div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
+          <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.motorista)||'—'}</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--rs);padding:7px;margin-bottom:${(podeGerir&&proximoStatus)||temDivergencia?'8px':'0'}">
+        <div><div style="color:var(--t2);font-size:.56rem">Qtd. Prevista</div><div style="font-weight:800;font-size:.85rem">${p.qtdPrevista||0}</div></div>
+        <div><div style="color:var(--t2);font-size:.56rem">Qtd. Recebida</div><div style="font-weight:800;font-size:.85rem;color:${temDivergencia?'var(--red)':'inherit'}">${p.qtdRecebida??'—'}</div></div>
+      </div>
+      ${temDivergencia?`<div style="background:var(--red4);border:1px solid #fca5a5;border-radius:4px;padding:4px 7px;font-size:.6rem;color:var(--red);font-weight:700;margin-bottom:${podeGerir&&proximoStatus?'8px':'0'}">⚠ Divergência na auditoria: ${(p.qtdRecebida-p.qtdPrevista)>0?'+':''}${p.qtdRecebida-p.qtdPrevista}</div>`:''}
+      ${podeGerir&&proximoStatus?`<button class="btn btn-s" style="width:100%;font-size:.68rem" onclick="event.stopPropagation();avancarStatusPallet('${esc(p.id)}')">▶ Avançar para ${_palletStatusInfo(proximoStatus).lb}</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// Converte ISO (UTC) para o formato aceito por <input type="datetime-local"> (horário local do navegador)
+function _isoToDtLocal(iso){
+  if(!iso)return'';
+  const d=new Date(iso);if(isNaN(d))return'';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+// Converte o valor de <input type="datetime-local"> de volta para ISO (UTC)
+function _dtLocalToIso(val){
+  if(!val)return null;
+  const d=new Date(val);if(isNaN(d))return null;
+  return d.toISOString();
+}
+
+// Habilita/desabilita seções do modal conforme a permissão do usuário logado:
+// pallet_gerir → dados gerais da viagem (FC, data, transportadora, motorista, placa, status)
+// pallet_horarios → horários (Torre de Controle)
+// pallet_auditoria → Qtd. Prevista/Recebida (Responsável pela Doca)
+function _applyPalletFieldPerms(){
+  const podeGerir=hasPerm('pallet_gerir'),podeHorarios=hasPerm('pallet_horarios'),podeAuditoria=hasPerm('pallet_auditoria');
+  ['rpFC','rpData','rpTransp','rpMotorista','rpPlaca','rpStatus'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeGerir;});
+  ['rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeHorarios;});
+  ['rpQtdPrevista','rpQtdRecebida'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeAuditoria;});
+  const btnSalvar=document.querySelector('#overlayPallet .btn-s');
+  if(btnSalvar)btnSalvar.style.display=(podeGerir||podeHorarios||podeAuditoria)?'':'none';
+}
+
+function openNewPallet(){
+  if(!hasPerm('pallet_gerir')){showToast('Sem permissão','err');return;}
+  editPalletId=null;
+  buildPalletFCSelects();
+  document.getElementById('rpMTitle').textContent='🔄 Novo Retorno de Pallets';
+  document.getElementById('rpBtnDel').style.display='none';
+  const histWrap0=document.getElementById('rpHistWrap');if(histWrap0)histWrap0.style.display='none';
+  ['rpMotorista','rpPlaca','rpQtdPrevista','rpQtdRecebida','rpObs','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('rpTransp').value='';
+  document.getElementById('rpFC').value='';
+  document.getElementById('rpData').value=hojeLocal();
+  document.getElementById('rpStatus').value='EM_TRANSITO';
+  document.getElementById('rpQtdRecebidaWrap').style.display='none';
+  const origemWrap0=document.getElementById('rpOrigemWrap');if(origemWrap0)origemWrap0.style.display='none';
+  _applyPalletFieldPerms();
+  document.getElementById('overlayPallet').classList.add('open');
+}
+
+function openEditPallet(id){
+  const p=pallets.find(x=>x.id===id);if(!p)return;
+  editPalletId=id;
+  buildPalletFCSelects();
+  document.getElementById('rpMTitle').textContent='🔄 Editar Retorno — '+p.fc;
+  document.getElementById('rpBtnDel').style.display=hasPerm('pallet_deletar')?'':'none';
+  document.getElementById('rpFC').value=p.fc;
+  document.getElementById('rpData').value=p.dataOp;
+  document.getElementById('rpTransp').value=p.transp||'';
+  document.getElementById('rpMotorista').value=p.motorista||'';
+  document.getElementById('rpPlaca').value=p.placa||'';
+  document.getElementById('rpQtdPrevista').value=p.qtdPrevista||'';
+  document.getElementById('rpQtdRecebida').value=p.qtdRecebida??'';
+  document.getElementById('rpStatus').value=p.status;
+  document.getElementById('rpHoraSaidaFC').value=_isoToDtLocal(p.horaSaidaFC);
+  document.getElementById('rpHoraChegadaTZX').value=_isoToDtLocal(p.horaChegada);
+  document.getElementById('rpHoraDescarga').value=_isoToDtLocal(p.horaDescarga);
+  document.getElementById('rpQtdRecebidaWrap').style.display=(p.status==='FINALIZADO'||p.status==='AGU_DESCARGA')?'':'none';
+  document.getElementById('rpObs').value=p.obs||'';
+  const origemWrap=document.getElementById('rpOrigemWrap');
+  if(origemWrap){
+    if(p.opOrigemId){
+      origemWrap.style.display='';
+      origemWrap.innerHTML=`<div style="background:var(--blue2);border:1px solid var(--blue);border-radius:var(--rs);padding:7px 10px;font-size:.72rem;color:var(--blue);cursor:pointer;font-weight:600" onclick="_abrirViagemOrigem('${esc(p.opOrigemId)}')">🚚 Gerado automaticamente pela viagem ${esc(p.opOrigemId)} — clique para abrir</div>`;
+    }else{
+      origemWrap.style.display='none';
+    }
+  }
+  _applyPalletFieldPerms();
+  const histWrap=document.getElementById('rpHistWrap'),histList=document.getElementById('rpHistList');
+  if(histWrap&&histList){
+    histWrap.style.display='';
+    const hist=Array.isArray(p.hist)?[...p.hist].reverse():[];
+    histList.innerHTML=hist.length
+      ?hist.map(h=>`<div style="padding:3px 0;border-bottom:1px solid var(--bd)"><span style="color:var(--t2)">${h.t?new Date(h.t).toLocaleString('pt-BR'):''}</span> — ${esc(h.txt||'')}</div>`).join('')
+      :'<span style="color:var(--t3)">Sem histórico ainda.</span>';
+  }
+  document.getElementById('overlayPallet').classList.add('open');
+}
+
+function closePalletModal(){document.getElementById('overlayPallet').classList.remove('open');editPalletId=null;}
+
+// Mostra/esconde campo Qtd. Recebida conforme status escolhido
+document.addEventListener('change',e=>{
+  if(e.target&&e.target.id==='rpStatus'){
+    const wrap=document.getElementById('rpQtdRecebidaWrap');
+    if(wrap)wrap.style.display=(e.target.value==='FINALIZADO'||e.target.value==='AGU_DESCARGA')?'':'none';
+  }
+});
+
+async function savePallet(){
+  const podeGerir=hasPerm('pallet_gerir'),podeHorarios=hasPerm('pallet_horarios'),podeAuditoria=hasPerm('pallet_auditoria');
+  if(!podeGerir&&!podeHorarios&&!podeAuditoria){showToast('⛔ Sem permissão para editar Retorno de Pallets','err');return;}
+  const existente=editPalletId?pallets.find(x=>x.id===editPalletId):null;
+  if(!editPalletId&&!podeGerir){showToast('⛔ Sem permissão para registrar um novo Retorno de Pallets','err');return;}
+  const btnSalvar=document.querySelector('#overlayPallet .btn-s');
+  if(btnSalvar){if(btnSalvar.disabled)return;btnSalvar.disabled=true;setTimeout(()=>{if(btnSalvar)btnSalvar.disabled=false;},2500);}
+  // Campos gerais (FC/data/transportadora/motorista/placa/status) só mudam se tiver pallet_gerir — senão preserva o valor existente
+  const fc=podeGerir?(document.getElementById('rpFC')?.value||''):(existente?.fc||'');
+  const dataOp=podeGerir?(document.getElementById('rpData')?.value||''):(existente?.dataOp||'');
+  if(!fc){showToast('⚠ Selecione o FC de origem','err');if(btnSalvar)btnSalvar.disabled=false;return;}
+  if(!dataOp){showToast('⚠ Informe a data da operação','err');if(btnSalvar)btnSalvar.disabled=false;return;}
+  const statusEscolhido=podeGerir?(document.getElementById('rpStatus')?.value||'EM_TRANSITO'):(existente?.status||'EM_TRANSITO');
+  // Qtd. Prevista/Recebida (auditoria) só mudam se tiver pallet_auditoria
+  const qtdRecebidaVal=podeAuditoria?document.getElementById('rpQtdRecebida')?.value:(existente?.qtdRecebida??'');
+  const who=_nomeOperadorAtual();
+  const statusAnterior=existente?existente.status:null;
+  const hist=existente&&Array.isArray(existente.hist)?[...existente.hist]:[];
+  const nowIso=new Date().toISOString();
+  if(!editPalletId){
+    hist.push({t:nowIso,txt:`[${who}] Retorno registrado (status: ${_palletStatusInfo(statusEscolhido).lb})`});
+  }else if(statusAnterior&&statusAnterior!==statusEscolhido){
+    hist.push({t:nowIso,txt:`[${who}] Status alterado: ${_palletStatusInfo(statusAnterior).lb} → ${_palletStatusInfo(statusEscolhido).lb}`});
+  }else{
+    hist.push({t:nowIso,txt:`[${who}] Retorno editado`});
+  }
+  if(hist.length>50)hist.splice(0,hist.length-50);
+  // Horários (Torre) só mudam se tiver pallet_horarios — senão preserva os valores existentes
+  const horaSaidaFC=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraSaidaFC')?.value):(existente?.horaSaidaFC||null);
+  const horaChegadaTZX=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraChegadaTZX')?.value):(existente?.horaChegada||null);
+  const horaDescargaInput=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraDescarga')?.value):(existente?.horaDescarga||null);
+  const p={
+    id:editPalletId||genPalletId(),fc,dataOp,
+    transp:podeGerir?(document.getElementById('rpTransp')?.value||''):(existente?.transp||''),
+    motorista:podeGerir?(document.getElementById('rpMotorista')?.value||''):(existente?.motorista||''),
+    placa:podeGerir?(document.getElementById('rpPlaca')?.value||'').toUpperCase():(existente?.placa||''),
+    qtdPrevista:podeAuditoria?(parseInt(document.getElementById('rpQtdPrevista')?.value||0)||0):(existente?.qtdPrevista||0),
+    qtdRecebida:qtdRecebidaVal===''||qtdRecebidaVal==null?null:(parseInt(qtdRecebidaVal)||0),
+    status:statusEscolhido,doca:existente?.doca||'',opOrigemId:existente?.opOrigemId||'',
+    horaSaidaFC,horaChegada:horaChegadaTZX,horaDescarga:horaDescargaInput,
+    obs:document.getElementById('rpObs')?.value||'',
+    hist,
+    criadoPor:existente?existente.criadoPor:who,
+    criadoEm:existente?existente.criadoEm:nowIso,
+    atualizadoPor:who
+  };
+  loading(true);
+  const ok=await savePalletToDB(p);
+  // Ao finalizar (status muda para FINALIZADO agora), abate a qtd. recebida do saldo devedor do FC
+  // e devolve essa quantidade ao estoque compartilhado da TZX
+  if(ok&&statusEscolhido==='FINALIZADO'&&statusAnterior!=='FINALIZADO'&&p.qtdRecebida>0){
+    await ajustarSaldoFC(fc,-p.qtdRecebida,who);
+    await ajustarEstoqueTZX(p.qtdRecebida,who);
+  }
+  await loadPallets();
+  loading(false);
+  if(ok){
+    _publishAbly('pallets_update',{action:editPalletId?'update':'insert'});
+    showToast(editPalletId?'✅ Retorno atualizado':'✅ Retorno registrado!','ok');
+    closePalletModal();renderPallets();renderInventarioPallets();
+  }else showToast('❌ Erro ao salvar Retorno de Pallets','err');
+}
+
+// Avança rapidamente o status de um card sem abrir o modal completo
+async function avancarStatusPallet(id){
+  if(!hasPerm('pallet_gerir')){showToast('⛔ Sem permissão','err');return;}
+  const p=pallets.find(x=>x.id===id);if(!p)return;
+  const proximo={EM_TRANSITO:'AGU_DESCARGA',AGU_DESCARGA:'FINALIZADO'}[p.status];
+  if(!proximo)return;
+  const who=_nomeOperadorAtual();
+  let qtdPrevista=p.qtdPrevista;
+  let qtdRecebida=p.qtdRecebida;
+  if(proximo==='AGU_DESCARGA'){
+    // Momento em que o operador recebe a folha física com a quantidade a receber
+    const v=prompt('Quantidade PREVISTA conforme a folha recebida:',String(p.qtdPrevista||''));
+    if(v===null)return;
+    qtdPrevista=parseInt(v)||0;
+  }
+  if(proximo==='FINALIZADO'){
+    const v=prompt('Quantidade de pallets efetivamente recebida (contagem):',String(p.qtdPrevista||0));
+    if(v===null)return;
+    qtdRecebida=parseInt(v)||0;
+  }
+  const hist=[...(p.hist||[]),{t:new Date().toISOString(),txt:`[${who}] Status alterado: ${_palletStatusInfo(p.status).lb} → ${_palletStatusInfo(proximo).lb}`}];
+  if(proximo==='AGU_DESCARGA')hist.push({t:new Date().toISOString(),txt:`[${who}] Qtd. prevista informada (folha): ${qtdPrevista}`});
+  if(proximo==='FINALIZADO'&&qtdPrevista!==qtdRecebida)hist.push({t:new Date().toISOString(),txt:`[${who}] ⚠ Divergência na auditoria: previsto ${qtdPrevista||0} × recebido ${qtdRecebida}`});
+  const atualizado={...p,status:proximo,qtdPrevista,qtdRecebida,hist,atualizadoPor:who};
+  loading(true);
+  const ok=await savePalletToDB(atualizado);
+  if(ok&&proximo==='FINALIZADO'&&qtdRecebida>0){
+    await ajustarSaldoFC(p.fc,-qtdRecebida,who);
+    await ajustarEstoqueTZX(qtdRecebida,who);
+  }
+  await loadPallets();
+  loading(false);
+  if(ok){
+    _publishAbly('pallets_update',{action:'update'});
+    if(proximo==='FINALIZADO'&&qtdPrevista&&qtdPrevista!==qtdRecebida)showToast(`⚠ Finalizado com divergência: previsto ${qtdPrevista} × recebido ${qtdRecebida}`,'err');
+    else showToast('✅ Status atualizado','ok');
+    renderPallets();renderInventarioPallets();
+  }
+  else showToast('❌ Erro ao atualizar status','err');
+}
+
+async function deletePallet(){
+  if(!hasPerm('pallet_deletar')){showToast('⛔ Sem permissão para deletar Retorno de Pallets','err');return;}
+  if(!editPalletId)return;
+  if(!confirm('Excluir este registro de Retorno de Pallets?'))return;
+  loading(true);
+  try{await sbDelete(TABELA_PALLETS,'id',editPalletId);}catch(e){console.error('deletePallet:',e);}
+  await loadPallets();
+  loading(false);
+  _publishAbly('pallets_update',{action:'delete'});
+  closePalletModal();renderPallets();renderInventarioPallets();
+  showToast('🗑 Retorno excluído','ok');
+}
+
+// Widget compacto de saldo de pallets — usado na Gestão de Doca e TV Yard
+function _renderPalletsMiniWidget(){
+  const porFC=FCS_PALLETS.map(fc=>{
+    const inv=inventarioPallets.find(i=>i.fc===fc);
+    return `<span style="margin-right:8px"><strong>${fc}:</strong> ${inv?.saldoDevedor||0}</span>`;
+  }).join('');
+  return `<div style="display:flex;align-items:center;gap:6px;font-size:.68rem;cursor:pointer" onclick="setView('pallets')" title="Ir para Retorno de Pallets">
+    <span style="color:var(--t2);font-weight:600">📦 Na TZX:</span>
+    <span style="font-weight:800;color:#f59e0b">${estoqueTZX.disponivel||0}</span>
+    <span style="color:var(--t2);font-weight:600;margin-left:4px">Com FC:</span>
+    <span style="color:var(--t3)">${porFC}</span>
+  </div>`;
 }
 
 async function desvincularCAF(){
@@ -6306,7 +7109,10 @@ function quickStatus(opId, newStatus, event){
   addHist(op,`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`);
   if(newStatus==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
   render();renderFUP();
-  saveOp(op).then(()=>syncCAFsStatus(op,newStatus,prev));
+  saveOp(op).then(async()=>{
+    await syncCAFsStatus(op,newStatus,prev);
+    if(newStatus==='FIN'&&prev!=='FIN')await _autoGerarRetornoPallets(op);
+  });
   addActivityLog(`${opId}: ${stObj(prev).lb} → ${stObj(newStatus).lb}`);
 }
 
@@ -6361,6 +7167,10 @@ function renderTVYard(){
   const el=document.getElementById('tv-yard-wrap');if(!el)return;
   if(supabaseOK&&!cafsDB.length){
     loadCAFs().then(()=>renderTVYard());
+    return;
+  }
+  if(supabaseOK&&!inventarioPallets.length){
+    loadInventarioPallets().then(()=>renderTVYard());
     return;
   }
   const hoje=hojeLocal();
@@ -6444,6 +7254,23 @@ function renderTVYard(){
       <div style="font-size:1.8rem">🔴</div>
       <div style="font-size:.65rem;color:var(--red);font-weight:700;margin-top:4px">PISO<br>CRÍTICO</div>
     </div>`:''}
+  </div>
+
+  <!-- Estoque de Pallets: TZX (único) + débito por FC -->
+  <div style="display:grid;grid-template-columns:1fr repeat(${FCS_PALLETS.length},1fr);gap:8px;margin-bottom:14px;cursor:pointer" onclick="exitTVYard();setView('pallets')" title="Ir para Retorno de Pallets">
+    <div style="background:var(--bg2);border:1px solid #f59e0b66;border-radius:8px;padding:8px 10px;text-align:center">
+      <div style="font-size:.62rem;color:var(--t2);font-weight:700">📦 NA TZX</div>
+      <div style="font-size:1.15rem;font-weight:800;color:#f59e0b">${estoqueTZX.disponivel||0}</div>
+      <div style="font-size:.55rem;color:var(--t3)">pallets disponíveis</div>
+    </div>
+    ${FCS_PALLETS.map(fc=>{
+      const inv=inventarioPallets.find(i=>i.fc===fc);
+      return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;text-align:center">
+        <div style="font-size:.62rem;color:var(--t2);font-weight:700">${fc}</div>
+        <div style="font-size:1.15rem;font-weight:800;color:var(--text)">${inv?.saldoDevedor||0}</div>
+        <div style="font-size:.55rem;color:var(--t3)">pallets c/ FC</div>
+      </div>`;
+    }).join('')}
   </div>
 
   <!-- Cards do Yard -->
@@ -7003,6 +7830,16 @@ function _subscribeAbly(){
     if(curPage==='tv')renderTV();
   });
 
+  // Retornos de Pallets atualizados por outro usuário
+  _ablyChannel.subscribe('pallets_update',async(msg)=>{
+    if(msg.data?.by===currentUser?.user)return;
+    await loadPallets();
+    await loadInventarioPallets();
+    if(curPage==='pallets'){renderPallets();renderInventarioPallets();}
+    if(curPage==='prog')renderProg();
+    if(curPage==='tv-yard')renderTVYard();
+  });
+
   // Configurações alteradas no Admin
   _ablyChannel.subscribe('cfg_update',async(msg)=>{
     if(msg.data?.by===currentUser?.user)return;
@@ -7065,7 +7902,7 @@ function _updateRTIndicator(){
 async function _renderOnlinePresence(){
   const el=document.getElementById('onlineBar');
   if(!el)return;
-  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
   let lista=[];
   // 1ª fonte: Ably Presence (tempo real)
   if(_ablyChannel&&_ablyOK){
@@ -7125,6 +7962,36 @@ async function atribuirDocaRapido(opId, doca){
   await saveOp(op);
   showToast(doca?`✅ ${opId} → ${doca}`:`${prev} liberada`,'ok');
   addActivityLog(opId+': '+acao);
+}
+
+// Atribui/libera a doca de um Retorno de Pallets diretamente no card da Gestão de Doca
+// (o momento em que o caminhão de retorno encosta e está descarregando)
+async function atribuirDocaPallet(id,doca){
+  const p=pallets.find(x=>x.id===id);if(!p)return;
+  if(doca){
+    // Bloqueio de doca dupla: contra viagens normais em carregamento E outros retornos aguardando descarga
+    const docaEmUsoOp=ops.find(o=>o.doca===doca&&o.status==='EMCARR'&&o.dataOp===p.dataOp);
+    const docaEmUsoPal=pallets.find(x=>x.id!==id&&x.doca===doca&&x.status==='AGU_DESCARGA'&&x.dataOp===p.dataOp);
+    if(docaEmUsoOp||docaEmUsoPal){
+      const ocupante=docaEmUsoOp?`${docaEmUsoOp.codigoCurto||docaEmUsoOp.id} (${docaEmUsoOp.placa||'—'})`:`Retorno ${docaEmUsoPal.fc} (${docaEmUsoPal.placa||'—'})`;
+      showToast(`⛔ ${doca} já está ocupada por ${ocupante}`,'err');
+      renderProg();
+      return;
+    }
+  }
+  const who=_nomeOperadorAtual();
+  const prev=p.doca||'';
+  const hist=[...(p.hist||[]),{t:new Date().toISOString(),txt:`[${who}] ${doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`}`}];
+  const atualizado={...p,doca,hist,atualizadoPor:who};
+  loading(true);
+  const ok=await savePalletToDB(atualizado);
+  await loadPallets();
+  loading(false);
+  if(ok){
+    _publishAbly('pallets_update',{action:'update'});
+    showToast(doca?`✅ Retorno ${p.fc} → ${doca}`:`${prev} liberada`,'ok');
+    renderProg();renderPallets();
+  }else showToast('❌ Erro ao atribuir doca','err');
 }
 
 
