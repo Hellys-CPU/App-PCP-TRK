@@ -174,7 +174,7 @@ body.dark .rota-cell{color:#e6edf3;}
 .tab-drop-btn{background:none;border:none;color:var(--t2);padding:5px 10px;border-radius:var(--rs);cursor:pointer;font-size:.74rem;font-weight:500;transition:.15s;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:3px;}
 .tab-drop-btn:hover{color:var(--gray3);background:var(--bg3);}
 .tab-drop-btn.active{color:var(--red);background:var(--red3);font-weight:700;}
-.tab-drop-panel{display:none;flex-direction:column;gap:1px;position:absolute;top:100%;left:0;z-index:200;background:var(--bg2);border:1.5px solid var(--bd);border-radius:8px;padding:4px;margin-top:4px;min-width:180px;box-shadow:var(--sh3);}
+.tab-drop-panel{display:none;flex-direction:column;gap:1px;position:fixed;z-index:500;background:var(--bg2);border:1.5px solid var(--bd);border-radius:8px;padding:4px;min-width:180px;box-shadow:var(--sh3);}
 .tab-drop-panel.open{display:flex;}
 .tab-drop-panel .tab{width:100%;text-align:left;border-radius:6px;}
 .topbar-r{display:flex;align-items:center;gap:5px;flex-shrink:0;}
@@ -561,7 +561,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v239</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v240</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -4867,9 +4867,17 @@ function _nomeOperadorAtual(){
 // ── Filtro multi-status da tabela CAFs (checkbox) ──
 // ── Menus suspensos do topbar (Relatórios / TV) — agrupam abas menos usadas no dia a dia ──
 function toggleTabDrop(groupId){
-  const isOpen=document.getElementById(groupId)?.querySelector('.tab-drop-panel')?.classList.contains('open');
+  const grp=document.getElementById(groupId);
+  const panel=grp?.querySelector('.tab-drop-panel');
+  const btn=grp?.querySelector('.tab-drop-btn');
+  const isOpen=panel?.classList.contains('open');
   closeAllTabDrops();
-  if(!isOpen)document.getElementById(groupId)?.querySelector('.tab-drop-panel')?.classList.add('open');
+  if(!isOpen&&panel&&btn){
+    const r=btn.getBoundingClientRect();
+    panel.style.top=(r.bottom+4)+'px';
+    panel.style.left=r.left+'px';
+    panel.classList.add('open');
+  }
 }
 function closeAllTabDrops(){
   document.querySelectorAll('.tab-drop-panel.open').forEach(p=>p.classList.remove('open'));
@@ -4877,6 +4885,8 @@ function closeAllTabDrops(){
 document.addEventListener('click',(e)=>{
   if(!e.target.closest('.tab-drop'))closeAllTabDrops();
 });
+window.addEventListener('resize',closeAllTabDrops);
+document.querySelector('.tabs')?.addEventListener('scroll',closeAllTabDrops);
 
 function toggleCafStatusFiltro(){
   const panel=document.getElementById('cafFStatusPanel');
@@ -8752,4 +8762,4 @@ loadTheme();
 initAuth();
 </script>
 </body>
-</html>a
+</html>
