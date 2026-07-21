@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v233</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v234</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -636,11 +636,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <table>
       <thead>
 <tr style="font-size:.58rem;text-transform:uppercase;letter-spacing:.4px;color:var(--t3)">
-  <td colspan="10"></td>
-  <td colspan="2" style="background:var(--blue2);color:var(--blue);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">🏭 TZX</td>
+  <td colspan="11"></td>
   <td colspan="2" style="background:var(--blue2);color:var(--blue);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">🏭 TZX</td>
   <td colspan="2" style="background:var(--green2);color:var(--green);font-weight:700;text-align:center;border-radius:4px 4px 0 0;padding:2px">📦 FC</td>
-  <td colspan="2" style="text-align:center;padding:2px">Δ</td>
+  <td colspan="3" style="text-align:center;padding:2px">Δ</td>
   <td colspan="2" style="text-align:center;padding:2px;color:var(--red)">⚠ Motivo Atraso</td>
   <td></td>
 </tr>
@@ -674,9 +673,40 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <th onclick="sortList('_dDoc')" style="cursor:pointer;user-select:none;white-space:nowrap">T.Doca <span id="sl-_dDoc"></span></th>
   <th style="white-space:nowrap;font-size:.62rem">Motivo Saída</th>
   <th style="white-space:nowrap;font-size:.62rem">Motivo Chegada</th>
-  <th style="padding:2px">
+  <th style="padding:2px;position:relative;min-width:110px">
     <div onclick="sortList('status')" style="cursor:pointer;user-select:none;white-space:nowrap;margin-bottom:2px">Status <span id="sl-status"></span></div>
-    <select id="lFSt" onchange="renderList()" style="width:100%;font-size:.65rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:1px"><option value="">Todos</option></select>
+    <button type="button" onclick="event.stopPropagation();toggleListStatusFiltro()" id="lFStatusBtn"
+      style="width:100%;font-size:.62rem;background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);padding:2px 4px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Todos ▾</button>
+    <div id="lFStatusPanel" style="display:none;position:absolute;top:100%;left:0;z-index:50;background:var(--bg2);border:1.5px solid var(--bd);border-radius:6px;padding:6px;margin-top:2px;min-width:170px;box-shadow:var(--sh3)">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="PROG" onchange="renderList()"> Programado
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="AGUCARR" onchange="renderList()"> Aguard. Carregamento
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="EMCARR" onchange="renderList()"> Em Carregamento
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="TRAN" onchange="renderList()"> Em Trânsito
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="AGUDESC" onchange="renderList()"> Aguard. Descarga
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="FIN" onchange="renderList()"> Finalizado
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="CANC" onchange="renderList()"> Cancelado
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="lFStatusChk" value="REC" onchange="renderList()"> Recusado
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--bd);margin-top:3px;padding-top:5px">
+        <input type="checkbox" class="lFStatusChk" value="PERN" onchange="renderList()"> Em Pernoite
+      </label>
+      <button type="button" onclick="event.stopPropagation();_limparListStatusFiltro()" class="btn btn-g" style="width:100%;font-size:.6rem;margin-top:5px;padding:3px">✕ Limpar seleção</button>
+    </div>
   </th>
 </tr>
 </thead>
@@ -2675,16 +2705,47 @@ function renderPainel(){
   }).join('');
 }
 
+// ── Filtro multi-status da tabela Lista (checkbox) ──
+function toggleListStatusFiltro(){
+  const panel=document.getElementById('lFStatusPanel');
+  if(!panel)return;
+  panel.style.display=panel.style.display==='none'?'block':'none';
+}
+function _limparListStatusFiltro(){
+  document.querySelectorAll('.lFStatusChk').forEach(c=>c.checked=false);
+  renderList();
+}
+function _listStatusSelecionados(){
+  return Array.from(document.querySelectorAll('.lFStatusChk:checked')).map(c=>c.value);
+}
+function _atualizaListStatusBtnLabel(){
+  const sel=_listStatusSelecionados();
+  const btn=document.getElementById('lFStatusBtn');
+  if(!btn)return;
+  if(!sel.length){btn.textContent='Todos ▾';return;}
+  if(sel.length===1){btn.textContent=stObj(sel[0]).lb+' ▾';return;}
+  btn.textContent=sel.length+' selecionados ▾';
+}
+// Fecha o painel ao clicar fora
+document.addEventListener('click',(e)=>{
+  const panel=document.getElementById('lFStatusPanel');
+  const btn=document.getElementById('lFStatusBtn');
+  if(!panel||panel.style.display==='none')return;
+  if(panel.contains(e.target)||e.target===btn)return;
+  panel.style.display='none';
+});
+
 function getListFilt(){
   const q=(document.getElementById('lQ')?.value||'').toLowerCase();
   const fR=document.getElementById('lFRo')?.value||'';
-  const fS=document.getElementById('lFSt')?.value||'';
+  const fSMulti=_listStatusSelecionados();
   const fT=document.getElementById('lFTr')?.value||'';
   const fTp=document.getElementById('lFTp')?.value||'';
   const fD=document.getElementById('lFData')?.value||'';
+  _atualizaListStatusBtnLabel();
   return ops.filter(o=>{
     if(fR&&o.rota!==fR)return false;
-    if(fS&&o.status!==fS)return false;
+    if(fSMulti.length&&!fSMulti.includes(o.status))return false;
     if(fT&&o.transp!==fT)return false;
     if(fTp&&o.tipoCarga!==fTp)return false;
     if(fD&&o.dataOp!==fD)return false;
@@ -2694,7 +2755,9 @@ function getListFilt(){
 }
 function clrFList(){
   ['lQ','lFData'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  ['lFRo','lFSt','lFTr','lFTp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['lFRo','lFTr','lFTp'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.querySelectorAll('.lFStatusChk').forEach(c=>c.checked=false);
+  _atualizaListStatusBtnLabel();
   renderList();
 }
 function buildListSels(){
@@ -2702,8 +2765,6 @@ function buildListSels(){
   if(rSel){const cur=rSel.value;rSel.innerHTML='<option value="">Todas as Rotas</option>'+ROTAS.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');rSel.value=cur;}
   const tSel=document.getElementById('lFTr');
   if(tSel){const cur=tSel.value;tSel.innerHTML='<option value="">Todas as Transportadoras</option>'+TRANSPS.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');tSel.value=cur;}
-  const sSel=document.getElementById('lFSt');
-  if(sSel&&sSel.options.length<=1){sSel.innerHTML='<option value="">Todos os Status</option>'+STS.map(s=>`<option value="${s.id}">${s.lb}</option>`).join('');}
   const tpSel=document.getElementById('lFTp');
   if(tpSel&&tpSel.options.length<=1){TIPOS.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tpSel.appendChild(o);});}
 }
@@ -5086,16 +5147,15 @@ function _buildListHeaderSels(data){
     lFRo:{field:'rota',cur:document.getElementById('lFRo')?.value||''},
     lFTp:{field:'tipoCarga',cur:document.getElementById('lFTp')?.value||''},
     lFTr:{field:'transp',cur:document.getElementById('lFTr')?.value||''},
-    lFSt:{field:'status',cur:document.getElementById('lFSt')?.value||''},
   };
-  // Para rotas/tipo/status usa lista global; pra transp usa dados reais
+  // Para rotas/tipo usa lista global; pra transp usa dados reais
   const allOps = ops; // todos, não filtrados, pra não perder opções
   Object.entries(sels).forEach(([id,cfg])=>{
     const el=document.getElementById(id);
     if(!el)return;
     const vals=[...new Set(allOps.map(o=>o[cfg.field]).filter(Boolean))].sort();
     const prev=cfg.cur;
-    el.innerHTML='<option value="">'+{lFRo:'Todas',lFTp:'Todos',lFTr:'Todas',lFSt:'Todos'}[id]+'</option>'+
+    el.innerHTML='<option value="">'+{lFRo:'Todas',lFTp:'Todos',lFTr:'Todas'}[id]+'</option>'+
       vals.map(v=>`<option${v===prev?' selected':''}>${v}</option>`).join('');
   });
 }
