@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v234</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v235</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -719,6 +719,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <tr>
           <th style="width:28px;color:var(--t2);padding:4px 2px">#</th>
           <th>FC</th><th>Data</th><th>Transportadora</th><th>Motorista</th><th>Placa</th>
+          <th>SM</th><th>ID</th>
           <th>Saída FC</th><th>Chegada TZX</th><th>Descarga</th>
           <th>Previsto</th><th>Recebido</th><th>Δ Auditoria</th><th>Status</th>
         </tr>
@@ -940,6 +941,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
       <div class="sec" style="margin-top:14px">🕐 Horários (Torre de Controle)</div>
       <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>SM</label><input id="rpSM" placeholder="SM"></div>
+        <div class="fg"><label>ID</label><input id="rpIdRef" placeholder="ID"></div>
         <div class="fg"><label>Saída do FC</label><input id="rpHoraSaidaFC" type="datetime-local"></div>
         <div class="fg"><label>Chegada na TZX</label><input id="rpHoraChegadaTZX" type="datetime-local"></div>
         <div class="fg"><label>Horário de Descarga</label><input id="rpHoraDescarga" type="datetime-local"></div>
@@ -2992,6 +2995,8 @@ function renderListaPallets(){
       <td>${esc(p.transp)||'—'}</td>
       <td>${esc(p.motorista)||'—'}</td>
       <td><strong>${esc(p.placa)||'—'}</strong></td>
+      <td>${esc(p.sm)||'—'}</td>
+      <td>${esc(p.idRef)||'—'}</td>
       <td>${p.horaSaidaFC?new Date(p.horaSaidaFC).toLocaleString('pt-BR'):'—'}</td>
       <td>${p.horaChegada?new Date(p.horaChegada).toLocaleString('pt-BR'):'—'}</td>
       <td>${p.horaDescarga?new Date(p.horaDescarga).toLocaleString('pt-BR'):'—'}</td>
@@ -3000,7 +3005,7 @@ function renderListaPallets(){
       <td style="color:${temDivergencia?'var(--red)':'var(--t2)'};font-weight:700">${diff!=null?(diff>0?'+':'')+diff:'—'}</td>
       <td><span style="background:${si.cor}22;color:${si.cor};border:1px solid ${si.cor}44;border-radius:4px;padding:2px 7px;font-size:.62rem;font-weight:700">${si.ic} ${si.lb}</span></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="13" style="text-align:center;padding:24px;color:var(--t3)">Nenhum retorno de pallets encontrado.</td></tr>';
+  }).join(''):'<tr><td colspan="15" style="text-align:center;padding:24px;color:var(--t3)">Nenhum retorno de pallets encontrado.</td></tr>';
 }
 
 function renderProg(){
@@ -3243,6 +3248,16 @@ function renderProg(){
                   <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.motorista)||'—'}</div>
                 </div>
               </div>
+              ${(p.sm||p.idRef)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+                <div>
+                  <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">📟 SM</div>
+                  <div style="font-weight:700;font-size:.75rem;color:var(--text)">${esc(p.sm)||'—'}</div>
+                </div>
+                <div>
+                  <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🔖 ID</div>
+                  <div style="font-weight:700;font-size:.75rem;color:var(--text)">${esc(p.idRef)||'—'}</div>
+                </div>
+              </div>`:''}
               <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--rs);padding:7px;margin-bottom:8px">
                 <div><div style="color:var(--t2);font-size:.56rem">Qtd. Prevista</div><div style="font-weight:800;font-size:.85rem">${p.qtdPrevista||0}</div></div>
                 <div><div style="color:var(--t2);font-size:.56rem">Qtd. Recebida</div><div style="font-weight:800;font-size:.85rem;color:${temDivergencia?'var(--red)':'inherit'}">${p.qtdRecebida??'—'}</div></div>
@@ -5513,7 +5528,7 @@ async function loadPallets(){
         qtdPrevista:r.qtd_prevista||0,qtdRecebida:r.qtd_recebida,
         status:r.status||'EM_TRANSITO',doca:r.doca||'',
         horaSaidaFC:r.horario_saida_fc||null,horaChegada:r.horario_chegada||null,horaDescarga:r.horario_descarga||null,
-        opOrigemId:r.op_origem_id||'',
+        opOrigemId:r.op_origem_id||'',sm:r.sm||'',idRef:r.id_ref||'',
         obs:r.obs||'',hist:Array.isArray(r.hist)?r.hist:[],
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
         atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''
@@ -5551,7 +5566,7 @@ async function savePalletToDB(p){
     motorista:p.motorista||null,placa:p.placa||null,
     qtd_prevista:p.qtdPrevista||0,qtd_recebida:(p.qtdRecebida===''||p.qtdRecebida===undefined)?null:p.qtdRecebida,
     status:p.status,doca:p.doca||null,obs:p.obs||null,hist:p.hist||[],
-    op_origem_id:p.opOrigemId||null,
+    op_origem_id:p.opOrigemId||null,sm:p.sm||null,id_ref:p.idRef||null,
     criado_por:p.criadoPor,criado_em:p.criadoEm,
     atualizado_por:p.atualizadoPor,atualizado_em:new Date().toISOString()
   };
@@ -5741,6 +5756,16 @@ function renderPallets(){
           <div style="font-weight:600;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.motorista)||'—'}</div>
         </div>
       </div>
+      ${(p.sm||p.idRef)?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">📟 SM</div>
+          <div style="font-weight:700;font-size:.75rem;color:var(--text)">${esc(p.sm)||'—'}</div>
+        </div>
+        <div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🔖 ID</div>
+          <div style="font-weight:700;font-size:.75rem;color:var(--text)">${esc(p.idRef)||'—'}</div>
+        </div>
+      </div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--rs);padding:7px;margin-bottom:${(podeGerir&&proximoStatus)||temDivergencia?'8px':'0'}">
         <div><div style="color:var(--t2);font-size:.56rem">Qtd. Prevista</div><div style="font-weight:800;font-size:.85rem">${p.qtdPrevista||0}</div></div>
         <div><div style="color:var(--t2);font-size:.56rem">Qtd. Recebida</div><div style="font-weight:800;font-size:.85rem;color:${temDivergencia?'var(--red)':'inherit'}">${p.qtdRecebida??'—'}</div></div>
@@ -5772,7 +5797,7 @@ function _dtLocalToIso(val){
 function _applyPalletFieldPerms(){
   const podeGerir=hasPerm('pallet_gerir'),podeHorarios=hasPerm('pallet_horarios'),podeAuditoria=hasPerm('pallet_auditoria');
   ['rpFC','rpData','rpTransp','rpMotorista','rpPlaca','rpStatus'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeGerir;});
-  ['rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeHorarios;});
+  ['rpSM','rpIdRef','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeHorarios;});
   ['rpQtdPrevista','rpQtdRecebida'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeAuditoria;});
   const btnSalvar=document.querySelector('#overlayPallet .btn-s');
   if(btnSalvar)btnSalvar.style.display=(podeGerir||podeHorarios||podeAuditoria)?'':'none';
@@ -5785,7 +5810,7 @@ function openNewPallet(){
   document.getElementById('rpMTitle').textContent='🔄 Novo Retorno de Pallets';
   document.getElementById('rpBtnDel').style.display='none';
   const histWrap0=document.getElementById('rpHistWrap');if(histWrap0)histWrap0.style.display='none';
-  ['rpMotorista','rpPlaca','rpQtdPrevista','rpQtdRecebida','rpObs','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['rpMotorista','rpPlaca','rpQtdPrevista','rpQtdRecebida','rpObs','rpSM','rpIdRef','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('rpTransp').value='';
   document.getElementById('rpFC').value='';
   document.getElementById('rpData').value=hojeLocal();
@@ -5810,6 +5835,8 @@ function openEditPallet(id){
   document.getElementById('rpQtdPrevista').value=p.qtdPrevista||'';
   document.getElementById('rpQtdRecebida').value=p.qtdRecebida??'';
   document.getElementById('rpStatus').value=p.status;
+  document.getElementById('rpSM').value=p.sm||'';
+  document.getElementById('rpIdRef').value=p.idRef||'';
   document.getElementById('rpHoraSaidaFC').value=_isoToDtLocal(p.horaSaidaFC);
   document.getElementById('rpHoraChegadaTZX').value=_isoToDtLocal(p.horaChegada);
   document.getElementById('rpHoraDescarga').value=_isoToDtLocal(p.horaDescarga);
@@ -5877,6 +5904,8 @@ async function savePallet(){
   const horaSaidaFC=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraSaidaFC')?.value):(existente?.horaSaidaFC||null);
   const horaChegadaTZX=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraChegadaTZX')?.value):(existente?.horaChegada||null);
   const horaDescargaInput=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraDescarga')?.value):(existente?.horaDescarga||null);
+  const sm=podeHorarios?(document.getElementById('rpSM')?.value||''):(existente?.sm||'');
+  const idRef=podeHorarios?(document.getElementById('rpIdRef')?.value||''):(existente?.idRef||'');
   const p={
     id:editPalletId||genPalletId(),fc,dataOp,
     transp:podeGerir?(document.getElementById('rpTransp')?.value||''):(existente?.transp||''),
@@ -5885,7 +5914,7 @@ async function savePallet(){
     qtdPrevista:podeAuditoria?(parseInt(document.getElementById('rpQtdPrevista')?.value||0)||0):(existente?.qtdPrevista||0),
     qtdRecebida:qtdRecebidaVal===''||qtdRecebidaVal==null?null:(parseInt(qtdRecebidaVal)||0),
     status:statusEscolhido,doca:existente?.doca||'',opOrigemId:existente?.opOrigemId||'',
-    horaSaidaFC,horaChegada:horaChegadaTZX,horaDescarga:horaDescargaInput,
+    horaSaidaFC,horaChegada:horaChegadaTZX,horaDescarga:horaDescargaInput,sm,idRef,
     obs:document.getElementById('rpObs')?.value||'',
     hist,
     criadoPor:existente?existente.criadoPor:who,
