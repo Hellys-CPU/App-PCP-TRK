@@ -561,7 +561,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v240</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v241</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -946,7 +946,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Data da Operação</label><input id="rpData" type="date"></div>
         <div class="fg"><label>Transportadora</label><input id="rpTransp" placeholder="Transportadora"></div>
         <div class="fg"><label>Motorista</label><input id="rpMotorista" placeholder="Nome do motorista"></div>
-        <div class="fg"><label>Placa</label><input id="rpPlaca" placeholder="AAA0A00" style="text-transform:uppercase"></div>
+        <div class="fg"><label>Placa (Cavalo)</label><input id="rpPlaca" placeholder="AAA0A00" style="text-transform:uppercase"></div>
+        <div class="fg"><label>Tipologia</label><select id="rpTipol" onchange="tgPlacaPallet()"><option value="">Selecione</option></select></div>
         <div class="fg"><label>Status</label>
           <select id="rpStatus">
             <option value="EM_TRANSITO">Em Trânsito</option>
@@ -954,6 +955,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
             <option value="FINALIZADO">Finalizado</option>
           </select>
         </div>
+      </div>
+      <div id="rpWCarreta" style="display:none;margin-top:10px">
+        <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="rpPlacaCarreta" placeholder="AAA0A00" style="text-transform:uppercase"></div>
       </div>
 
       <div class="sec" style="margin-top:14px">🕐 Horários (Torre de Controle)</div>
@@ -3279,6 +3283,7 @@ function renderProg(){
                 <div>
                   <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
                   <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(p.placa)||'—'}</div>
+                  ${p.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${esc(p.placaCarreta)}</div>`:''}
                 </div>
                 <div>
                   <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
@@ -3646,6 +3651,7 @@ async function _autoGerarRetornoPallets(op){
   // com a quantidade a receber, e faz a auditoria (previsto x recebido) na chegada.
   const retorno={
     id:novoId,fc,dataOp:op.dataOp,transp:op.transp||'',motorista:op.mot||'',placa:op.placa||'',
+    tipologia:op.tipologia||'',placaCarreta:op.placaCarreta||'',
     qtdPrevista:0,qtdRecebida:null,status:'EM_TRANSITO',doca:'',horaChegada:null,horaDescarga:null,
     opOrigemId:op.id,
     obs:`Gerado automaticamente pela viagem ${op.codigoCurto||op.id}. Aguardando folha física para preencher qtd. prevista.`,
@@ -5590,6 +5596,14 @@ function buildPalletFCSelects(){
   const optsF='<option value="">Todos os FCs</option>'+FCS_PALLETS.map(f=>`<option value="${f}">${f}</option>`).join('');
   const sFC=document.getElementById('rpFC');if(sFC&&!sFC.dataset.built){sFC.innerHTML=opts;sFC.dataset.built='1';}
   const sF=document.getElementById('rpFFC');if(sF&&!sF.dataset.built){sF.innerHTML=optsF;sF.dataset.built='1';}
+  const sTip=document.getElementById('rpTipol');
+  if(sTip&&!sTip.dataset.built){sTip.innerHTML='<option value="">Selecione</option>'+TIPOLS.map(t=>`<option value="${t}">${t}</option>`).join('');sTip.dataset.built='1';}
+}
+
+// Mostra/esconde o campo Placa Carreta conforme a tipologia escolhida (só CARRETA tem carreta)
+function tgPlacaPallet(){
+  const v=document.getElementById('rpTipol')?.value,w=document.getElementById('rpWCarreta');
+  if(w)w.style.display=v==='CARRETA'?'':'none';
 }
 
 async function loadPallets(){
@@ -5599,7 +5613,7 @@ async function loadPallets(){
     if(Array.isArray(data)){
       pallets=data.map(r=>({
         id:r.id,fc:r.fc||'',dataOp:r.data_op||'',transp:r.transportadora||'',
-        motorista:r.motorista||'',placa:r.placa||'',
+        motorista:r.motorista||'',placa:r.placa||'',tipologia:r.tipologia||'',placaCarreta:r.placa_carreta||'',
         qtdPrevista:r.qtd_prevista||0,qtdRecebida:r.qtd_recebida,
         status:r.status||'EM_TRANSITO',doca:r.doca||'',
         horaSaidaFC:r.horario_saida_fc||null,horaChegada:r.horario_chegada||null,horaDescarga:r.horario_descarga||null,
@@ -5638,7 +5652,7 @@ async function loadInventarioPallets(){
 async function savePalletToDB(p){
   const row={
     id:p.id,fc:p.fc,data_op:p.dataOp,transportadora:p.transp||null,
-    motorista:p.motorista||null,placa:p.placa||null,
+    motorista:p.motorista||null,placa:p.placa||null,tipologia:p.tipologia||null,placa_carreta:p.placaCarreta||null,
     qtd_prevista:p.qtdPrevista||0,qtd_recebida:(p.qtdRecebida===''||p.qtdRecebida===undefined)?null:p.qtdRecebida,
     status:p.status,doca:p.doca||null,obs:p.obs||null,hist:p.hist||[],
     op_origem_id:p.opOrigemId||null,sm:p.sm||null,id_ref:p.idRef||null,
@@ -5823,8 +5837,9 @@ function renderPallets(){
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
         <div>
-          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
+          <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa${p.tipologia?' · '+esc(p.tipologia):''}</div>
           <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(p.placa)||'—'}</div>
+          ${p.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${esc(p.placaCarreta)}</div>`:''}
         </div>
         <div>
           <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">👤 Motorista</div>
@@ -5871,7 +5886,7 @@ function _dtLocalToIso(val){
 // pallet_auditoria → Qtd. Prevista/Recebida (Responsável pela Doca)
 function _applyPalletFieldPerms(){
   const podeGerir=hasPerm('pallet_gerir'),podeHorarios=hasPerm('pallet_horarios'),podeAuditoria=hasPerm('pallet_auditoria');
-  ['rpFC','rpData','rpTransp','rpMotorista','rpPlaca','rpStatus'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeGerir;});
+  ['rpFC','rpData','rpTransp','rpMotorista','rpPlaca','rpTipol','rpPlacaCarreta','rpStatus'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeGerir;});
   ['rpSM','rpIdRef','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeHorarios;});
   ['rpQtdPrevista','rpQtdRecebida'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=!podeAuditoria;});
   const btnSalvar=document.querySelector('#overlayPallet .btn-s');
@@ -5885,9 +5900,11 @@ function openNewPallet(){
   document.getElementById('rpMTitle').textContent='🔄 Novo Retorno de Pallets';
   document.getElementById('rpBtnDel').style.display='none';
   const histWrap0=document.getElementById('rpHistWrap');if(histWrap0)histWrap0.style.display='none';
-  ['rpMotorista','rpPlaca','rpQtdPrevista','rpQtdRecebida','rpObs','rpSM','rpIdRef','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['rpMotorista','rpPlaca','rpQtdPrevista','rpQtdRecebida','rpObs','rpSM','rpIdRef','rpHoraSaidaFC','rpHoraChegadaTZX','rpHoraDescarga','rpPlacaCarreta'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('rpTransp').value='';
   document.getElementById('rpFC').value='';
+  document.getElementById('rpTipol').value='';
+  document.getElementById('rpWCarreta').style.display='none';
   document.getElementById('rpData').value=hojeLocal();
   document.getElementById('rpStatus').value='EM_TRANSITO';
   document.getElementById('rpQtdRecebidaWrap').style.display='none';
@@ -5907,6 +5924,9 @@ function openEditPallet(id){
   document.getElementById('rpTransp').value=p.transp||'';
   document.getElementById('rpMotorista').value=p.motorista||'';
   document.getElementById('rpPlaca').value=p.placa||'';
+  document.getElementById('rpTipol').value=p.tipologia||'';
+  document.getElementById('rpPlacaCarreta').value=p.placaCarreta||'';
+  tgPlacaPallet();
   document.getElementById('rpQtdPrevista').value=p.qtdPrevista||'';
   document.getElementById('rpQtdRecebida').value=p.qtdRecebida??'';
   document.getElementById('rpStatus').value=p.status;
@@ -5986,6 +6006,8 @@ async function savePallet(){
     transp:podeGerir?(document.getElementById('rpTransp')?.value||''):(existente?.transp||''),
     motorista:podeGerir?(document.getElementById('rpMotorista')?.value||''):(existente?.motorista||''),
     placa:podeGerir?(document.getElementById('rpPlaca')?.value||'').toUpperCase():(existente?.placa||''),
+    tipologia:podeGerir?(document.getElementById('rpTipol')?.value||''):(existente?.tipologia||''),
+    placaCarreta:podeGerir?(document.getElementById('rpPlacaCarreta')?.value||'').toUpperCase():(existente?.placaCarreta||''),
     qtdPrevista:podeAuditoria?(parseInt(document.getElementById('rpQtdPrevista')?.value||0)||0):(existente?.qtdPrevista||0),
     qtdRecebida:qtdRecebidaVal===''||qtdRecebidaVal==null?null:(parseInt(qtdRecebidaVal)||0),
     status:statusEscolhido,doca:existente?.doca||'',opOrigemId:existente?.opOrigemId||'',
