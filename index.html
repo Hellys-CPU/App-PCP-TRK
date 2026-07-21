@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v236</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v238</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1351,7 +1351,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <div class="mbody">
       <div class="fgrid" style="gap:11px">
-        <div class="fg"><label>Nº da CAF</label><input id="cafNum" placeholder="Ex: 23081234" style="font-weight:700;font-size:1rem"></div>
+        <div class="fg"><label>Nº da CAF</label><input id="cafNum" placeholder="Ex: 23081234" maxlength="8" inputmode="numeric" pattern="[0-9]{8}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,8)" style="font-weight:700;font-size:1rem">
+          <div id="cafNumHint" style="display:none;font-size:.6rem;color:var(--t2);margin-top:2px">🔒 Número travado após criação — só quem tem permissão pode alterar</div>
+        </div>
         <div class="fg"><label>Tipo de Carga</label>
           <select id="cafTipo"><option>LTL</option><option>Inbound</option><option>FLT</option><option>NC</option></select>
         </div>
@@ -1399,12 +1401,12 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
 };
 
 const ABAS_BASE = {
@@ -1422,6 +1424,7 @@ const TODAS_PERMS = [
   {key:'doca_atrelar',label:'Atrelar doca'},{key:'caf_criar',label:'Criar CAFs'},
   {key:'caf_editar',label:'Editar CAFs'},{key:'caf_status_full',label:'Alterar qualquer status de CAF'},
   {key:'caf_deletar',label:'Deletar CAFs'},{key:'caf_rua',label:'Atrelar rua à CAF'},
+  {key:'caf_editar_num',label:'Editar número da CAF após criada'},
   {key:'importar',label:'Importar planilha'},{key:'exportar',label:'Exportar dados'},
   {key:'admin',label:'Acessar painel Admin'},{key:'pptx',label:'Exportar PPTX'},
   {key:'pallet_gerir',label:'Registrar/avançar Retorno de Pallets'},
@@ -5331,6 +5334,8 @@ function openNewCAF(){
   document.getElementById('cafOpVinc').style.display='none';
   const histWrap0=document.getElementById('cafHistWrap');if(histWrap0)histWrap0.style.display='none';
   ['cafNum','cafVol','cafPal','cafObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('cafNum').disabled=false;
+  const cafNumHint0=document.getElementById('cafNumHint');if(cafNumHint0)cafNumHint0.style.display='none';
   document.getElementById('cafVenc').value='';
   document.getElementById('cafTipo').value='Inbound'; // default mais comum; muda conforme rota
   const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='Em Produção';
@@ -5359,6 +5364,10 @@ function openEditCAF(id){
   document.getElementById('cafMTitle').textContent='📦 Editar CAF — '+c.num+(c.codigoCurto?'  ['+c.codigoCurto+']':'');
   document.getElementById('cafBtnDel').style.display=hasPerm('caf_deletar')?'':'none';
   document.getElementById('cafNum').value=c.num;
+  const podeEditarNum=hasPerm('caf_editar_num');
+  document.getElementById('cafNum').disabled=!podeEditarNum;
+  const cafNumHint=document.getElementById('cafNumHint');
+  if(cafNumHint)cafNumHint.style.display=podeEditarNum?'none':'';
   document.getElementById('cafTipo').value=c.tipo;
   document.getElementById('cafRota').value=c.rota;
   document.getElementById('cafVenc').value=c.venc||'';
@@ -5396,18 +5405,23 @@ async function saveCAF(){
   if(btnSalvarCAF){if(btnSalvarCAF.disabled)return;btnSalvarCAF.disabled=true;setTimeout(()=>{if(btnSalvarCAF)btnSalvarCAF.disabled=false;},2500);}
   const perfilPermitido=['admin','supervisor','operador_caf','torre_controle'].includes(_perfil());
   if(!perfilPermitido){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
-  const num=(document.getElementById('cafNum')?.value||'').trim();
+  const existentePreCheck=editCAFId?cafsDB.find(c=>c.id===editCAFId):null;
+  let num=(document.getElementById('cafNum')?.value||'').trim();
+  // Trava anti-bypass: se está editando e não tem permissão pra mudar o número, ignora qualquer
+  // valor que tenha chegado no campo (mesmo que reabilitado via devtools) e mantém o original.
+  if(existentePreCheck&&!hasPerm('caf_editar_num'))num=existentePreCheck.num;
   const rota=document.getElementById('cafRota')?.value||'';
   const statusEscolhido=document.getElementById('cafStatus')?.value||'Em Produção';
   if(!_cafStatusPermitido(currentUser?.perfil).includes(statusEscolhido)){showToast('⛔ Seu perfil não pode definir este status de CAF','err');return;}
   if(!num){showToast('⚠ Informe o número da CAF','err');return;}
+  if(!/^\d{8}$/.test(num)){showToast('⚠ O número da CAF deve ter exatamente 8 dígitos numéricos','err');return;}
   if(!rota){showToast('⚠ Selecione a rota de destino','err');return;}
   // Verifica duplicata
   const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
   if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
   const ruaEscolhida=document.getElementById('cafRua')?.value||'';
   const who=_nomeOperadorAtual();
-  const existente=editCAFId?cafsDB.find(c=>c.id===editCAFId):null;
+  const existente=existentePreCheck;
   const statusAnterior=existente?existente.status:null;
   const hist=existente&&Array.isArray(existente.hist)?[...existente.hist]:[];
   const nowIso=new Date().toISOString();
