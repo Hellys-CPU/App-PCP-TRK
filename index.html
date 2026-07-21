@@ -170,6 +170,13 @@ body.dark .rota-cell{color:#e6edf3;}
 .tab.fup-tab.active{background:var(--purple2);}
 .tab.adm-tab{color:var(--orange);}
 .tab.adm-tab.active{background:var(--orange2);}
+.tab-drop{position:relative;display:inline-flex;flex-shrink:0;}
+.tab-drop-btn{background:none;border:none;color:var(--t2);padding:5px 10px;border-radius:var(--rs);cursor:pointer;font-size:.74rem;font-weight:500;transition:.15s;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:3px;}
+.tab-drop-btn:hover{color:var(--gray3);background:var(--bg3);}
+.tab-drop-btn.active{color:var(--red);background:var(--red3);font-weight:700;}
+.tab-drop-panel{display:none;flex-direction:column;gap:1px;position:absolute;top:100%;left:0;z-index:200;background:var(--bg2);border:1.5px solid var(--bd);border-radius:8px;padding:4px;margin-top:4px;min-width:180px;box-shadow:var(--sh3);}
+.tab-drop-panel.open{display:flex;}
+.tab-drop-panel .tab{width:100%;text-align:left;border-radius:6px;}
 .topbar-r{display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .clock{font-size:.68rem;color:var(--t2);background:var(--bg3);padding:3px 7px;border-radius:var(--rs);border:1px solid var(--bd);white-space:nowrap;}
 .btn{padding:5px 10px;border-radius:var(--rs);border:none;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap;}
@@ -554,19 +561,29 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v238</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v239</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
     <button class="tab" id="tb-prog" onclick="setView('prog')">🚪 Gestão de Doca</button>
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
-    <button class="tab fup-tab" id="tb-fup" onclick="setView('fup')">📋 FUP FC</button>
-    <button class="tab" id="tb-amazon" onclick="setView('amazon')">📦 FUP Amazon</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
     <button class="tab" id="tb-pallets" onclick="setView('pallets')" style="color:#f59e0b">🔄 Retorno de Pallets</button>
-    <button class="tab" id="tb-analise" onclick="setView('analise')" style="color:#0891b2">📈 Análise</button>
-    <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard')" style="color:#22c55e;display:none" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
-    <button class="tab" id="tb-tv" onclick="setView('tv')" style="color:#0891b2;display:none" title="Modo TV - tela cheia para telão">📺 TV</button>
+    <div class="tab-drop" id="dropRelatorios">
+      <button type="button" class="tab-drop-btn" id="tbg-relatorios" onclick="event.stopPropagation();toggleTabDrop('dropRelatorios')">📊 Relatórios ▾</button>
+      <div class="tab-drop-panel" id="panelRelatorios">
+        <button class="tab fup-tab" id="tb-fup" onclick="setView('fup');closeAllTabDrops()">📋 FUP FC</button>
+        <button class="tab" id="tb-amazon" onclick="setView('amazon');closeAllTabDrops()">📦 FUP Amazon</button>
+        <button class="tab" id="tb-analise" onclick="setView('analise');closeAllTabDrops()" style="color:#0891b2">📈 Análise</button>
+      </div>
+    </div>
+    <div class="tab-drop" id="dropTV">
+      <button type="button" class="tab-drop-btn" id="tbg-tv" onclick="event.stopPropagation();toggleTabDrop('dropTV')">📺 TV ▾</button>
+      <div class="tab-drop-panel" id="panelTV">
+        <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard');closeAllTabDrops()" style="color:#22c55e" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
+        <button class="tab" id="tb-tv" onclick="setView('tv');closeAllTabDrops()" style="color:#0891b2" title="Modo TV - tela cheia para telão">📺 TV</button>
+      </div>
+    </div>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
   <div class="topbar-r">
@@ -2079,6 +2096,11 @@ async function bootApp(){
   document.querySelectorAll('.mnav-btn[id^="mn-"]').forEach(el=>{
     const aba=el.id.replace('mn-','');
     el.style.display=_abasVisiveis.includes(aba)?'':'none';
+  });
+  // Esconde o botão-gatilho de cada menu suspenso (Relatórios/TV) se nenhum item dele estiver visível
+  document.querySelectorAll('.tab-drop').forEach(grp=>{
+    const anyVisible=Array.from(grp.querySelectorAll('.tab[id^="tb-"]')).some(el=>el.style.display!=='none');
+    grp.style.display=anyVisible?'':'none';
   });
   _organizarNavMobile(_abasVisiveis);
 
@@ -4107,9 +4129,13 @@ document.addEventListener('keydown',e=>{
 function setView(name){
   _setFiltrosHoje(); // garante data de hoje nos filtros vazios
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.tab,.mnav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab,.mnav-btn,.tab-drop-btn').forEach(b=>b.classList.remove('active'));
   const v=document.getElementById('view-'+name),nb=document.getElementById('tb-'+name),mn=document.getElementById('mn-'+name);
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
+  // Destaca o botão-gatilho do menu suspenso (Relatórios/TV) quando um item dele está ativo
+  if(['fup','amazon','analise'].includes(name))document.getElementById('tbg-relatorios')?.classList.add('active');
+  if(['tv-yard','tv'].includes(name))document.getElementById('tbg-tv')?.classList.add('active');
+  closeAllTabDrops();
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
   // Controle de visibilidade do Admin por perfil
@@ -4839,6 +4865,19 @@ function _nomeOperadorAtual(){
   return currentUser?.nome||'Sistema';
 }
 // ── Filtro multi-status da tabela CAFs (checkbox) ──
+// ── Menus suspensos do topbar (Relatórios / TV) — agrupam abas menos usadas no dia a dia ──
+function toggleTabDrop(groupId){
+  const isOpen=document.getElementById(groupId)?.querySelector('.tab-drop-panel')?.classList.contains('open');
+  closeAllTabDrops();
+  if(!isOpen)document.getElementById(groupId)?.querySelector('.tab-drop-panel')?.classList.add('open');
+}
+function closeAllTabDrops(){
+  document.querySelectorAll('.tab-drop-panel.open').forEach(p=>p.classList.remove('open'));
+}
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.tab-drop'))closeAllTabDrops();
+});
+
 function toggleCafStatusFiltro(){
   const panel=document.getElementById('cafFStatusPanel');
   if(!panel)return;
@@ -8713,4 +8752,4 @@ loadTheme();
 initAuth();
 </script>
 </body>
-</html>
+</html>a
