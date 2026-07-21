@@ -554,7 +554,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v235</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v236</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -2788,6 +2788,18 @@ function _fecharExtracaoCompleta(){
   document.getElementById('overlayExtracao').classList.remove('open');
 }
 
+// Formata um campo "real" (datetime-local completo OU legado só-hora) usando a DATA REAL do próprio
+// valor quando ela existir — em vez de forçar a data de operação (bug: viagem que passa da meia-noite
+// aparecia com a data errada na extração).
+function _realDataHora(v,dataOpFallback){
+  if(!v)return'';
+  if(v.includes('T')){
+    const [d,t]=v.split('T');
+    return `${fmtD(d)} ${(t||'').substring(0,5)}`;
+  }
+  return dataOpFallback?`${fmtD(dataOpFallback)} ${v.substring(0,5)}`:v.substring(0,5);
+}
+
 function _gerarExtracaoCompleta(){
   if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
   const dataDe=document.getElementById('_extracaoDataDe')?.value;
@@ -2844,14 +2856,14 @@ function _gerarExtracaoCompleta(){
       'TMS':op.tms||'',
       'Status':stLb[op.status]||op.status,
       'Pl. Apresentação':op.planApres||'',
-      'Rl. Apresentação':op.realApres?`${fmtD(op.dataOp)} ${toTime(op.realApres)}`:'',
+      'Rl. Apresentação':op.realApres?_realDataHora(op.realApres,op.dataOp):'',
       'Pl. Saída':op.planSaida||'',
-      'Rl. Saída':op.realSaida?`${fmtD(op.dataOp)} ${toTime(op.realSaida)}`:'',
+      'Rl. Saída':op.realSaida?_realDataHora(op.realSaida,op.dataOp):'',
       'Δ Saída (min)':dS??'',
       'Pl. Chegada FC':op.planChegFC||'',
-      'Rl. Chegada FC':op.realChegFC?`${fmtD(op.dataOp)} ${toTime(op.realChegFC)}`:'',
+      'Rl. Chegada FC':op.realChegFC?_realDataHora(op.realChegFC,op.dataOp):'',
       'Δ FC (min)':dC??'',
-      'Descarga Real':op.realDescarga?`${fmtD(op.dataOp)} ${toTime(op.realDescarga)}`:'',
+      'Descarga Real':op.realDescarga?_realDataHora(op.realDescarga,op.dataOp):'',
       'Qtd. CAFs':(op.cafs||[]).length,
       'CAF(s) — Número':cafsNumeros,
       'CAF(s) — Status':cafsStatusTxt,
