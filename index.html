@@ -389,6 +389,7 @@ body.dark .fup-sep td{color:#e6edf3;}
 .pb-vis{background:var(--green2);color:var(--green3);border:1px solid #86efac;}
 .pb-doca{background:var(--orange2);color:var(--orange);border:1px solid #fdba74;}
 .pb-supervisor{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+.pb-lideranca{background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;}
 .config-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd);}
 .config-row:last-child{border-bottom:none;}
 .config-label{font-size:.78rem;font-weight:600;color:var(--gray2);}
@@ -561,7 +562,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v241</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v245</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -569,6 +570,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
     <button class="tab" id="tb-pallets" onclick="setView('pallets')" style="color:#f59e0b">🔄 Retorno de Pallets</button>
+    <button class="tab" id="tb-insumos" onclick="setView('insumos')" style="color:#8b5cf6">🧰 Insumos HUB</button>
     <div class="tab-drop" id="dropRelatorios">
       <button type="button" class="tab-drop-btn" id="tbg-relatorios" onclick="event.stopPropagation();toggleTabDrop('dropRelatorios')">📊 Relatórios ▾</button>
       <div class="tab-drop-panel" id="panelRelatorios">
@@ -989,6 +991,129 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 
+<!-- INSUMOS HUB -->
+<div class="view" id="view-insumos">
+  <div class="toolbar">
+    <button class="btn btn-s" id="insModoInv" onclick="setInsumosModo('inventario')" style="font-size:.72rem">📦 Inventário</button>
+    <button class="btn btn-g" id="insModoChk" onclick="setInsumosModo('checklist')" style="font-size:.72rem">📋 Checklist de Turno</button>
+    <div class="sp"></div>
+    <span id="insKpiResumo" style="font-size:.68rem;color:var(--t2)"></span>
+  </div>
+
+  <!-- ── INVENTÁRIO ── -->
+  <div id="insInvWrap">
+    <div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="sec" style="margin:0">🧰 Catálogo de Insumos e Equipamentos do HUB</div>
+      <button class="btn btn-p" id="insBtnNovo" onclick="openNewInsumo()" style="background:#8b5cf6">+ Novo Item</button>
+    </div>
+    <div style="padding:10px 16px 20px;overflow-x:auto">
+      <table class="tbl-simple" style="width:100%;font-size:.78rem">
+        <thead>
+          <tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
+            <th style="padding:6px 8px">Categoria</th><th>Tipo</th><th>Item</th>
+            <th style="text-align:center">Qtd. Física</th><th style="text-align:center">Indisponível</th><th style="text-align:center">Quebrada</th>
+            <th style="text-align:center">Operacional</th><th style="text-align:center">Limite Mín.</th><th style="text-align:center">Movimentar</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="insTBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CHECKLIST DE TURNO ── -->
+  <div id="insChkWrap" style="display:none">
+    <div class="toolbar" style="background:var(--bg2);border-bottom:1px solid var(--bd);padding:8px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="date" id="chkData"/>
+      <select id="chkTurno"><option value="T1_06_18">Turno 1 (06h–18h)</option><option value="T2_18_06">Turno 2 (18h–06h)</option></select>
+      <select id="chkMomento"><option value="INICIO">🌅 Início de Turno</option><option value="TERMINO">🌇 Término de Turno</option></select>
+      <button class="btn btn-p" onclick="iniciarChecklist()" style="background:#8b5cf6">+ Iniciar Checklist</button>
+    </div>
+    <div style="padding:12px 16px" id="insChkAtivoWrap"></div>
+    <div style="padding:0 16px 20px">
+      <div class="sec">🕘 Histórico de Checklists</div>
+      <div id="insChkHistorico" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO/EDITAR ITEM DE INSUMO -->
+<div class="overlay" id="overlayInsumo">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr" style="border-top-color:#8b5cf6">
+      <h2 id="insMTitle" style="color:#8b5cf6">🧰 Novo Item</h2>
+      <div class="mhdr-actions">
+        <button class="btn btn-del" id="insBtnDel" onclick="deleteInsumo()" style="display:none;font-size:.7rem">🗑 Excluir</button>
+        <button class="mclose" onclick="closeInsumoModal()">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Categoria</label><input id="insCategoria" placeholder="Equipamento, Insumo, Infraestrutura..."></div>
+        <div class="fg"><label>Tipo</label><input id="insTipo" placeholder="Movimentação, TI, Limpeza..."></div>
+        <div class="fg"><label>Item</label><input id="insItem" placeholder="Nome do item"></div>
+        <div class="fg"><label>Qtd. Física</label><input id="insQtdFisica" type="number" min="0"></div>
+        <div class="fg"><label>Limite Mínimo (alerta)</label><input id="insLimiteMinimo" type="number" min="0" placeholder="opcional"></div>
+      </div>
+      <div class="fg" style="margin-top:11px"><label>Observações</label><textarea id="insObs" rows="2"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closeInsumoModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="saveInsumo()" style="background:#8b5cf6">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOVIMENTAÇÃO / CRÉDITO-DÉBITO -->
+<div class="overlay" id="overlayInsumoMov">
+  <div class="modal" style="max-width:420px">
+    <div class="mhdr" style="border-top-color:#8b5cf6">
+      <h2 id="insMovTitle" style="color:#8b5cf6">Movimentar Item</h2>
+      <div class="mhdr-actions"><button class="mclose" onclick="closeInsumoMovModal()">✕</button></div>
+    </div>
+    <div class="mbody">
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Tipo</label>
+          <select id="insMovTipo">
+            <option value="ENTRADA">➕ Entrada</option>
+            <option value="SAIDA">➖ Saída</option>
+            <option value="QUEBRA">💥 Registrar Quebra</option>
+            <option value="INDISPONIVEL">🚫 Marcar Indisponível</option>
+          </select>
+        </div>
+        <div class="fg"><label>Quantidade</label><input id="insMovQtd" type="number" min="1" placeholder="0"></div>
+      </div>
+      <div class="fg" style="margin-top:11px"><label>Motivo</label><input id="insMovMotivo" placeholder="Ex: reposição, manutenção, emprestado..."></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closeInsumoMovModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="saveInsumoMov()" style="background:#8b5cf6">💾 Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHECKLIST ATIVO (continuar preenchendo um checklist em aberto) -->
+<div class="overlay" id="overlayChecklistAtivo">
+  <div class="modal" style="max-width:700px">
+    <div class="mhdr" style="border-top-color:#8b5cf6">
+      <h2 style="color:#8b5cf6">📋 Checklist de Turno</h2>
+      <div class="mhdr-actions"><button class="mclose" onclick="closeChecklistAtivoModal()">✕</button></div>
+    </div>
+    <div class="mbody" id="checklistAtivoModalBody" style="max-height:75vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL RELATÓRIO DE PASSAGEM DE TURNO -->
+<div class="overlay" id="overlayRelatorioTurno">
+  <div class="modal" style="max-width:640px">
+    <div class="mhdr" style="border-top-color:#8b5cf6">
+      <h2 style="color:#8b5cf6">📄 Relatório de Passagem de Turno</h2>
+      <div class="mhdr-actions"><button class="mclose" onclick="document.getElementById('overlayRelatorioTurno').classList.remove('open')">✕</button></div>
+    </div>
+    <div class="mbody" id="relatorioTurnoBody" style="max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+
 <!-- TV YARD MODE -->
 <div class="view" id="view-tv-yard">
   <div id="tv-yard-wrap" style="background:#0d1117;min-height:100vh"></div>
@@ -1211,6 +1336,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
             <option value="doca">Doca — gestão de doca/pátio</option>
             <option value="torre_controle">Torre de Controle — opera viagens e CAFs</option>
             <option value="visualizador">Visualizador — somente leitura</option>
+            <option value="lideranca">Liderança — checklist de turno e insumos do HUB</option>
             <option value="supervisor">Supervisor — quase acesso total</option>
             <option value="admin">Admin — acesso total</option>
           </select>
@@ -1233,6 +1359,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-amazon" onclick="setView('amazon')"><span class="mni">📦</span>Amazon</button>
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
     <button class="mnav-btn" id="mn-pallets" onclick="setView('pallets')"><span class="mni">🔄</span>Pallets</button>
+    <button class="mnav-btn" id="mn-insumos" onclick="setView('insumos')"><span class="mni">🧰</span>Insumos</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
     <button class="mnav-btn" id="mn-tv" onclick="setView('tv')"><span class="mni">📺</span>TV</button>
     <button class="mnav-btn" id="mn-tv-yard" onclick="setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
@@ -1262,7 +1389,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
         <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
         <div class="fg"><label>Perfil</label><select id="euPerfil">
-          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option>
+          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option>
         </select></div>
         <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
@@ -1422,21 +1549,23 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
+  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1},
 };
 
 const ABAS_BASE = {
-  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard','admin'],
-  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard','admin'],
+  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','analise','tv','tv-yard','admin'],
+  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','analise','tv','tv-yard','admin'],
   torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard'],
   doca:['painel','lista','prog','pallets','tv','tv-yard'],
   operador_caf:['painel','lista','caf'],
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
+  lideranca:['painel','insumos','tv','tv-yard'],
 };
 
 const TODAS_PERMS = [
@@ -1453,12 +1582,14 @@ const TODAS_PERMS = [
   {key:'pallet_inventario',label:'Editar inventário de pallets (limite/saldo)'},
   {key:'pallet_horarios',label:'Retorno Pallets: editar horários (saída FC/chegada TZX/descarga)'},
   {key:'pallet_auditoria',label:'Retorno Pallets: responsável pela doca (Qtd. Prevista/Recebida)'},
+  {key:'insumo_gerir',label:'Insumos HUB: registrar entrada/saída e fazer checklist de turno'},
+  {key:'insumo_credito_debito',label:'Insumos HUB: crédito/débito manual de saldo (liderança)'},
 ];
 
 const TODAS_ABAS = [
   {key:'painel',label:'Painel'},{key:'lista',label:'Lista'},{key:'prog',label:'Gestão de Doca'},
   {key:'massa',label:'Em Massa'},{key:'fup',label:'FUP FC'},{key:'amazon',label:'FUP Amazon'},
-  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
+  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'insumos',label:'Insumos HUB'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
   {key:'tv-yard',label:'TV Yard'},{key:'admin',label:'Admin'},
 ];
 
@@ -1535,6 +1666,8 @@ const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas',TABELA_PALLETS='retornos_pallets',TABELA_INV_PALLETS='inventario_pallets';
+const TABELA_INSUMOS='insumos_hub',TABELA_INSUMOS_MOV='insumos_movimentacoes',TABELA_CHECKLIST='checklist_turno';
+const TURNOS_HUB=[{id:'T1_06_18',lb:'Turno 1 (06h–18h)'},{id:'T2_18_06',lb:'Turno 2 (18h–06h)'}];
 const FCS_PALLETS=['GR8','XC9','GR9','GR5'];
 let supabaseOK=false,realtimeWS=null;
 
@@ -1863,7 +1996,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -1871,7 +2004,7 @@ function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localSt
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2215,7 +2348,7 @@ async function doLogout(){
 // GESTÃO DE USUÁRIOS (Admin)
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
-  const pbCls={admin:'pb-admin',supervisor:'pb-supervisor',torre_controle:'pb-op',doca:'pb-doca',operador_caf:'pb-op',visualizador:'pb-vis'};
+  const pbCls={admin:'pb-admin',supervisor:'pb-supervisor',torre_controle:'pb-op',doca:'pb-doca',operador_caf:'pb-op',visualizador:'pb-vis',lideranca:'pb-lideranca'};
   el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center">${_perfil()==='admin'?`<button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>`:''}${u.user!==currentUser?.user&&_perfil()==='admin'?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:u.user===currentUser?.user?'<span style="font-size:.66rem;color:var(--t2)">(você)</span>':''}</div></div>`).join('');
 }
 
@@ -2648,15 +2781,22 @@ function renderKPIs(){
     _palletsLoadTried=true;
     loadPallets().then(()=>renderKPIs());
   }
+  // Insumos HUB — carrega sob demanda (uma vez) para alimentar o tile de alerta
+  if(supabaseOK&&!_insumosLoadTried){
+    _insumosLoadTried=true;
+    loadInsumosHub().then(()=>renderKPIs());
+  }
   const palPendentes=pallets.filter(p=>['EM_TRANSITO','AGU_DESCARGA'].includes(p.status)).length;
   const palDivergencia=pallets.filter(p=>p.status==='FINALIZADO'&&p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida).length;
+  const insAlertas=insumosHub.filter(i=>i.limiteMinimo!=null&&_insumoOperacional(i)<=i.limiteMinimo).length;
   document.getElementById('kpiBar').innerHTML=[
     {cl:'c-red',v:d.length,l:'Total'},{cl:'c-gy',v:c('PROG'),l:'Programado'},
     {cl:'c-ye',v:c('AGUCARR'),l:'Ag.Carregamento'},{cl:'c-or',v:c('EMCARR'),l:'Em Carregamento'},
     {cl:'c-bl',v:c('TRAN'),l:'Em Trânsito'},{cl:'c-pu',v:c('AGUDESC'),l:'Ag.Descarga'},
     {cl:'c-gr',v:c('FIN'),l:'Finalizado'},{cl:'c-red',v:c('CANC')+c('REC'),l:'Canc/Recusado'},
   ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('')
-  +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">🔄 ${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`;
+  +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">🔄 ${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`
+  +`<div class="kpi ${insAlertas?'c-red':'c-gy'}" onclick="setView('insumos')" style="cursor:pointer" title="Ir para Insumos HUB"><div class="v">🧰 ${insAlertas}</div><div class="l">Insumos no Limite</div></div>`;
 }
 
 function _quickStatusBtns(op){
@@ -3745,6 +3885,10 @@ document.getElementById('overlay').addEventListener('click',function(e){if(e.tar
 document.getElementById('overlayUser').addEventListener('click',function(e){if(e.target===this)closeUserModal();});
 document.getElementById('overlayCAF').addEventListener('click',function(e){if(e.target===this)closeCAFModal();});
 document.getElementById('overlayPallet').addEventListener('click',function(e){if(e.target===this)closePalletModal();});
+document.getElementById('overlayInsumo').addEventListener('click',function(e){if(e.target===this)closeInsumoModal();});
+document.getElementById('overlayChecklistAtivo').addEventListener('click',function(e){if(e.target===this)closeChecklistAtivoModal();});
+document.getElementById('overlayInsumoMov').addEventListener('click',function(e){if(e.target===this)closeInsumoMovModal();});
+document.getElementById('overlayRelatorioTurno').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
 const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
@@ -4159,6 +4303,7 @@ function setView(name){
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
   if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
   if(name==='pallets'){loading(true);Promise.all([loadPallets(),loadInventarioPallets()]).then(()=>{loading(false);renderInventarioPallets();renderPallets();});}
+  if(name==='insumos'){loading(true);Promise.all([loadInsumosHub(),loadInsumosMovimentacoes(),loadChecklistsTurno()]).then(()=>{_insumosLoadTried=true;loading(false);setInsumosModo('inventario');renderInsumosTable();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
     loadRuas().catch(()=>{});
@@ -5032,11 +5177,11 @@ function _tempoNoStatusAtualCAF(c){
 const ABAS_INFO = {
   painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
   massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
-  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
+  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
   'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
 };
 // Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
-const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','massa','fup','amazon','analise','tv','tv-yard','admin'];
+const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','massa','fup','amazon','analise','tv','tv-yard','admin'];
 
 // Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
@@ -6101,6 +6246,498 @@ function _renderPalletsMiniWidget(){
     <span style="color:var(--t2);font-weight:600;margin-left:4px">Com FC:</span>
     <span style="color:var(--t3)">${porFC}</span>
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INSUMOS HUB — Catálogo, Movimentações e Checklist de Passagem de Turno
+// ══════════════════════════════════════════════════════════════════
+let insumosHub=[];
+let insumosMovimentacoes=[];
+let checklistsTurno=[];
+let editInsumoId=null;
+let insumoMovAtualId=null;
+let checklistAtivoId=null;
+let _insumosLoadTried=false;
+
+function genInsumoId(){return 'INS-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
+function genMovId(){return 'MOV-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
+function genChecklistId(){return 'CHK-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
+
+function _insumoOperacional(i){return Math.max(0,(i.qtdFisica||0)-(i.qtdIndisponivel||0)-(i.qtdQuebrada||0));}
+
+async function loadInsumosHub(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_INSUMOS}?order=categoria.asc,tipo.asc,item.asc&limit=1000`);
+    if(Array.isArray(data)){
+      insumosHub=data.map(r=>({
+        id:r.id,categoria:r.categoria||'',tipo:r.tipo||'',item:r.item||'',
+        qtdFisica:r.qtd_fisica||0,qtdIndisponivel:r.qtd_indisponivel||0,qtdQuebrada:r.qtd_quebrada||0,
+        limiteMinimo:r.limite_minimo,obs:r.obs||'',
+        criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
+        atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){console.warn('Tabela insumos_hub não existe.');insumosHub=[];}
+    else console.error('loadInsumosHub error:',e);
+  }
+}
+
+async function loadInsumosMovimentacoes(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_INSUMOS_MOV}?order=criado_em.desc&limit=500`);
+    if(Array.isArray(data)){
+      insumosMovimentacoes=data.map(r=>({
+        id:r.id,insumoId:r.insumo_id,tipo:r.tipo,quantidade:r.quantidade||0,
+        motivo:r.motivo||'',responsavel:r.responsavel||'',criadoEm:r.criado_em||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){console.warn('Tabela insumos_movimentacoes não existe.');insumosMovimentacoes=[];}
+    else console.error('loadInsumosMovimentacoes error:',e);
+  }
+}
+
+async function loadChecklistsTurno(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_CHECKLIST}?order=criado_em.desc&limit=200`);
+    if(Array.isArray(data)){
+      checklistsTurno=data.map(r=>({
+        id:r.id,data:r.data||'',turno:r.turno||'',momento:r.momento||'',
+        responsavel:r.responsavel||'',itens:Array.isArray(r.itens)?r.itens:[],
+        ruasSnapshot:Array.isArray(r.ruas_snapshot)?r.ruas_snapshot:[],
+        pendencias:r.pendencias||'',status:r.status||'ABERTO',
+        criadoEm:r.criado_em||'',fechadoEm:r.fechado_em||'',fechadoPor:r.fechado_por||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){console.warn('Tabela checklist_turno não existe.');checklistsTurno=[];}
+    else console.error('loadChecklistsTurno error:',e);
+  }
+}
+
+async function _loadInsumosTudoSeNecessario(){
+  if(!supabaseOK||_insumosLoadTried)return;
+  _insumosLoadTried=true;
+  await Promise.all([loadInsumosHub(),loadInsumosMovimentacoes(),loadChecklistsTurno()]);
+}
+
+async function saveInsumoToDB(i){
+  const row={
+    id:i.id,categoria:i.categoria,tipo:i.tipo,item:i.item,
+    qtd_fisica:i.qtdFisica||0,qtd_indisponivel:i.qtdIndisponivel||0,qtd_quebrada:i.qtdQuebrada||0,
+    limite_minimo:(i.limiteMinimo===''||i.limiteMinimo==null)?null:i.limiteMinimo,
+    obs:i.obs||null,criado_por:i.criadoPor,criado_em:i.criadoEm,
+    atualizado_por:i.atualizadoPor,atualizado_em:new Date().toISOString()
+  };
+  try{await sbUpsert(TABELA_INSUMOS,row,'id');return true;}
+  catch(e){console.error('saveInsumoToDB:',e);return false;}
+}
+
+// ── Alternância Inventário / Checklist ──
+function setInsumosModo(modo){
+  const wI=document.getElementById('insInvWrap'),wC=document.getElementById('insChkWrap');
+  const bI=document.getElementById('insModoInv'),bC=document.getElementById('insModoChk');
+  if(wI)wI.style.display=modo==='inventario'?'':'none';
+  if(wC)wC.style.display=modo==='checklist'?'':'none';
+  if(bI)bI.className='btn '+(modo==='inventario'?'btn-s':'btn-g');
+  if(bC)bC.className='btn '+(modo==='checklist'?'btn-s':'btn-g');
+  if(modo==='checklist'){
+    if(!document.getElementById('chkData').value)document.getElementById('chkData').value=hojeLocal();
+    renderChecklistHistorico();
+    renderChecklistAtivo();
+  }
+}
+
+function renderInsumosKpiResumo(){
+  const el=document.getElementById('insKpiResumo');if(!el)return;
+  const alertas=insumosHub.filter(i=>i.limiteMinimo!=null&&_insumoOperacional(i)<=i.limiteMinimo).length;
+  el.innerHTML=alertas?`<span style="color:var(--red);font-weight:700">⚠ ${alertas} ite${alertas>1?'ns':'m'} no limite mínimo</span>`:`<span style="color:var(--green)">✅ Estoque de insumos OK</span>`;
+}
+
+function renderInsumosTable(){
+  const el=document.getElementById('insTBody');if(!el)return;
+  const podeGerir=hasPerm('insumo_gerir'),podeCredDeb=hasPerm('insumo_credito_debito');
+  const btnNovo=document.getElementById('insBtnNovo');if(btnNovo)btnNovo.style.display=podeCredDeb?'':'none';
+  renderInsumosKpiResumo();
+  if(!insumosHub.length){el.innerHTML='<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--t3)">Nenhum item cadastrado.</td></tr>';return;}
+  el.innerHTML=insumosHub.map(i=>{
+    const op=_insumoOperacional(i);
+    const alerta=i.limiteMinimo!=null&&op<=i.limiteMinimo;
+    return `<tr style="border-bottom:1px solid var(--bd)${alerta?';background:var(--red4)':''}">
+      <td style="padding:6px 8px">${esc(i.categoria)}</td>
+      <td>${esc(i.tipo)}</td>
+      <td style="font-weight:700">${esc(i.item)}</td>
+      <td style="text-align:center;font-weight:700">${i.qtdFisica}</td>
+      <td style="text-align:center;color:var(--orange)">${i.qtdIndisponivel||0}</td>
+      <td style="text-align:center;color:var(--red)">${i.qtdQuebrada||0}</td>
+      <td style="text-align:center;font-weight:800;color:${alerta?'var(--red)':'var(--green)'}">${op}${alerta?' ⚠':''}</td>
+      <td style="text-align:center;color:var(--t2)">${i.limiteMinimo??'—'}</td>
+      <td style="text-align:center">${podeGerir?`<button class="btn btn-g" style="font-size:.65rem;padding:2px 8px" onclick="openInsumoMovModal('${esc(i.id)}')">↕ Movimentar</button>`:'—'}</td>
+      <td style="text-align:center">${podeCredDeb?`<button class="btn btn-g" style="font-size:.65rem;padding:2px 6px" onclick="openEditInsumo('${esc(i.id)}')">✏️</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openNewInsumo(){
+  if(!hasPerm('insumo_credito_debito')){showToast('⛔ Sem permissão','err');return;}
+  editInsumoId=null;
+  document.getElementById('insMTitle').textContent='🧰 Novo Item';
+  document.getElementById('insBtnDel').style.display='none';
+  ['insCategoria','insTipo','insItem','insQtdFisica','insLimiteMinimo','insObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('overlayInsumo').classList.add('open');
+}
+function openEditInsumo(id){
+  const i=insumosHub.find(x=>x.id===id);if(!i)return;
+  if(!hasPerm('insumo_credito_debito')){showToast('⛔ Sem permissão','err');return;}
+  editInsumoId=id;
+  document.getElementById('insMTitle').textContent='🧰 Editar — '+i.item;
+  document.getElementById('insBtnDel').style.display='';
+  document.getElementById('insCategoria').value=i.categoria;
+  document.getElementById('insTipo').value=i.tipo;
+  document.getElementById('insItem').value=i.item;
+  document.getElementById('insQtdFisica').value=i.qtdFisica;
+  document.getElementById('insLimiteMinimo').value=i.limiteMinimo??'';
+  document.getElementById('insObs').value=i.obs||'';
+  document.getElementById('overlayInsumo').classList.add('open');
+}
+function closeInsumoModal(){document.getElementById('overlayInsumo').classList.remove('open');editInsumoId=null;}
+
+async function saveInsumo(){
+  if(!hasPerm('insumo_credito_debito')){showToast('⛔ Sem permissão','err');return;}
+  const categoria=document.getElementById('insCategoria')?.value.trim();
+  const tipo=document.getElementById('insTipo')?.value.trim();
+  const item=document.getElementById('insItem')?.value.trim();
+  if(!categoria||!tipo||!item){showToast('⚠ Preencha categoria, tipo e item','err');return;}
+  const who=_nomeOperadorAtual();
+  const existente=editInsumoId?insumosHub.find(x=>x.id===editInsumoId):null;
+  const nowIso=new Date().toISOString();
+  const obj={
+    id:editInsumoId||genInsumoId(),categoria,tipo,item,
+    qtdFisica:parseInt(document.getElementById('insQtdFisica')?.value||0)||0,
+    qtdIndisponivel:existente?.qtdIndisponivel||0,qtdQuebrada:existente?.qtdQuebrada||0,
+    limiteMinimo:document.getElementById('insLimiteMinimo')?.value===''?null:(parseInt(document.getElementById('insLimiteMinimo')?.value)||0),
+    obs:document.getElementById('insObs')?.value||'',
+    criadoPor:existente?existente.criadoPor:who,criadoEm:existente?existente.criadoEm:nowIso,
+    atualizadoPor:who
+  };
+  loading(true);
+  const ok=await saveInsumoToDB(obj);
+  await loadInsumosHub();
+  loading(false);
+  if(ok){showToast(editInsumoId?'✅ Item atualizado':'✅ Item criado!','ok');closeInsumoModal();renderInsumosTable();}
+  else showToast('❌ Erro ao salvar item','err');
+}
+
+async function deleteInsumo(){
+  if(!hasPerm('insumo_credito_debito')||!editInsumoId)return;
+  if(!confirm('Excluir este item do catálogo? O histórico de movimentações dele também será removido.'))return;
+  loading(true);
+  try{await sbDelete(TABELA_INSUMOS,'id',editInsumoId);}catch(e){console.error('deleteInsumo:',e);}
+  await loadInsumosHub();
+  loading(false);
+  closeInsumoModal();renderInsumosTable();
+  showToast('🗑 Item excluído','ok');
+}
+
+// ── Movimentação (entrada/saída/quebra/indisponível) ──
+function openInsumoMovModal(id){
+  if(!hasPerm('insumo_gerir')){showToast('⛔ Sem permissão','err');return;}
+  const i=insumosHub.find(x=>x.id===id);if(!i)return;
+  insumoMovAtualId=id;
+  document.getElementById('insMovTitle').textContent='Movimentar — '+i.item;
+  document.getElementById('insMovTipo').value='ENTRADA';
+  document.getElementById('insMovQtd').value='';
+  document.getElementById('insMovMotivo').value='';
+  document.getElementById('overlayInsumoMov').classList.add('open');
+}
+function closeInsumoMovModal(){document.getElementById('overlayInsumoMov').classList.remove('open');insumoMovAtualId=null;}
+
+async function saveInsumoMov(){
+  if(!hasPerm('insumo_gerir')||!insumoMovAtualId)return;
+  const i=insumosHub.find(x=>x.id===insumoMovAtualId);if(!i)return;
+  const tipo=document.getElementById('insMovTipo')?.value;
+  const qtd=parseInt(document.getElementById('insMovQtd')?.value||0);
+  const motivo=document.getElementById('insMovMotivo')?.value||'';
+  if(!qtd||qtd<=0){showToast('⚠ Informe uma quantidade válida','err');return;}
+  const who=_nomeOperadorAtual();
+  const atualizado={...i};
+  if(tipo==='ENTRADA')atualizado.qtdFisica=(i.qtdFisica||0)+qtd;
+  else if(tipo==='SAIDA')atualizado.qtdFisica=Math.max(0,(i.qtdFisica||0)-qtd);
+  else if(tipo==='QUEBRA')atualizado.qtdQuebrada=(i.qtdQuebrada||0)+qtd;
+  else if(tipo==='INDISPONIVEL')atualizado.qtdIndisponivel=(i.qtdIndisponivel||0)+qtd;
+  atualizado.atualizadoPor=who;
+  loading(true);
+  const ok=await saveInsumoToDB(atualizado);
+  if(ok){
+    const mov={id:genMovId(),insumo_id:i.id,tipo,quantidade:qtd,motivo:motivo||null,responsavel:who,criado_em:new Date().toISOString()};
+    try{await sbUpsert(TABELA_INSUMOS_MOV,mov,'id');}catch(e){console.error('saveInsumoMov log:',e);}
+  }
+  await loadInsumosHub();await loadInsumosMovimentacoes();
+  loading(false);
+  if(ok){showToast('✅ Movimentação registrada','ok');closeInsumoMovModal();renderInsumosTable();}
+  else showToast('❌ Erro ao registrar movimentação','err');
+}
+
+// ── Snapshot de ruas ocupadas (puxado automaticamente do sistema de CAF/rua) ──
+function _ruasSnapshotAtual(){
+  return (ruasDB||[]).filter(r=>r.ocupada).map(r=>{
+    const caf=r.caf_id?cafsDB.find(c=>c.id===r.caf_id):null;
+    return {
+      numero:r.numero,andar:r.andar,
+      caf:caf?caf.num:'',rota:caf?caf.rota:'',vencimento:caf?caf.venc:'',statusCaf:caf?caf.status:''
+    };
+  });
+}
+
+// ── Checklist de Turno ──
+function _checklistExistente(data,turno,momento){
+  return checklistsTurno.find(c=>c.data===data&&c.turno===turno&&c.momento===momento);
+}
+
+async function iniciarChecklist(){
+  if(!hasPerm('insumo_gerir')){showToast('⛔ Sem permissão','err');return;}
+  const data=document.getElementById('chkData')?.value||hojeLocal();
+  const turno=document.getElementById('chkTurno')?.value;
+  const momento=document.getElementById('chkMomento')?.value;
+  const existente=_checklistExistente(data,turno,momento);
+  if(existente){
+    showToast('ℹ Já existe um checklist para esse turno/momento — reabrindo','info');
+    abrirChecklistModal(existente.id);
+    return;
+  }
+  loading(true);
+  // Garante ruas/CAFs atualizadas mesmo se o usuário (ex: perfil Liderança) nunca visitou essas abas
+  await Promise.all([loadRuas(),loadCAFs()]);
+  const who=_nomeOperadorAtual();
+  const novo={
+    id:genChecklistId(),data,turno,momento:momento,responsavel:who,
+    itens:insumosHub.map(i=>({insumo_id:i.id,categoria:i.categoria,tipo:i.tipo,item:i.item,
+      qtd_fisica_catalogo:i.qtdFisica,qtd_conferida:i.qtdFisica,ok:true,quebrado:false,plano_acao:''})),
+    ruas_snapshot:_ruasSnapshotAtual(),pendencias:'',status:'ABERTO',
+    criado_em:new Date().toISOString()
+  };
+  try{await sbUpsert(TABELA_CHECKLIST,novo,'id');}catch(e){console.error('iniciarChecklist:',e);showToast('❌ Erro ao iniciar checklist','err');loading(false);return;}
+  await loadChecklistsTurno();
+  loading(false);
+  renderChecklistHistorico();
+  showToast('📋 Checklist iniciado','ok');
+  abrirChecklistModal(novo.id);
+}
+
+let _chkRenderTarget='insChkAtivoWrap';
+function renderChecklistAtivo(targetId){
+  _chkRenderTarget=targetId||_chkRenderTarget||'insChkAtivoWrap';
+  const el=document.getElementById(_chkRenderTarget);if(!el)return;
+  const chk=checklistsTurno.find(c=>c.id===checklistAtivoId);
+  if(!chk){el.innerHTML='';return;}
+  const podeGerir=hasPerm('insumo_gerir');
+  const fechado=chk.status==='FECHADO';
+  el.innerHTML=`
+    <div style="background:var(--bg2);border:1.5px solid #8b5cf666;border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+        <div>
+          <span style="font-weight:800;color:#8b5cf6">${chk.momento==='INICIO'?'🌅 Início':'🌇 Término'} de Turno</span>
+          <span style="color:var(--t2);font-size:.75rem"> · ${fmtD(chk.data)} · ${TURNOS_HUB.find(t=>t.id===chk.turno)?.lb||chk.turno} · Resp.: ${esc(chk.responsavel)}</span>
+        </div>
+        <span style="background:${fechado?'var(--green2)':'var(--yellow2)'};color:${fechado?'var(--green)':'var(--yellow)'};border-radius:4px;padding:2px 8px;font-size:.65rem;font-weight:700">${fechado?'✅ Fechado':'⏳ Aberto'}</span>
+      </div>
+
+      <div class="sec" style="margin-top:0">🧰 Conferência de Insumos</div>
+      <div style="overflow-x:auto;margin-bottom:12px">
+        <table style="width:100%;font-size:.75rem">
+          <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+            <th style="padding:4px 6px">Item</th><th style="text-align:center">Físico (catálogo)</th><th style="text-align:center">Conferido</th><th style="text-align:center">OK?</th><th style="text-align:center">Quebrado?</th><th>Plano de Ação</th>
+          </tr></thead>
+          <tbody>
+            ${chk.itens.map((it,idx)=>{
+              const divergente=it.qtd_conferida!==it.qtd_fisica_catalogo;
+              const precisaPlano=!it.ok||it.quebrado;
+              return `<tr style="border-bottom:1px solid var(--bd)${precisaPlano?';background:var(--red4)':''}">
+                <td style="padding:4px 6px;font-weight:700">${esc(it.item)}</td>
+                <td style="text-align:center;color:var(--t2)">${it.qtd_fisica_catalogo}</td>
+                <td style="text-align:center">
+                  <input type="number" min="0" value="${it.qtd_conferida}" ${fechado||!podeGerir?'disabled':''} style="width:60px;text-align:center;background:var(--bg3);border:1px solid var(--bd);border-radius:4px;color:var(--text);padding:2px" onchange="_chkAtualizarItem(${idx},'qtd_conferida',this.value)">
+                  ${divergente?'<div style="font-size:.55rem;color:var(--orange)">≠ catálogo</div>':''}
+                </td>
+                <td style="text-align:center"><input type="checkbox" ${it.ok?'checked':''} ${fechado||!podeGerir?'disabled':''} onchange="_chkAtualizarItem(${idx},'ok',this.checked)"></td>
+                <td style="text-align:center"><input type="checkbox" ${it.quebrado?'checked':''} ${fechado||!podeGerir?'disabled':''} onchange="_chkAtualizarItem(${idx},'quebrado',this.checked)"></td>
+                <td>
+                  <input type="text" value="${esc(it.plano_acao||'')}" placeholder="${precisaPlano?'Obrigatório — o que fazer a respeito?':'—'}" ${fechado||!podeGerir?'disabled':''}
+                    style="width:100%;background:var(--bg3);border:1.5px solid ${precisaPlano&&!it.plano_acao?'var(--red)':'var(--bd)'};border-radius:4px;color:var(--text);padding:3px 6px;font-size:.72rem"
+                    onchange="_chkAtualizarItem(${idx},'plano_acao',this.value)">
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec">🚪 Ruas Ocupadas (snapshot automático)</div>
+      <div style="overflow-x:auto;margin-bottom:12px">
+        <table style="width:100%;font-size:.72rem">
+          <thead><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
+            <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+          </tr></thead>
+          <tbody>
+            ${chk.ruasSnapshot.length?chk.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
+              <td>${esc(r.caf)||'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
+            </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada no momento do checklist.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fg"><label>Pendências Gerais / Observações</label>
+        <textarea id="chkPendencias" rows="2" ${fechado||!podeGerir?'disabled':''} onchange="_chkAtualizarPendencias(this.value)">${esc(chk.pendencias||'')}</textarea>
+      </div>
+
+      ${!fechado&&podeGerir?`<button class="btn btn-s" style="width:100%;margin-top:10px;background:#8b5cf6" onclick="fecharChecklist()">✅ Fechar Checklist e Gerar Relatório</button>`:''}
+      ${fechado?`<button class="btn btn-g" style="width:100%;margin-top:10px" onclick="abrirRelatorioTurno('${esc(chk.id)}')">📄 Ver Relatório de Passagem</button>`:''}
+      ${hasPerm('insumo_credito_debito')?`<button class="btn btn-del" style="width:100%;margin-top:8px" onclick="deleteChecklist('${esc(chk.id)}')">🗑 Excluir Checklist</button>`:''}
+    </div>`;
+}
+
+// Atualiza um campo de um item do checklist ativo (em memória) — persiste só ao fechar, pra não gerar 1 upsert por tecla
+function _chkAtualizarItem(idx,campo,valor){
+  const chk=checklistsTurno.find(c=>c.id===checklistAtivoId);if(!chk)return;
+  if(campo==='qtd_conferida')valor=parseInt(valor)||0;
+  chk.itens[idx][campo]=valor;
+  if(campo==='ok'||campo==='quebrado'){
+    // Re-renderiza pra destacar/exigir plano de ação na hora
+    _chkSalvarRascunho(chk);
+    renderChecklistAtivo();
+  }else{
+    _chkSalvarRascunho(chk);
+  }
+}
+function _chkAtualizarPendencias(valor){
+  const chk=checklistsTurno.find(c=>c.id===checklistAtivoId);if(!chk)return;
+  chk.pendencias=valor;
+  _chkSalvarRascunho(chk);
+}
+let _chkSaveTimer=null;
+function _chkSalvarRascunho(chk){
+  clearTimeout(_chkSaveTimer);
+  _chkSaveTimer=setTimeout(async()=>{
+    try{await sbUpsert(TABELA_CHECKLIST,{id:chk.id,itens:chk.itens,pendencias:chk.pendencias||null},'id');}catch(e){console.warn('rascunho checklist:',e);}
+  },900);
+}
+
+async function fecharChecklist(){
+  const chk=checklistsTurno.find(c=>c.id===checklistAtivoId);if(!chk)return;
+  const semPlano=chk.itens.filter(it=>(!it.ok||it.quebrado)&&!(it.plano_acao||'').trim());
+  if(semPlano.length){
+    showToast(`⚠ Preencha o Plano de Ação para: ${semPlano.map(i=>i.item).join(', ')}`,'err');
+    return;
+  }
+  if(!confirm('Fechar este checklist? Depois de fechado não dá mais para editar.'))return;
+  const who=_nomeOperadorAtual();
+  const nowIso=new Date().toISOString();
+  loading(true);
+  // Snapshot final das ruas na hora do fechamento (pode ter mudado desde o início)
+  await Promise.all([loadRuas(),loadCAFs()]);
+  const ruasFinal=_ruasSnapshotAtual();
+  try{
+    await sbUpsert(TABELA_CHECKLIST,{id:chk.id,itens:chk.itens,pendencias:chk.pendencias||null,ruas_snapshot:ruasFinal,status:'FECHADO',fechado_em:nowIso,fechado_por:who},'id');
+  }catch(e){console.error('fecharChecklist:',e);showToast('❌ Erro ao fechar checklist','err');loading(false);return;}
+  await loadChecklistsTurno();
+  loading(false);
+  renderChecklistAtivo();renderChecklistHistorico();
+  showToast('✅ Checklist fechado — relatório disponível','ok');
+  closeChecklistAtivoModal();
+  abrirRelatorioTurno(chk.id);
+}
+
+function closeChecklistAtivoModal(){
+  document.getElementById('overlayChecklistAtivo').classList.remove('open');
+  _chkRenderTarget='insChkAtivoWrap';
+}
+
+// Abre um checklist em ABERTO dentro de um modal (chamado a partir do histórico) —
+// garante feedback visual claro, independente de onde a pessoa esteja rolada na página.
+function abrirChecklistModal(id){
+  checklistAtivoId=id;
+  document.getElementById('overlayChecklistAtivo').classList.add('open');
+  renderChecklistAtivo('checklistAtivoModalBody');
+}
+
+async function deleteChecklist(id){
+  if(!hasPerm('insumo_credito_debito')){showToast('⛔ Sem permissão para excluir checklists','err');return;}
+  if(!confirm('Excluir este checklist definitivamente? Essa ação não pode ser desfeita.'))return;
+  loading(true);
+  try{await sbDelete(TABELA_CHECKLIST,'id',id);}catch(e){console.error('deleteChecklist:',e);}
+  await loadChecklistsTurno();
+  loading(false);
+  if(checklistAtivoId===id){
+    closeChecklistAtivoModal();
+    document.getElementById('overlayRelatorioTurno')?.classList.remove('open');
+    checklistAtivoId=null;
+  }
+  renderChecklistHistorico();
+  showToast('🗑 Checklist excluído','ok');
+}
+
+function renderChecklistHistorico(){
+  const el=document.getElementById('insChkHistorico');if(!el)return;
+  const lista=[...checklistsTurno].sort((a,b)=>(b.criadoEm||'').localeCompare(a.criadoEm||'')).slice(0,30);
+  if(!lista.length){el.innerHTML='<div style="color:var(--t3);font-size:.75rem;grid-column:1/-1">Nenhum checklist registrado ainda.</div>';return;}
+  el.innerHTML=lista.map(c=>{
+    const pendencias=c.itens.filter(it=>!it.ok||it.quebrado).length;
+    return `<div class="yard-card" style="position:relative" onclick="${c.status==='FECHADO'?`abrirRelatorioTurno('${esc(c.id)}')`:`abrirChecklistModal('${esc(c.id)}')`}">
+      ${hasPerm('insumo_credito_debito')?`<button class="btn btn-del" style="position:absolute;top:8px;right:8px;font-size:.62rem;padding:2px 7px" onclick="event.stopPropagation();deleteChecklist('${esc(c.id)}')" title="Excluir checklist">🗑</button>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-weight:800;color:#8b5cf6">${c.momento==='INICIO'?'🌅 Início':'🌇 Término'}</span>
+        <span style="background:${c.status==='FECHADO'?'var(--green2)':'var(--yellow2)'};color:${c.status==='FECHADO'?'var(--green)':'var(--yellow)'};border-radius:4px;padding:2px 7px;font-size:.6rem;font-weight:700;margin-right:26px">${c.status==='FECHADO'?'✅ Fechado':'⏳ Aberto'}</span>
+      </div>
+      <div style="font-size:.7rem;color:var(--t2)">${fmtD(c.data)} · ${TURNOS_HUB.find(t=>t.id===c.turno)?.lb||c.turno}</div>
+      <div style="font-size:.68rem;color:var(--t2);margin-top:2px">Resp.: ${esc(c.responsavel)}</div>
+      ${pendencias?`<div style="font-size:.65rem;color:var(--red);font-weight:700;margin-top:5px">⚠ ${pendencias} pendência(s)</div>`:'<div style="font-size:.65rem;color:var(--green);margin-top:5px">✅ Tudo OK</div>'}
+    </div>`;
+  }).join('');
+}
+
+function abrirRelatorioTurno(checklistId){
+  const c=checklistsTurno.find(x=>x.id===checklistId);if(!c)return;
+  const body=document.getElementById('relatorioTurnoBody');if(!body)return;
+  const pendentes=c.itens.filter(it=>!it.ok||it.quebrado);
+  body.innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:.85rem;font-weight:700">${c.momento==='INICIO'?'🌅 Início':'🌇 Término'} de Turno — ${fmtD(c.data)}</div>
+      <div style="font-size:.75rem;color:var(--t2)">${TURNOS_HUB.find(t=>t.id===c.turno)?.lb||c.turno} · Responsável: ${esc(c.responsavel)}${c.fechadoPor?` · Fechado por: ${esc(c.fechadoPor)} em ${new Date(c.fechadoEm).toLocaleString('pt-BR')}`:''}</div>
+    </div>
+    <div class="sec" style="margin-top:0">⚠ Pendências e Quebras (${pendentes.length})</div>
+    ${pendentes.length?`<div style="display:grid;gap:6px;margin-bottom:14px">${pendentes.map(it=>`
+      <div style="background:var(--red4);border:1px solid #fca5a5;border-radius:6px;padding:8px 10px">
+        <div style="font-weight:700;font-size:.78rem">${esc(it.item)} ${it.quebrado?'💥 Quebrado':''} ${!it.ok?'⚠ Divergente':''}</div>
+        <div style="font-size:.7rem;color:var(--t2)">Catálogo: ${it.qtd_fisica_catalogo} · Conferido: ${it.qtd_conferida}</div>
+        <div style="font-size:.72rem;margin-top:3px"><strong>Plano de ação:</strong> ${esc(it.plano_acao||'—')}</div>
+      </div>`).join('')}</div>`:'<div style="color:var(--green);font-size:.78rem;margin-bottom:14px">✅ Nenhuma pendência ou quebra neste checklist.</div>'}
+
+    <div class="sec">🚪 Ruas Ocupadas no Fechamento (${c.ruasSnapshot.length})</div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="width:100%;font-size:.75rem">
+        <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+          <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          ${c.ruasSnapshot.length?c.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
+            <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
+            <td>${esc(r.caf)||'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
+          </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    ${c.pendencias?`<div class="sec">📝 Observações Gerais</div><div style="font-size:.78rem;background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:10px">${esc(c.pendencias)}</div>`:''}
+    ${hasPerm('insumo_credito_debito')?`<button class="btn btn-del" style="width:100%;margin-top:6px" onclick="document.getElementById('overlayRelatorioTurno').classList.remove('open');deleteChecklist('${esc(c.id)}')">🗑 Excluir Checklist</button>`:''}
+  `;
+  document.getElementById('overlayRelatorioTurno').classList.add('open');
 }
 
 async function desvincularCAF(){
@@ -8088,7 +8725,7 @@ function _updateRTIndicator(){
 async function _renderOnlinePresence(){
   const el=document.getElementById('onlineBar');
   if(!el)return;
-  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
   let lista=[];
   // 1ª fonte: Ably Presence (tempo real)
   if(_ablyChannel&&_ablyOK){
