@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v246</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v247</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1115,15 +1115,24 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 
+<!-- Overlay de 1º toque — navegadores exigem um clique real do usuário pra liberar tela cheia -->
+<div id="tvFullscreenPrompt" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.88);color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;font-family:inherit" onclick="_ativarTVFullscreenPrompt()">
+  <div style="font-size:3rem;margin-bottom:14px">👆</div>
+  <div style="font-size:1.3rem;font-weight:800">Toque na tela para ativar o modo Tela Cheia</div>
+  <div style="font-size:.85rem;color:#aaa;margin-top:8px">O navegador exige esse toque uma vez — depois disso fica automático</div>
+</div>
+
 <!-- TV YARD MODE -->
 <div class="view" id="view-tv-yard">
   <div id="tv-yard-wrap" style="background:#0d1117;min-height:100vh"></div>
+  <button id="btnTVFull1" onclick="_tvFullscreenClick()" style="position:fixed;bottom:14px;right:190px;z-index:400;background:#1c2333;color:#f59e0b;border:1px solid #f59e0b;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">⛶ Tela Cheia</button>
   <button id="btnTVKiosk1" onclick="toggleTVKioskBtn()" style="position:fixed;bottom:14px;right:14px;z-index:400;background:#1c2333;color:#8b5cf6;border:1px solid #8b5cf6;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">🔄 Revezar TV/TV Yard</button>
 </div>
 
 <!-- TV MODE -->
 <div class="view" id="view-tv">
   <div id="tv-wrap" style="background:var(--bg);min-height:100vh;padding:0"></div>
+  <button id="btnTVFull2" onclick="_tvFullscreenClick()" style="position:fixed;bottom:14px;right:190px;z-index:400;background:var(--bg2);color:#f59e0b;border:1px solid #f59e0b;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">⛶ Tela Cheia</button>
   <button id="btnTVKiosk2" onclick="toggleTVKioskBtn()" style="position:fixed;bottom:14px;right:14px;z-index:400;background:var(--bg2);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">🔄 Revezar TV/TV Yard</button>
 </div>
 
@@ -2266,6 +2275,10 @@ async function bootApp(){
   if(currentUser.perfil==='tv_publica'){
     setView('tv');
     iniciarTVKiosk();
+    // Navegador não permite forçar tela cheia sem um toque real do usuário — mostra o aviso
+    if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+      const p=document.getElementById('tvFullscreenPrompt');if(p)p.style.display='flex';
+    }
   }
   // Realtime e presença — não-bloqueantes, falhas não afetam a UI
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
@@ -7348,6 +7361,38 @@ function _agendarAutoReloadTV(){
   _tvReloadAgendado=true;
   setTimeout(()=>{location.reload();},TV_AUTO_RELOAD_MS);
 }
+// Tela cheia só pode ser ativada por um clique genuíno do usuário (restrição dos navegadores) —
+// por isso existe esse botão manual, em vez de tentar forçar automaticamente no login.
+function _ativarTVFullscreenPrompt(){
+  const el=document.documentElement;
+  if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  const p=document.getElementById('tvFullscreenPrompt');if(p)p.style.display='none';
+  setTimeout(_atualizarBotaoTVFull,300);
+}
+
+function _tvFullscreenClick(){
+  const el=document.documentElement;
+  const jaEmFull=document.fullscreenElement||document.webkitFullscreenElement;
+  if(jaEmFull){
+    if(document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+    else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+  }else{
+    if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+    else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  }
+  setTimeout(_atualizarBotaoTVFull,300);
+}
+function _atualizarBotaoTVFull(){
+  const emFull=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  ['btnTVFull1','btnTVFull2'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b)b.textContent=emFull?'⛶ Sair da Tela Cheia':'⛶ Tela Cheia';
+  });
+}
+document.addEventListener('fullscreenchange',_atualizarBotaoTVFull);
+document.addEventListener('webkitfullscreenchange',_atualizarBotaoTVFull);
+
 function toggleTVKioskBtn(){
   if(_tvKioskInterval){pararTVKiosk();showToast('⏸ Revezamento automático desativado','info');}
   else{iniciarTVKiosk();showToast('▶ Revezando entre TV e TV Yard a cada 5 min','ok');}
