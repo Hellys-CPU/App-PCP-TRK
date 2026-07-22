@@ -390,6 +390,7 @@ body.dark .fup-sep td{color:#e6edf3;}
 .pb-doca{background:var(--orange2);color:var(--orange);border:1px solid #fdba74;}
 .pb-supervisor{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
 .pb-lideranca{background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;}
+.pb-tv_publica{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;}
 .config-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd);}
 .config-row:last-child{border-bottom:none;}
 .config-label{font-size:.78rem;font-weight:600;color:var(--gray2);}
@@ -562,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v245</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v246</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1117,11 +1118,13 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- TV YARD MODE -->
 <div class="view" id="view-tv-yard">
   <div id="tv-yard-wrap" style="background:#0d1117;min-height:100vh"></div>
+  <button id="btnTVKiosk1" onclick="toggleTVKioskBtn()" style="position:fixed;bottom:14px;right:14px;z-index:400;background:#1c2333;color:#8b5cf6;border:1px solid #8b5cf6;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">🔄 Revezar TV/TV Yard</button>
 </div>
 
 <!-- TV MODE -->
 <div class="view" id="view-tv">
   <div id="tv-wrap" style="background:var(--bg);min-height:100vh;padding:0"></div>
+  <button id="btnTVKiosk2" onclick="toggleTVKioskBtn()" style="position:fixed;bottom:14px;right:14px;z-index:400;background:var(--bg2);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:20px;padding:6px 14px;font-size:.7rem;font-weight:700;cursor:pointer;opacity:.55" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">🔄 Revezar TV/TV Yard</button>
 </div>
 
 
@@ -1337,6 +1340,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
             <option value="torre_controle">Torre de Controle — opera viagens e CAFs</option>
             <option value="visualizador">Visualizador — somente leitura</option>
             <option value="lideranca">Liderança — checklist de turno e insumos do HUB</option>
+            <option value="tv_publica">TV Pública — login fixo do monitor, alterna TV/TV Yard sozinho</option>
             <option value="supervisor">Supervisor — quase acesso total</option>
             <option value="admin">Admin — acesso total</option>
           </select>
@@ -1389,7 +1393,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
         <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
         <div class="fg"><label>Perfil</label><select id="euPerfil">
-          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option>
+          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option><option value="tv_publica">tv_publica</option>
         </select></div>
         <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
@@ -1556,6 +1560,7 @@ const PERMS_BASE = {
   operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
   visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
   lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1},
+  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
 };
 
 const ABAS_BASE = {
@@ -1566,6 +1571,7 @@ const ABAS_BASE = {
   operador_caf:['painel','lista','caf'],
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
   lideranca:['painel','insumos','tv','tv-yard'],
+  tv_publica:['tv','tv-yard'],
 };
 
 const TODAS_PERMS = [
@@ -2256,6 +2262,11 @@ async function bootApp(){
   // RENDERIZA IMEDIATAMENTE — antes de qualquer realtime/presença
   _setFiltrosHoje(); // preenche filtros de data com hoje por padrão
   try{render();renderFUP();}catch(e){console.error('boot render:',e);}
+  // Perfil dedicado de TV pública: entra direto na tela e reveza sozinho entre TV e TV Yard
+  if(currentUser.perfil==='tv_publica'){
+    setView('tv');
+    iniciarTVKiosk();
+  }
   // Realtime e presença — não-bloqueantes, falhas não afetam a UI
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
   try{initAbly();}catch(e){console.error('boot initAbly:',e);}
@@ -2348,7 +2359,7 @@ async function doLogout(){
 // GESTÃO DE USUÁRIOS (Admin)
 function renderUserList(){
   const el=document.getElementById('userList');if(!el)return;
-  const pbCls={admin:'pb-admin',supervisor:'pb-supervisor',torre_controle:'pb-op',doca:'pb-doca',operador_caf:'pb-op',visualizador:'pb-vis',lideranca:'pb-lideranca'};
+  const pbCls={admin:'pb-admin',supervisor:'pb-supervisor',torre_controle:'pb-op',doca:'pb-doca',operador_caf:'pb-op',visualizador:'pb-vis',lideranca:'pb-lideranca',tv_publica:'pb-tv_publica'};
   el.innerHTML=USERS.map(u=>`<div class="user-item"><div class="user-info"><div class="user-av" style="background:${u.cor}">${esc(u.av)}</div><div><div class="user-name">${esc(u.nome)}</div><div class="user-user">@${esc(u.user)}</div><div style="margin-top:2px"><span class="perfil-badge ${pbCls[u.perfil]||'pb-op'}">${esc(u.perfil)}</span></div></div></div><div style="display:flex;gap:4px;align-items:center">${_perfil()==='admin'?`<button class="btn btn-g" style="font-size:.66rem;padding:3px 7px" onclick="openEditUser('${esc(u.user)}')">✏️</button>`:''}${u.user!==currentUser?.user&&_perfil()==='admin'?`<button class="btn btn-del" style="font-size:.66rem;padding:3px 7px" onclick="deleteUser('${esc(u.user)}')">🗑</button>`:u.user===currentUser?.user?'<span style="font-size:.66rem;color:var(--t2)">(você)</span>':''}</div></div>`).join('');
 }
 
@@ -4312,6 +4323,8 @@ function setView(name){
     _tvYardInterval=setInterval(()=>{if(curPage==='tv-yard'){loadRuas().catch(()=>{});renderTVYard();}},30000);
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
+    _agendarAutoReloadTV();
+    _atualizarBotaoTVKiosk();
   }
   if(name!=='tv-yard'){
     if(_tvYardInterval){clearInterval(_tvYardInterval);_tvYardInterval=null;}
@@ -4326,6 +4339,8 @@ function setView(name){
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
     else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+    _agendarAutoReloadTV();
+    _atualizarBotaoTVKiosk();
   }
   if(name!=='tv'){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
@@ -7323,6 +7338,43 @@ function checkAlertas(){
 // FEATURE: DASHBOARD TV
 // ══════════════════════════════════════════════════════════════════
 let _tvInterval=null;
+// ── Modo Kiosk de TV: revezamento automático entre TV e TV Yard + auto-reload periódico ──
+let _tvKioskInterval=null;
+const TV_KIOSK_TROCA_MS=5*60*1000; // troca de tela a cada 5 minutos
+const TV_AUTO_RELOAD_MS=5*60*60*1000; // recarrega a página inteira a cada 5 horas
+let _tvReloadAgendado=false;
+function _agendarAutoReloadTV(){
+  if(_tvReloadAgendado)return;
+  _tvReloadAgendado=true;
+  setTimeout(()=>{location.reload();},TV_AUTO_RELOAD_MS);
+}
+function toggleTVKioskBtn(){
+  if(_tvKioskInterval){pararTVKiosk();showToast('⏸ Revezamento automático desativado','info');}
+  else{iniciarTVKiosk();showToast('▶ Revezando entre TV e TV Yard a cada 5 min','ok');}
+  _atualizarBotaoTVKiosk();
+}
+function _atualizarBotaoTVKiosk(){
+  const ativo=!!_tvKioskInterval;
+  ['btnTVKiosk1','btnTVKiosk2'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b){b.textContent=ativo?'⏸ Parar revezamento':'🔄 Revezar TV/TV Yard';b.style.color=ativo?'var(--green)':'#8b5cf6';b.style.borderColor=ativo?'var(--green)':'#8b5cf6';}
+  });
+}
+
+function iniciarTVKiosk(){
+  if(_tvKioskInterval)return; // já rodando, não duplica
+  const paginas=['tv','tv-yard'];
+  let idx=paginas.indexOf(curPage);if(idx<0)idx=0;
+  _tvKioskInterval=setInterval(()=>{
+    idx=(idx+1)%paginas.length;
+    setView(paginas[idx]);
+  },TV_KIOSK_TROCA_MS);
+  _atualizarBotaoTVKiosk();
+}
+function pararTVKiosk(){
+  if(_tvKioskInterval){clearInterval(_tvKioskInterval);_tvKioskInterval=null;}
+  _atualizarBotaoTVKiosk();
+}
 function renderTV(){
   const el=document.getElementById('tv-wrap');if(!el)return;
   const hoje=hojeLocal();
