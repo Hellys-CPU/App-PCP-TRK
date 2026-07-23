@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v250</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v251</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -9617,8 +9617,85 @@ async function _iniciarTurno(){
   }catch(e){showToast('Erro de conexão','err');}
 }
 
-loadTheme();
-initAuth();
+// ══════════════════════════════════════════════════════════════════
+// BLOQUEIO DE MÚLTIPLAS ABAS — evita duplicar conexões/consumo (Ably, Supabase)
+// quando a mesma pessoa abre o TRK PCP em duas abas do navegador.
+// ══════════════════════════════════════════════════════════════════
+const _TAB_LOCK_KEY='trk_pcp_tab_lock';
+const _TAB_ID=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const _TAB_HEARTBEAT_MS=3000;
+const _TAB_STALE_MS=8000; // se a outra aba não bate o coração há mais que isso, considera fechada/travada
+let _tabLockOk=false;
+let _tabLockRetryTimer=null;
+
+function _tabLockLerAtual(){
+  try{const raw=localStorage.getItem(_TAB_LOCK_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}
+}
+function _tabLockEscrever(){
+  try{localStorage.setItem(_TAB_LOCK_KEY,JSON.stringify({tabId:_TAB_ID,ts:Date.now()}));}catch(e){}
+}
+function _tabLockOutraAbaViva(){
+  const atual=_tabLockLerAtual();
+  return !!(atual&&atual.tabId!==_TAB_ID&&(Date.now()-atual.ts)<_TAB_STALE_MS);
+}
+
+// Tenta reivindicar o "lock" desta aba. Faz uma segunda checagem depois de um pequeno delay
+// aleatório pra evitar que duas abas abertas ao mesmo tempo pensem que ambas venceram.
+function _tabLockTentarReivindicar(cb){
+  if(_tabLockOutraAbaViva()){cb(false);return;}
+  _tabLockEscrever();
+  setTimeout(()=>{
+    const atual=_tabLockLerAtual();
+    cb(!!(atual&&atual.tabId===_TAB_ID));
+  },150+Math.random()*200);
+}
+
+function _mostrarBloqueioMultiAba(){
+  const el=document.getElementById('multiTabBlock');if(el)el.style.display='flex';
+  document.body.style.overflow='hidden';
+  if(_tabLockRetryTimer)clearInterval(_tabLockRetryTimer);
+  _tabLockRetryTimer=setInterval(()=>{
+    if(!_tabLockOutraAbaViva()){
+      clearInterval(_tabLockRetryTimer);
+      location.reload(); // libera sozinho assim que a outra aba fechar
+    }
+  },3000);
+}
+function _forcarUsoNestaAba(){
+  if(!confirm('Isso pode duplicar o consumo de conexões no banco (plano free do Supabase). Só use se tiver certeza de que a outra aba travou. Continuar?'))return;
+  const el=document.getElementById('multiTabBlock');if(el)el.style.display='none';
+  document.body.style.overflow='';
+  _iniciarAppComLock();
+}
+
+function _iniciarAppComLock(){
+  _tabLockOk=true;
+  _tabLockEscrever();
+  setInterval(_tabLockEscrever,_TAB_HEARTBEAT_MS);
+  window.addEventListener('beforeunload',()=>{
+    const atual=_tabLockLerAtual();
+    if(atual&&atual.tabId===_TAB_ID){try{localStorage.removeItem(_TAB_LOCK_KEY);}catch(e){}}
+  });
+  loadTheme();
+  initAuth();
+}
+
+_tabLockTentarReivindicar(venceu=>{
+  if(venceu)_iniciarAppComLock();
+  else _mostrarBloqueioMultiAba();
+});
 </script>
+<!-- Bloqueio de múltiplas abas — evita duplicar conexões/consumo no plano free do Supabase -->
+<div id="multiTabBlock" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Segoe UI',sans-serif;padding:24px">
+  <div style="font-size:3rem;margin-bottom:10px">🔒</div>
+  <div style="font-size:1.2rem;font-weight:800;margin-bottom:6px">Este app já está aberto em outra aba</div>
+  <div style="font-size:.85rem;color:#9ca3af;max-width:420px;margin-bottom:18px">Pra evitar consumo duplicado de conexões, o TRK PCP só roda em uma aba por vez. Feche esta e volte pra aba que já estava aberta, ou feche a outra e recarregue esta.</div>
+  <div style="display:flex;gap:10px">
+    <button onclick="location.reload()" style="background:#161b22;color:#fff;border:1px solid #333;border-radius:8px;padding:9px 18px;font-size:.8rem;font-weight:700;cursor:pointer">🔄 Tentar novamente</button>
+    <button onclick="_forcarUsoNestaAba()" style="background:#3b1219;color:#ff8888;border:1px solid #7f1d1d;border-radius:8px;padding:9px 18px;font-size:.8rem;font-weight:700;cursor:pointer">Usar mesmo assim</button>
+  </div>
+  <div style="font-size:.68rem;color:#6b7280;margin-top:14px">Isso verifica sozinho a cada poucos segundos — se a outra aba fechar, esta libera automaticamente.</div>
+</div>
+
 </body>
 </html>
