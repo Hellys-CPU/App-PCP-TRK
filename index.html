@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v254</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v256</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1689,11 +1689,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v254';
+const APP_VERSION='v256';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v256:['📊 Gauge visual (medidor) mostrando o quão precário está o estoque de pallets na TZX, com faixas Crítico/Atenção/Controlado/Ótimo.'],
+  v255:['📦 Retorno de Pallets: saldo devedor por FC agora aceita valores negativos (TZX pode dever pro FC também).','⚠ Aviso quando CAF vai pra Processo de Entrega sem Qtd. de Pallets preenchida (evita débito não contabilizado silenciosamente).'],
   v254:['🐛 Corrigido bug crítico que impedia o login (elemento HTML fora de ordem quebrava o script inteiro).'],
   v253:['🔄 Aviso automático quando sai uma versão nova, sem precisar de F5 manual.'],
   v252:['🆕 Badge de versão clicável mostra o que mudou.'],
@@ -2667,7 +2669,7 @@ const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',
 
 let ops=[],editId=null,seq=1000,mRows=[],fupGrouped=false,curPage='painel';
 let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:27,pisoPallets:30};
-let estoqueTZX={disponivel:0,atualizadoPor:'',atualizadoEm:''};
+let estoqueTZX={disponivel:0,capacidade:null,atualizadoPor:'',atualizadoEm:''};
 
 // ══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -5860,12 +5862,16 @@ async function saveCAF(){
   if(ok&&statusAnterior!=='Processo de Entrega'&&statusEscolhido==='Processo de Entrega'){
     const fcDestino=_fcFromRota(rota);
     const qtdPal=Math.round(Number(document.getElementById('cafPal')?.value||0)||0);
-    if(fcDestino&&FCS_PALLETS.includes(fcDestino)&&qtdPal>0){
-      try{
-        await ajustarSaldoFC(fcDestino,qtdPal,who);
-        await ajustarEstoqueTZX(-qtdPal,who);
-        if(curPage==='pallets')renderInventarioPallets();
-      }catch(e){console.warn('auto-incremento saldo pallets:',e);}
+    if(fcDestino&&FCS_PALLETS.includes(fcDestino)){
+      if(qtdPal>0){
+        try{
+          await ajustarSaldoFC(fcDestino,qtdPal,who);
+          await ajustarEstoqueTZX(-qtdPal,who);
+          if(curPage==='pallets')renderInventarioPallets();
+        }catch(e){console.warn('auto-incremento saldo pallets:',e);}
+      }else{
+        showToast(`⚠ CAF foi para "Processo de Entrega" sem Qtd. de Pallets preenchida — o débito do ${fcDestino} NÃO foi ajustado automaticamente. Corrija manualmente no painel de Retorno de Pallets se necessário.`,'err');
+      }
     }
   }
   loading(false);
@@ -5995,7 +6001,8 @@ async function _patchInventarioPallets(fc,patch){
 // Débito por FC (quantos pallets aquele FC tem em mãos e ainda não devolveu)
 async function ajustarSaldoFC(fc,delta,who){
   const atual=inventarioPallets.find(i=>i.fc===fc);
-  const novoSaldo=Math.max(0,(atual?.saldoDevedor||0)+delta);
+  // Sem clamp em 0 de propósito: saldo negativo significa que a TZX é quem deve pallets ao FC
+  const novoSaldo=(atual?.saldoDevedor||0)+delta;
   const ok=await _patchInventarioPallets(fc,{saldo_devedor:novoSaldo,atualizado_por:who,atualizado_em:new Date().toISOString()});
   if(!ok){showToast('❌ Erro ao atualizar saldo do FC','err');return false;}
   await loadInventarioPallets();
@@ -6013,12 +6020,34 @@ async function ajustarEstoqueTZX(delta,who){
 
 async function definirEstoqueTZX(novoValor,who){
   novoValor=Math.max(0,Math.round(Number(novoValor)||0));
-  const ok=await _saveCfgSupabase('estoque_pallets_tzx',{disponivel:novoValor,atualizado_por:who,atualizado_em:new Date().toISOString()});
+  const ok=await _saveCfgSupabase('estoque_pallets_tzx',{disponivel:novoValor,capacidade:estoqueTZX.capacidade,atualizado_por:who,atualizado_em:new Date().toISOString()});
   if(!ok){showToast('❌ Erro ao atualizar o estoque de pallets na TZX','err');return false;}
-  estoqueTZX={disponivel:novoValor,atualizadoPor:who,atualizadoEm:new Date().toISOString()};
+  estoqueTZX={...estoqueTZX,disponivel:novoValor,atualizadoPor:who,atualizadoEm:new Date().toISOString()};
   try{localStorage.setItem('trk_estoque_tzx',JSON.stringify(estoqueTZX));}catch(e){}
   _publishAbly('cfg_update',{});
   return true;
+}
+
+// Capacidade máxima de referência — usada só pra calcular o % do gauge de "quão precário" está o estoque
+async function definirCapacidadeTZX(novoValor,who){
+  novoValor=Math.max(1,Math.round(Number(novoValor)||0));
+  const ok=await _saveCfgSupabase('estoque_pallets_tzx',{disponivel:estoqueTZX.disponivel,capacidade:novoValor,atualizado_por:who,atualizado_em:new Date().toISOString()});
+  if(!ok){showToast('❌ Erro ao atualizar a capacidade máxima','err');return false;}
+  estoqueTZX={...estoqueTZX,capacidade:novoValor,atualizadoPor:who,atualizadoEm:new Date().toISOString()};
+  try{localStorage.setItem('trk_estoque_tzx',JSON.stringify(estoqueTZX));}catch(e){}
+  _publishAbly('cfg_update',{});
+  return true;
+}
+async function _promptDefinirCapacidadeTZX(){
+  if(!hasPerm('pallet_inventario')){showToast('⛔ Sem permissão para editar inventário','err');return;}
+  const v=prompt(`Definir a capacidade MÁXIMA de referência de pallets na TZX (atual: ${estoqueTZX.capacidade??'não definida'}):`,String(estoqueTZX.capacidade||500));
+  if(v===null)return;
+  const n=parseInt(v);
+  if(isNaN(n)||n<=0){showToast('⚠ Informe uma quantidade válida (maior que 0)','err');return;}
+  loading(true);
+  const ok=await definirCapacidadeTZX(n,_nomeOperadorAtual());
+  loading(false);
+  if(ok){renderInventarioPallets();showToast('✅ Capacidade máxima definida','ok');}
 }
 
 async function _promptDefinirEstoqueTZX(){
@@ -6033,22 +6062,66 @@ async function _promptDefinirEstoqueTZX(){
   if(ok){renderInventarioPallets();showToast('✅ Estoque na TZX atualizado','ok');}
 }
 
+function _gaugeEstoqueTZX(pct,capacidadeDefinida){
+  const tam=220,cx=110,cy=115,r=88,largura=18;
+  const bandas=[
+    {de:0,ate:15,cor:'#dc2626',lb:'Crítico'},
+    {de:15,ate:35,cor:'#eab308',lb:'Atenção'},
+    {de:35,ate:60,cor:'#4ade80',lb:'Controlado'},
+    {de:60,ate:100,cor:'#16a34a',lb:'Ótimo'},
+  ];
+  const toXY=p=>{const ang=(180-p*1.8)*Math.PI/180;return[cx+r*Math.cos(ang),cy-r*Math.sin(ang)];};
+  const arcos=bandas.map(b=>{
+    const[x1,y1]=toXY(b.de),[x2,y2]=toXY(b.ate);
+    return `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 0,1 ${x2.toFixed(1)},${y2.toFixed(1)}" stroke="${b.cor}" stroke-width="${largura}" fill="none"/>`;
+  }).join('');
+  const legenda=bandas.map(b=>`<span style="display:inline-flex;align-items:center;gap:3px;margin-right:8px"><span style="width:8px;height:8px;border-radius:2px;background:${b.cor};display:inline-block"></span><span style="font-size:.58rem;color:var(--t2)">${b.lb}</span></span>`).join('');
+  if(!capacidadeDefinida){
+    return `<div style="text-align:center;padding:10px 4px">
+      <svg viewBox="0 0 ${tam} 150" style="width:100%;max-width:190px;opacity:.35">${arcos}</svg>
+      <div style="font-size:.65rem;color:var(--t2);margin-top:-6px">Defina a capacidade máxima para ativar o medidor</div>
+    </div>`;
+  }
+  const pctClamp=Math.max(0,Math.min(100,pct));
+  const angAgulha=(180-pctClamp*1.8)*Math.PI/180;
+  const nx=cx+(r-largura/2-6)*Math.cos(angAgulha),ny=cy-(r-largura/2-6)*Math.sin(angAgulha);
+  const zonaAtual=bandas.find(b=>pctClamp>=b.de&&pctClamp<=b.ate)||bandas[0];
+  return `<div style="text-align:center;padding:4px 4px 0">
+    <svg viewBox="0 0 ${tam} 150" style="width:100%;max-width:190px">
+      ${arcos}
+      <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="6" fill="var(--text)"/>
+      <text x="${cx}" y="${cy+26}" text-anchor="middle" font-size="17" font-weight="800" fill="${zonaAtual.cor}">${pctClamp.toFixed(1)}%</text>
+    </svg>
+    <div style="margin-top:-4px">${legenda}</div>
+    <div style="font-size:.62rem;font-weight:700;color:${zonaAtual.cor};margin-top:2px">${zonaAtual.lb.toUpperCase()}</div>
+  </div>`;
+}
+
 function renderInventarioPallets(){
   const el=document.getElementById('rpInventarioGrid');if(!el)return;
   const podeAjustar=hasPerm('pallet_inventario');
-  // Card único do estoque compartilhado (TZX)
-  const cardTZX=`<div style="background:var(--bg2);border:1.5px solid #f59e0b66;border-radius:var(--r);padding:11px;box-shadow:var(--sh);grid-column:1/-1;display:flex;justify-content:space-between;align-items:center">
+  const pctEstoque=estoqueTZX.capacidade?(estoqueTZX.disponivel/estoqueTZX.capacidade*100):null;
+  // Card único do estoque compartilhado (TZX) + gauge de precariedade
+  const cardTZX=`<div style="background:var(--bg2);border:1.5px solid #f59e0b66;border-radius:var(--r);padding:11px;box-shadow:var(--sh);grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
     <div>
       <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.3px">📦 Estoque de Pallets na TZX (compartilhado entre todos os FCs)</div>
-      <div style="font-size:1.6rem;font-weight:800;color:#f59e0b">${estoqueTZX.disponivel||0}<span style="font-size:.68rem;color:var(--t2);font-weight:600"> pallets disponíveis</span></div>
+      <div style="font-size:1.6rem;font-weight:800;color:#f59e0b">${estoqueTZX.disponivel||0}<span style="font-size:.68rem;color:var(--t2);font-weight:600"> pallets disponíveis${estoqueTZX.capacidade?` de ${estoqueTZX.capacidade} (capacidade)`:''}</span></div>
       ${estoqueTZX.atualizadoEm?`<div style="font-size:.6rem;color:var(--t3)">Atualizado por ${esc(estoqueTZX.atualizadoPor||'—')} em ${new Date(estoqueTZX.atualizadoEm).toLocaleString('pt-BR')}</div>`:''}
+      ${podeAjustar?`<div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-g" onclick="_promptDefinirEstoqueTZX()" style="font-size:.68rem">📦 Definir estoque</button>
+        <button class="btn btn-g" onclick="_promptDefinirCapacidadeTZX()" style="font-size:.68rem">🎯 Definir capacidade máxima</button>
+      </div>`:''}
     </div>
-    ${podeAjustar?`<button class="btn btn-g" onclick="_promptDefinirEstoqueTZX()" style="font-size:.68rem">📦 Definir estoque</button>`:''}
+    <div style="flex-shrink:0;width:190px">${_gaugeEstoqueTZX(pctEstoque,!!estoqueTZX.capacidade)}</div>
   </div>`;
-  // Cards de débito por FC (quanto cada FC tem em mãos, ainda não devolvido)
+  // Cards de débito por FC (quanto cada FC tem em mãos, ainda não devolvido — pode ficar negativo
+  // quando é a TZX quem deve pallets ao FC, em vez do contrário)
   const cardsFC=FCS_PALLETS.map(fc=>{
     const inv=inventarioPallets.find(i=>i.fc===fc)||{saldoDevedor:0};
-    return `<div style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:11px;box-shadow:var(--sh)">
+    const saldo=inv.saldoDevedor||0;
+    const negativo=saldo<0;
+    return `<div style="background:var(--bg2);border:1.5px solid ${negativo?'var(--orange)':'var(--bd)'};border-radius:var(--r);padding:11px;box-shadow:var(--sh)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span style="font-weight:800;font-size:.85rem;color:var(--text)">${esc(fc)}</span>
         ${podeAjustar?`<div style="display:flex;gap:3px">
@@ -6056,8 +6129,8 @@ function renderInventarioPallets(){
           <button class="btn btn-g" onclick="_promptAjusteSaldo('${fc}',-1)" title="Ajustar/corrigir débito do FC (-)" style="font-size:.6rem;padding:1px 6px">-</button>
         </div>`:''}
       </div>
-      <div style="font-size:1.3rem;font-weight:800;color:var(--text)">${inv.saldoDevedor||0}<span style="font-size:.65rem;color:var(--t2);font-weight:600"> pallets c/ FC</span></div>
-      <div style="font-size:.6rem;color:var(--t2);margin-top:3px">Débito (ainda não devolvido)</div>
+      <div style="font-size:1.3rem;font-weight:800;color:${negativo?'var(--orange)':'var(--text)'}">${Math.abs(saldo)}<span style="font-size:.65rem;color:var(--t2);font-weight:600"> ${negativo?'pallets — TZX deve':'pallets c/ FC'}</span></div>
+      <div style="font-size:.6rem;color:${negativo?'var(--orange)':'var(--t2)'};margin-top:3px">${negativo?'⚠ TZX está devendo pallets a este FC':'Débito (ainda não devolvido)'}</div>
     </div>`;
   }).join('');
   el.innerHTML=cardTZX+cardsFC;
@@ -6405,7 +6478,8 @@ async function deletePallet(){
 function _renderPalletsMiniWidget(){
   const porFC=FCS_PALLETS.map(fc=>{
     const inv=inventarioPallets.find(i=>i.fc===fc);
-    return `<span style="margin-right:8px"><strong>${fc}:</strong> ${inv?.saldoDevedor||0}</span>`;
+    const saldo=inv?.saldoDevedor||0;
+    return `<span style="margin-right:8px${saldo<0?';color:var(--orange);font-weight:700':''}"><strong>${fc}:</strong> ${saldo<0?'TZX deve '+Math.abs(saldo):saldo}</span>`;
   }).join('');
   return `<div style="display:flex;align-items:center;gap:6px;font-size:.68rem;cursor:pointer" onclick="setView('pallets')" title="Ir para Retorno de Pallets">
     <span style="color:var(--t2);font-weight:600">📦 Na TZX:</span>
@@ -8397,10 +8471,12 @@ function renderTVYard(){
     </div>
     ${FCS_PALLETS.map(fc=>{
       const inv=inventarioPallets.find(i=>i.fc===fc);
-      return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;text-align:center">
+      const saldo=inv?.saldoDevedor||0;
+      const negativo=saldo<0;
+      return `<div style="background:var(--bg2);border:1px solid ${negativo?'var(--orange)':'var(--bd)'};border-radius:8px;padding:8px 10px;text-align:center">
         <div style="font-size:.62rem;color:var(--t2);font-weight:700">${fc}</div>
-        <div style="font-size:1.15rem;font-weight:800;color:var(--text)">${inv?.saldoDevedor||0}</div>
-        <div style="font-size:.55rem;color:var(--t3)">pallets c/ FC</div>
+        <div style="font-size:1.15rem;font-weight:800;color:${negativo?'var(--orange)':'var(--text)'}">${Math.abs(saldo)}</div>
+        <div style="font-size:.55rem;color:var(--t3)">${negativo?'TZX deve':'pallets c/ FC'}</div>
       </div>`;
     }).join('')}
   </div>
