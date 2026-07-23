@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v247</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v248</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -6519,7 +6519,8 @@ function _ruasSnapshotAtual(){
     const caf=r.caf_id?cafsDB.find(c=>c.id===r.caf_id):null;
     return {
       numero:r.numero,andar:r.andar,
-      caf:caf?caf.num:'',rota:caf?caf.rota:'',vencimento:caf?caf.venc:'',statusCaf:caf?caf.status:''
+      caf:caf?caf.num:'',rota:caf?caf.rota:'',vencimento:caf?caf.venc:'',statusCaf:caf?caf.status:'',
+      pallets:caf?(caf.pallets||0):null
     };
   });
 }
@@ -6611,13 +6612,13 @@ function renderChecklistAtivo(targetId){
       <div style="overflow-x:auto;margin-bottom:12px">
         <table style="width:100%;font-size:.72rem">
           <thead><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
-            <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+            <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
           </tr></thead>
           <tbody>
             ${chk.ruasSnapshot.length?chk.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
               <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
-              <td>${esc(r.caf)||'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
-            </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada no momento do checklist.</td></tr>'}
+              <td>${esc(r.caf)||'—'}</td><td style="text-align:center;font-weight:700">${r.pallets??'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
+            </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada no momento do checklist.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -6654,7 +6655,7 @@ let _chkSaveTimer=null;
 function _chkSalvarRascunho(chk){
   clearTimeout(_chkSaveTimer);
   _chkSaveTimer=setTimeout(async()=>{
-    try{await sbUpsert(TABELA_CHECKLIST,{id:chk.id,itens:chk.itens,pendencias:chk.pendencias||null},'id');}catch(e){console.warn('rascunho checklist:',e);}
+    try{await sbUpdate(TABELA_CHECKLIST,chk.id,{itens:chk.itens,pendencias:chk.pendencias||null});}catch(e){console.warn('rascunho checklist:',e);}
   },900);
 }
 
@@ -6673,7 +6674,7 @@ async function fecharChecklist(){
   await Promise.all([loadRuas(),loadCAFs()]);
   const ruasFinal=_ruasSnapshotAtual();
   try{
-    await sbUpsert(TABELA_CHECKLIST,{id:chk.id,itens:chk.itens,pendencias:chk.pendencias||null,ruas_snapshot:ruasFinal,status:'FECHADO',fechado_em:nowIso,fechado_por:who},'id');
+    await sbUpdate(TABELA_CHECKLIST,chk.id,{itens:chk.itens,pendencias:chk.pendencias||null,ruas_snapshot:ruasFinal,status:'FECHADO',fechado_em:nowIso,fechado_por:who});
   }catch(e){console.error('fecharChecklist:',e);showToast('❌ Erro ao fechar checklist','err');loading(false);return;}
   await loadChecklistsTurno();
   loading(false);
@@ -6752,13 +6753,13 @@ function abrirRelatorioTurno(checklistId){
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;font-size:.75rem">
         <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-          <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+          <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
         </tr></thead>
         <tbody>
           ${c.ruasSnapshot.length?c.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
             <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
-            <td>${esc(r.caf)||'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
-          </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada.</td></tr>'}
+            <td>${esc(r.caf)||'—'}</td><td style="text-align:center;font-weight:700">${r.pallets??'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
+          </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada.</td></tr>'}
         </tbody>
       </table>
     </div>
