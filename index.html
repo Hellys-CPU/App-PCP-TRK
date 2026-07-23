@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v249</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v250</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -3146,8 +3146,19 @@ function renderList(){
   document.getElementById('listBody').innerHTML=data.map((op,i)=>{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
     const dc=d=>d===null?'var(--t2)':_otCor(_otScore(Math.max(0,d)));
+    const cafsDaOp=cafsDB.filter(c=>c.opId===op.id);
+    const totalPallets=cafsDaOp.reduce((s,c)=>s+(Number(c.pallets)||0),0);
+    const rowId='det-'+op.id.replace(/[^a-zA-Z0-9]/g,'');
     return `<tr onclick="openEdit('${esc(op.id)}')">
-      <td style="color:var(--t2);font-size:.7rem">${i+1}</td><td style="color:var(--red);font-weight:700;font-size:.72rem">${esc(op.id)}${op.codigoCurto?`<div style="color:var(--t2);font-weight:600;font-size:.6rem">${esc(op.codigoCurto)}</div>`:''}</td><td>${fmtD(op.dataOp)}</td>
+      <td style="color:var(--t2);font-size:.7rem">${i+1}</td>
+      <td style="font-size:.72rem">
+        <div style="display:flex;align-items:center;gap:4px">
+          <button onclick="event.stopPropagation();toggleCAFExpandRow('${rowId}')" style="background:none;border:none;color:var(--t2);cursor:pointer;padding:0;font-size:.7rem;line-height:1" title="Ver CAFs vinculadas">▸</button>
+          <span style="color:var(--red);font-weight:700">${op.codigoCurto?esc(op.codigoCurto):esc(op.id)}</span>
+        </div>
+        <div style="color:var(--t3);font-weight:500;font-size:.58rem;margin-left:14px" title="ID interno do banco">${esc(op.id)}</div>
+      </td>
+      <td>${fmtD(op.dataOp)}</td>
       <td>${op.planApres||'—'}</td>
       <td><span class="rota-cell">${esc(op.rota)}</span></td>
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
@@ -3161,8 +3172,27 @@ function renderList(){
       <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoSaida||'')}">${esc(op.motivoAtrasoSaida||(dS>30?'⚠ sem motivo':'—'))}</td>
       <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoChegada||'')}">${esc(op.motivoAtrasoChegada||(dC>30?'⚠ sem motivo':'—'))}</td>
       <td><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
+    </tr>
+    <tr id="${rowId}" style="display:none" onclick="event.stopPropagation()">
+      <td></td>
+      <td colspan="20" style="background:var(--bg3);padding:8px 10px">
+        ${cafsDaOp.length?`<div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${cafsDaOp.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:.72rem;cursor:pointer" onclick="event.stopPropagation();openEditCAF('${esc(c.id)}')" title="Abrir CAF">
+            <strong style="color:#16a34a">📦 CAF ${esc(c.num)}</strong> · ${c.pallets||0} pallet(s) · <span class="sb sb-${c.status}" style="font-size:.6rem">${esc(c.status)}</span>
+          </div>`).join('')}
+          <div style="align-self:center;font-size:.68rem;color:var(--t2);font-weight:700">Total: ${totalPallets} pallet(s) em ${cafsDaOp.length} CAF(s)</div>
+        </div>`:'<span style="font-size:.72rem;color:var(--t3)">Nenhuma CAF vinculada a esta viagem ainda.</span>'}
+      </td>
     </tr>`;
   }).join('');
+}
+
+// Expande/recolhe a linha de detalhe das CAFs vinculadas a uma viagem, na aba Lista
+function toggleCAFExpandRow(rowId){
+  const row=document.getElementById(rowId);if(!row)return;
+  const jaAberta=row.style.display!=='none';
+  document.querySelectorAll('#listBody tr[id^="det-"]').forEach(r=>r.style.display='none');
+  row.style.display=jaAberta?'none':'table-row';
 }
 
 // Alterna entre a tabela de Viagens e a tabela de Retorno de Pallets na aba Lista
