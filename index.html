@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v257</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v258</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1689,11 +1689,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v257';
+const APP_VERSION='v258';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v258:['🐛 Corrigido bug onde permissão customizada de criar/editar CAF (ex: perfil Liderança) não liberava atrelar rua nem escolher status.'],
   v257:['🐛 Corrigido bug que impedia o perfil Doca de salvar atribuição de doca e status Em Carregamento.'],
   v256:['📊 Gauge visual (medidor) mostrando o quão precário está o estoque de pallets na TZX, com faixas Crítico/Atenção/Controlado/Ótimo.'],
   v255:['📦 Retorno de Pallets: saldo devedor por FC agora aceita valores negativos (TZX pode dever pro FC também).','⚠ Aviso quando CAF vai pra Processo de Entrega sem Qtd. de Pallets preenchida (evita débito não contabilizado silenciosamente).'],
@@ -1804,9 +1805,17 @@ function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
 function isReadOnly(){return _perfil()==='visualizador';}
 function _cafStatusPermitido(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  if(['admin','supervisor'].includes(p))return['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','Entrega Realizada','cancelada','Produzida','Em Auditoria GRIS'];
+  const TODOS=['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','cancelada','Produzida','Em Auditoria GRIS'];
+  // Permissão granular de acesso total a qualquer status — vale pra qualquer perfil que tiver
+  // essa permissão customizada, não só admin/supervisor
+  if(hasPerm('caf_status_full'))return TODOS;
+  if(['admin','supervisor'].includes(p))return TODOS;
   if(p==='operador_caf')return['Em Produção','Produzida','Em Auditoria GRIS'];
   if(p==='torre_controle')return['Processo de Entrega','Entrega Realizada'];
+  // Qualquer outro perfil (ex: Liderança) que tenha ganhado permissão customizada de criar/editar
+  // CAF precisa conseguir pelo menos o conjunto básico de criação/produção, senão fica travado
+  // mesmo tendo a permissão de editar liberada.
+  if(hasPerm('caf_editar')||hasPerm('caf_criar'))return['Em Produção','Produzida','Em Auditoria GRIS'];
   return[];
 }
 
@@ -5689,7 +5698,7 @@ function aplicarPermissaoStatusCAF(){
   Array.from(sel.options).forEach(o=>{o.disabled=!permitidos.includes(o.value);});
   const ruaSel=document.getElementById('cafRua');
   if(ruaSel){
-    const podeRua=['admin','supervisor','operador_caf'].includes(_perfil());
+    const podeRua=hasPerm('caf_rua');
     ruaSel.disabled=!podeRua;
   }
 }
