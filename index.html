@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v253</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v254</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1111,6 +1111,20 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div class="mhdr-actions"><button class="mclose" onclick="document.getElementById('overlayRelatorioTurno').classList.remove('open')">✕</button></div>
     </div>
     <div class="mbody" id="relatorioTurnoBody" style="max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL DE NOVIDADES (histórico de versão, aberto manualmente pelo badge) -->
+<div class="overlay" id="overlayNovidades">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr" style="border-top-color:var(--red)">
+      <h2 style="color:var(--red)">🆕 Novidades</h2>
+      <div class="mhdr-actions"><button class="mclose" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✕</button></div>
+    </div>
+    <div class="mbody" id="novidadesBody" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✅ Entendi</button>
+    </div>
   </div>
 </div>
 
@@ -1675,11 +1689,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v253';
+const APP_VERSION='v254';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v254:['🐛 Corrigido bug crítico que impedia o login (elemento HTML fora de ordem quebrava o script inteiro).'],
   v253:['🔄 Aviso automático quando sai uma versão nova, sem precisar de F5 manual.'],
   v252:['🆕 Badge de versão clicável mostra o que mudou.'],
   v251:['🔒 Bloqueio automático de múltiplas abas do navegador (evita duplicar conexão no banco).'],
@@ -9780,19 +9795,6 @@ _tabLockTentarReivindicar(venceu=>{
   else _mostrarBloqueioMultiAba();
 });
 </script>
-<!-- Modal de Novidades — aparece sozinho quando a versão publicada muda -->
-<div class="overlay" id="overlayNovidades">
-  <div class="modal" style="max-width:460px">
-    <div class="mhdr" style="border-top-color:var(--red)">
-      <h2 style="color:var(--red)">🆕 Novidades</h2>
-      <div class="mhdr-actions"><button class="mclose" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✕</button></div>
-    </div>
-    <div class="mbody" id="novidadesBody" style="max-height:60vh;overflow-y:auto"></div>
-    <div class="mfoot">
-      <button class="btn btn-s" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✅ Entendi</button>
-    </div>
-  </div>
-</div>
 
 <!-- Bloqueio de múltiplas abas — evita duplicar conexões/consumo no plano free do Supabase -->
 <div id="multiTabBlock" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Segoe UI',sans-serif;padding:24px">
