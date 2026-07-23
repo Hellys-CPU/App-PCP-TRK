@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v251</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v253</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1675,8 +1675,98 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v67';
+const APP_VERSION='v253';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
+
+// ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
+const CHANGELOG={
+  v253:['🔄 Aviso automático quando sai uma versão nova, sem precisar de F5 manual.'],
+  v252:['🆕 Badge de versão clicável mostra o que mudou.'],
+  v251:['🔒 Bloqueio automático de múltiplas abas do navegador (evita duplicar conexão no banco).'],
+  v250:['📋 Lista: VG em destaque como ID principal (OP vira só referência interna).','🧰 Lista: linha expansível mostrando CAF(s) vinculada(s) e quantidade de pallets por viagem.'],
+  v249:['📄 Relatório de Passagem de Turno: exportação em PDF.','🧰 Relatório agora mostra todos os itens conferidos, mesmo sem pendência/quebra.'],
+  v248:['🐛 Corrigido erro ao fechar Checklist de Turno.','🐛 Corrigida ausência da quantidade de pallets nas ruas ocupadas do checklist.'],
+  v247:['⛶ Aviso de toque para ativar Tela Cheia no modo TV (exigência do navegador).','⛶ Botão manual de Tela Cheia nas telas de TV.'],
+  v246:['📺 Novo perfil "TV Pública": entra direto em modo TV e reveza sozinho entre TV/TV Yard.','🔄 Auto-reload da tela de TV a cada 5 horas.'],
+  v245:['🎨 Corrigido tema escuro no filtro de data do Checklist de Turno.'],
+  v244:['🐛 Corrigido bug que impedia o Checklist de Turno de salvar e atualizar em tempo real.'],
+  v243:['🗑 Opção de excluir Checklist de Turno, restrita por permissão.','📋 Checklist agora sempre abre em modal (sem precisar rolar a página).'],
+  v242:['🧰 Novo módulo "Insumos HUB": catálogo de equipamentos, movimentações e Checklist de Passagem de Turno com plano de ação obrigatório.','👤 Novo perfil "Liderança".'],
+  v241:['🚛 Retorno de Pallets: campos de Tipologia e Placa Carreta.'],
+  v240:['🐛 Corrigido menu suspenso "Relatórios/TV" que não abria (problema de rolagem do container).'],
+  v239:['📊 Menu do topo reorganizado em "Relatórios" e "TV" para reduzir poluição visual.'],
+  v235:['📟 Retorno de Pallets: campos de SM e ID preenchidos pela Torre.'],
+  v233:['🚚 Retorno de Pallets ganhou análise, KPIs de auditoria e vínculo com a viagem de origem.'],
+  v231:['🔄 Retorno de Pallets integrado à Gestão de Doca, com atribuição de doca.'],
+};
+
+// ══════════════════════════════════════════════════════════════════
+// CHECAGEM AUTOMÁTICA DE VERSÃO — detecta sozinho quando alguém sobe uma
+// atualização nova pro servidor, mesmo que a pessoa não dê F5. Não depende
+// de eu manter changelog nenhum: só compara a versão publicada com a que
+// esta aba já tem carregada, e avisa se estiverem diferentes.
+// ══════════════════════════════════════════════════════════════════
+const VERSION_CHECK_MS=3*60*1000; // confere a cada 3 minutos
+let _versionCheckTimer=null;
+function _iniciarChecagemVersaoRemota(){
+  if(_versionCheckTimer)return;
+  _checarVersaoRemota(); // primeira checagem já na entrada
+  _versionCheckTimer=setInterval(_checarVersaoRemota,VERSION_CHECK_MS);
+  // Também confere assim que a pessoa volta pra aba (ex: deixou minimizado o dia todo)
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')_checarVersaoRemota();});
+}
+async function _checarVersaoRemota(){
+  try{
+    const res=await fetch(location.pathname+location.search+(location.search?'&':'?')+'_vc='+Date.now(),{cache:'no-store'});
+    if(!res.ok)return;
+    const txt=await res.text();
+    const m=txt.match(/APP_VERSION\s*=\s*'(v\d+)'/);
+    if(m&&m[1]&&m[1]!==APP_VERSION)_mostrarBannerNovaVersao(m[1]);
+  }catch(e){/* falha de rede — não incomoda o usuário por isso, tenta de novo no próximo ciclo */}
+}
+function _mostrarBannerNovaVersao(novaVersao){
+  if(document.getElementById('bannerNovaVersao'))return; // já está mostrando
+  const b=document.createElement('div');
+  b.id='bannerNovaVersao';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:#8b1a1a;color:#fff;text-align:center;padding:9px 14px;font-size:.8rem;font-weight:700;display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.4)';
+  b.innerHTML=`🔄 Nova versão disponível (${esc(novaVersao)}) — atualize para evitar erros de tela desatualizada.
+    <button onclick="location.reload()" style="background:#fff;color:#8b1a1a;border:none;border-radius:6px;padding:5px 16px;font-weight:800;cursor:pointer;font-size:.78rem">Atualizar agora</button>`;
+  document.body.prepend(b);
+}
+
+// Abre o popup de Novidades. forcar=true (clique manual no badge) sempre mostra a versão atual.
+// desde=versão anterior vista, pra listar tudo que mudou entre ela e a atual (não só a última).
+function abrirNovidades(forcar,desde){
+  const versoes=Object.keys(CHANGELOG);
+  let mostrar=[];
+  if(forcar||!desde){
+    mostrar=CHANGELOG[APP_VERSION]?[[APP_VERSION,CHANGELOG[APP_VERSION]]]:[];
+  }else{
+    // Lista todas as versões do changelog mais novas que a última vista pela pessoa
+    mostrar=versoes.filter(v=>_verMaiorQue(v,desde)).map(v=>[v,CHANGELOG[v]]);
+    if(!mostrar.length&&CHANGELOG[APP_VERSION])mostrar=[[APP_VERSION,CHANGELOG[APP_VERSION]]];
+  }
+  const body=document.getElementById('novidadesBody');if(!body)return;
+  if(!mostrar.length){
+    body.innerHTML='<div style="color:var(--t3);font-size:.8rem">Sem novidades registradas nesta versão.</div>';
+  }else{
+    body.innerHTML=mostrar.map(([v,itens])=>`
+      <div style="margin-bottom:14px">
+        <div style="font-weight:800;color:var(--red);font-size:.8rem;margin-bottom:6px">${v}</div>
+        <ul style="margin:0;padding-left:18px;font-size:.8rem;line-height:1.7">
+          ${itens.map(i=>`<li>${i}</li>`).join('')}
+        </ul>
+      </div>`).join('');
+  }
+  document.getElementById('overlayNovidades').classList.add('open');
+}
+// Compara duas strings de versão tipo "v251" e "v99" numericamente (evita bug de comparar como texto)
+function _verMaiorQue(a,b){
+  const na=parseInt((a||'').replace(/\D/g,''))||0;
+  const nb=parseInt((b||'').replace(/\D/g,''))||0;
+  return na>nb;
+}
+
 const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
 const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
@@ -2280,6 +2370,9 @@ async function bootApp(){
       const p=document.getElementById('tvFullscreenPrompt');if(p)p.style.display='flex';
     }
   }
+  // Popup de Novidades — aparece sozinho quando detecta que a versão publicada mudou
+  const badgeV=document.getElementById('appVersionBadge');if(badgeV)badgeV.textContent=APP_VERSION;
+  // Não mostra mais o popup de "novidades" sozinho — só verifica se a versão publicada mudou (ver abaixo)
   // Realtime e presença — não-bloqueantes, falhas não afetam a UI
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
   try{initAbly();}catch(e){console.error('boot initAbly:',e);}
@@ -3940,6 +4033,7 @@ document.getElementById('overlayUser').addEventListener('click',function(e){if(e
 document.getElementById('overlayCAF').addEventListener('click',function(e){if(e.target===this)closeCAFModal();});
 document.getElementById('overlayPallet').addEventListener('click',function(e){if(e.target===this)closePalletModal();});
 document.getElementById('overlayInsumo').addEventListener('click',function(e){if(e.target===this)closeInsumoModal();});
+document.getElementById('overlayNovidades').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 document.getElementById('overlayChecklistAtivo').addEventListener('click',function(e){if(e.target===this)closeChecklistAtivoModal();});
 document.getElementById('overlayInsumoMov').addEventListener('click',function(e){if(e.target===this)closeInsumoMovModal();});
 document.getElementById('overlayRelatorioTurno').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
@@ -9676,6 +9770,7 @@ function _iniciarAppComLock(){
     const atual=_tabLockLerAtual();
     if(atual&&atual.tabId===_TAB_ID){try{localStorage.removeItem(_TAB_LOCK_KEY);}catch(e){}}
   });
+  _iniciarChecagemVersaoRemota();
   loadTheme();
   initAuth();
 }
@@ -9685,6 +9780,20 @@ _tabLockTentarReivindicar(venceu=>{
   else _mostrarBloqueioMultiAba();
 });
 </script>
+<!-- Modal de Novidades — aparece sozinho quando a versão publicada muda -->
+<div class="overlay" id="overlayNovidades">
+  <div class="modal" style="max-width:460px">
+    <div class="mhdr" style="border-top-color:var(--red)">
+      <h2 style="color:var(--red)">🆕 Novidades</h2>
+      <div class="mhdr-actions"><button class="mclose" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✕</button></div>
+    </div>
+    <div class="mbody" id="novidadesBody" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="document.getElementById('overlayNovidades').classList.remove('open')">✅ Entendi</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bloqueio de múltiplas abas — evita duplicar conexões/consumo no plano free do Supabase -->
 <div id="multiTabBlock" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:'Segoe UI',sans-serif;padding:24px">
   <div style="font-size:3rem;margin-bottom:10px">🔒</div>
