@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v256</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v257</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1689,11 +1689,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v256';
+const APP_VERSION='v257';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v257:['🐛 Corrigido bug que impedia o perfil Doca de salvar atribuição de doca e status Em Carregamento.'],
   v256:['📊 Gauge visual (medidor) mostrando o quão precário está o estoque de pallets na TZX, com faixas Crítico/Atenção/Controlado/Ótimo.'],
   v255:['📦 Retorno de Pallets: saldo devedor por FC agora aceita valores negativos (TZX pode dever pro FC também).','⚠ Aviso quando CAF vai pra Processo de Entrega sem Qtd. de Pallets preenchida (evita débito não contabilizado silenciosamente).'],
   v254:['🐛 Corrigido bug crítico que impedia o login (elemento HTML fora de ordem quebrava o script inteiro).'],
@@ -1995,7 +1996,7 @@ async function _checkDeletions(){
 }
 
 async function saveToSupabase(op){
-  if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')){showToast('Sem permissão para editar','err');return;}
+  if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')&&!hasPerm('doca_atrelar')){showToast('Sem permissão para editar','err');return;}
   if(!supabaseOK)return;
   const now=new Date().toISOString();
   // Sanitiza horários — mantém data+hora completa quando disponível (datetime-local),
