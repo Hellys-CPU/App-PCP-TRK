@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v248</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700">v249</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -6737,9 +6737,12 @@ function abrirRelatorioTurno(checklistId){
   const body=document.getElementById('relatorioTurnoBody');if(!body)return;
   const pendentes=c.itens.filter(it=>!it.ok||it.quebrado);
   body.innerHTML=`
-    <div style="margin-bottom:14px">
-      <div style="font-size:.85rem;font-weight:700">${c.momento==='INICIO'?'🌅 Início':'🌇 Término'} de Turno — ${fmtD(c.data)}</div>
-      <div style="font-size:.75rem;color:var(--t2)">${TURNOS_HUB.find(t=>t.id===c.turno)?.lb||c.turno} · Responsável: ${esc(c.responsavel)}${c.fechadoPor?` · Fechado por: ${esc(c.fechadoPor)} em ${new Date(c.fechadoEm).toLocaleString('pt-BR')}`:''}</div>
+    <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:.85rem;font-weight:700">${c.momento==='INICIO'?'🌅 Início':'🌇 Término'} de Turno — ${fmtD(c.data)}</div>
+        <div style="font-size:.75rem;color:var(--t2)">${TURNOS_HUB.find(t=>t.id===c.turno)?.lb||c.turno} · Responsável: ${esc(c.responsavel)}${c.fechadoPor?` · Fechado por: ${esc(c.fechadoPor)} em ${new Date(c.fechadoEm).toLocaleString('pt-BR')}`:''}</div>
+      </div>
+      <button class="btn btn-p" onclick="imprimirChecklist('${esc(c.id)}')" style="background:#8b5cf6;font-size:.7rem;white-space:nowrap">📄 Exportar PDF</button>
     </div>
     <div class="sec" style="margin-top:0">⚠ Pendências e Quebras (${pendentes.length})</div>
     ${pendentes.length?`<div style="display:grid;gap:6px;margin-bottom:14px">${pendentes.map(it=>`
@@ -6748,6 +6751,22 @@ function abrirRelatorioTurno(checklistId){
         <div style="font-size:.7rem;color:var(--t2)">Catálogo: ${it.qtd_fisica_catalogo} · Conferido: ${it.qtd_conferida}</div>
         <div style="font-size:.72rem;margin-top:3px"><strong>Plano de ação:</strong> ${esc(it.plano_acao||'—')}</div>
       </div>`).join('')}</div>`:'<div style="color:var(--green);font-size:.78rem;margin-bottom:14px">✅ Nenhuma pendência ou quebra neste checklist.</div>'}
+
+    <div class="sec">🧰 Todos os Itens Conferidos (${c.itens.length})</div>
+    <div style="overflow-x:auto;margin-bottom:14px">
+      <table style="width:100%;font-size:.75rem">
+        <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+          <th style="padding:3px 6px">Item</th><th>Categoria</th><th>Tipo</th><th>Catálogo</th><th>Conferido</th><th>OK?</th><th>Quebrado?</th>
+        </tr></thead>
+        <tbody>
+          ${c.itens.map(it=>`<tr style="border-bottom:1px solid var(--bd)${(!it.ok||it.quebrado)?';background:var(--red4)':''}">
+            <td style="padding:3px 6px;font-weight:700">${esc(it.item)}</td><td>${esc(it.categoria)||'—'}</td><td>${esc(it.tipo)||'—'}</td>
+            <td style="text-align:center">${it.qtd_fisica_catalogo}</td><td style="text-align:center">${it.qtd_conferida}</td>
+            <td style="text-align:center">${it.ok?'✅':'❌'}</td><td style="text-align:center">${it.quebrado?'💥':'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
 
     <div class="sec">🚪 Ruas Ocupadas no Fechamento (${c.ruasSnapshot.length})</div>
     <div style="overflow-x:auto;margin-bottom:14px">
@@ -6763,10 +6782,63 @@ function abrirRelatorioTurno(checklistId){
         </tbody>
       </table>
     </div>
-    ${c.pendencias?`<div class="sec">📝 Observações Gerais</div><div style="font-size:.78rem;background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:10px">${esc(c.pendencias)}</div>`:''}
+    <div class="sec">📝 Observações Gerais</div><div style="font-size:.78rem;background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:10px">${esc(c.pendencias)||'—'}</div>
     ${hasPerm('insumo_credito_debito')?`<button class="btn btn-del" style="width:100%;margin-top:6px" onclick="document.getElementById('overlayRelatorioTurno').classList.remove('open');deleteChecklist('${esc(c.id)}')">🗑 Excluir Checklist</button>`:''}
   `;
   document.getElementById('overlayRelatorioTurno').classList.add('open');
+}
+
+// Exporta o relatório de passagem de turno em PDF via impressão nativa do navegador
+// (mesmo padrão já usado em outras exportações do sistema — abre janela, imprime, fecha sozinha)
+function imprimirChecklist(checklistId){
+  const c=checklistsTurno.find(x=>x.id===checklistId);if(!c)return;
+  const pendentes=c.itens.filter(it=>!it.ok||it.quebrado);
+  const win=window.open('','_blank','width=800,height=900');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Checklist de Turno ${fmtD(c.data)}</title>
+  <style>body{font-family:'Segoe UI',sans-serif;padding:24px;font-size:12px;color:#222}
+  h1{color:#8b5cf6;font-size:18px;margin-bottom:4px}
+  h2{font-size:12px;color:#666;margin-bottom:16px;font-weight:400}
+  .sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#555;margin:18px 0 8px;border-bottom:2px solid #8b5cf6;padding-bottom:3px}
+  table{width:100%;border-collapse:collapse;margin-bottom:10px}
+  th{background:#f3f0ff;padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#666}
+  td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px}
+  tr.problema td{background:#fee2e2}
+  .ok{color:#16a34a;font-weight:700}.err{color:#cc0000;font-weight:700}
+  .box{background:#f7f7f9;border-radius:6px;padding:10px;margin-bottom:8px}
+  @media print{body{padding:10px}}
+  </style></head><body>
+  <h1>📋 Relatório de Passagem de Turno</h1>
+  <h2>${c.momento==='INICIO'?'Início':'Término'} de Turno · ${fmtD(c.data)} · ${TURNOS_HUB.find(t=>t.id===c.turno)?.lb||c.turno} · Responsável: ${esc(c.responsavel)}${c.fechadoPor?` · Fechado por: ${esc(c.fechadoPor)} em ${new Date(c.fechadoEm).toLocaleString('pt-BR')}`:''}</h2>
+
+  <div class="sec">⚠ Pendências e Quebras (${pendentes.length})</div>
+  ${pendentes.length?pendentes.map(it=>`<div class="box"><strong>${esc(it.item)}</strong> ${it.quebrado?'💥 Quebrado':''} ${!it.ok?'⚠ Divergente':''}<br>
+    Catálogo: ${it.qtd_fisica_catalogo} · Conferido: ${it.qtd_conferida}<br>
+    <strong>Plano de ação:</strong> ${esc(it.plano_acao||'—')}</div>`).join(''):'<div class="ok">Nenhuma pendência ou quebra neste checklist.</div>'}
+
+  <div class="sec">🧰 Todos os Itens Conferidos (${c.itens.length})</div>
+  <table><tr><th>Item</th><th>Categoria</th><th>Tipo</th><th>Catálogo</th><th>Conferido</th><th>OK?</th><th>Quebrado?</th></tr>
+  ${c.itens.map(it=>`<tr class="${(!it.ok||it.quebrado)?'problema':''}">
+    <td>${esc(it.item)}</td><td>${esc(it.categoria)||'—'}</td><td>${esc(it.tipo)||'—'}</td>
+    <td>${it.qtd_fisica_catalogo}</td><td>${it.qtd_conferida}</td>
+    <td class="${it.ok?'ok':'err'}">${it.ok?'Sim':'Não'}</td><td class="${it.quebrado?'err':''}">${it.quebrado?'Sim':'Não'}</td>
+  </tr>`).join('')}
+  </table>
+
+  <div class="sec">🚪 Ruas Ocupadas no Fechamento (${c.ruasSnapshot.length})</div>
+  <table><tr><th>Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th></tr>
+  ${c.ruasSnapshot.length?c.ruasSnapshot.map(r=>`<tr>
+    <td>${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td><td>${esc(r.caf)||'—'}</td><td>${r.pallets??'—'}</td>
+    <td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
+  </tr>`).join(''):'<tr><td colspan="7">Nenhuma rua ocupada.</td></tr>'}
+  </table>
+
+  <div class="sec">📝 Observações Gerais</div>
+  <div class="box">${esc(c.pendencias)||'—'}</div>
+
+  <div style="font-size:9px;color:#999;margin-top:16px">Gerado em ${ts()} por ${currentUser?.nome||'—'}</div>
+  <script>window.print();window.onafterprint=()=>window.close();<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 async function desvincularCAF(){
