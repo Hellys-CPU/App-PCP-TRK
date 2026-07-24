@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v265</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v267</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1725,11 +1725,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v265';
+const APP_VERSION='v267';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v267:['🚪 Gestão de Doca (kanban): card agora mostra CAF + pallets + vencimento de verdade (não só contagem), com selo de % de ocupação. Modal de viagem: linha de CAF vinculada mostra pallets/vencimento quando bate com CAF real do banco.'],
+  v266:['🐛 Ocupação de veículo agora busca pela placa da carreta E do cavalo (a capacidade de carga é da carreta — antes só olhava o cavalo e o selo nunca aparecia pra viagens tipo CARRETA).'],
   v265:['🚛 Cadastro de Veículos virou aba própria (não mais dentro do Admin), com permissão granular veiculos_gerir — Torre de Controle já tem acesso. Importados 64 veículos reais da planilha de metragem.'],
   v264:['🚛 Novo Cadastro de Veículos (Admin): placa, metragem e capacidade de pallets calculada automaticamente (PBR 1,00x1,20m). Selo de % de ocupação na Lista e Gestão de Doca.'],
   v263:['🐛 Corrigido heatmap de SLA — última semana não fechava os 7 dias, desalinhando a coluna mais recente com o cabeçalho D-S-T-Q-Q-S-S.'],
@@ -3015,13 +3017,19 @@ function cardHTML(op){
   const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC);
   const lim=CFG.limiteAtraso||30;
   const rc=CFG.alertas?(dC>lim||dS>lim?'r-late':dC>0||dS>0?'r-warn':''):'';
+  // CAFs vinculadas de verdade (cafsDB tem vencimento/pallets — op.cafs é só um snapshot leve sem esses dados)
+  const cafsDaOp=cafsDB.filter(c=>c.opId===op.id);
+  const totalPalletsCard=cafsDaOp.reduce((s,c)=>s+(Number(c.pallets)||0),0);
   return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
     <div class="card-top"><span class="card-id">${esc(op.codigoCurto||op.id)}${op.sm?' · '+op.sm:''}<span style="font-weight:500;color:var(--t3);font-size:.6rem" title="ID técnico interno"> (${esc(op.id)})</span></span><span class="card-rota-badge">${esc(op.rota)}</span></div>
     <div class="card-badges">
       <span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span>
-      ${op.cafs.length?`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd)">${op.cafs.length} CAF${op.cafs.length>1?'s':''}</span>`:''}
       ${_cafAlertBadge(op)}
     </div>
+    ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin:4px 0">
+      ${cafsDaOp.map(c=>`<span class="badge" style="background:var(--bg4);color:var(--gray);border:1px solid var(--bd);font-size:.62rem" title="Clique no card pra abrir">📦 ${esc(c.num)} · ${c.pallets||0}pal · vence ${c.venc?fmtD(c.venc):'—'}</span>`).join('')}
+      ${_seloOcupacaoHTML(op.placa,op.placaCarreta,totalPalletsCard)}
+    </div>`:''}
     <div class="ci">
       <div class="row"><span class="lbl">Transp.</span><span class="val">${esc(op.transp)||'—'}</span></div>
       <div class="row"><span class="lbl">Motorista</span><span class="val">${esc(op.mot)||'—'}</span></div>
@@ -3350,7 +3358,7 @@ function renderList(){
           ${cafsDaOp.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:.72rem;cursor:pointer" onclick="event.stopPropagation();openEditCAF('${esc(c.id)}')" title="Abrir CAF">
             <strong style="color:#16a34a">📦 CAF ${esc(c.num)}</strong> · ${c.pallets||0} pallet(s) · <span class="sb sb-${c.status}" style="font-size:.6rem">${esc(c.status)}</span>
           </div>`).join('')}
-          <div style="align-self:center;font-size:.68rem;color:var(--t2);font-weight:700">Total: ${totalPallets} pallet(s) em ${cafsDaOp.length} CAF(s)${_seloOcupacaoHTML(op.placa,totalPallets)}</div>
+          <div style="align-self:center;font-size:.68rem;color:var(--t2);font-weight:700">Total: ${totalPallets} pallet(s) em ${cafsDaOp.length} CAF(s)${_seloOcupacaoHTML(op.placa,op.placaCarreta,totalPallets)}</div>
         </div>`:'<span style="font-size:.72rem;color:var(--t3)">Nenhuma CAF vinculada a esta viagem ainda.</span>'}
       </td>
     </tr>`;
@@ -3548,7 +3556,7 @@ function renderProg(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
           <div>
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
-            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(op.placa)||'—'}${_seloOcupacaoHTML(op.placa,cafsDB.filter(c=>c.opId===op.id).reduce((s,c)=>s+(Number(c.pallets)||0),0))}</div>
+            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(op.placa)||'—'}${_seloOcupacaoHTML(op.placa,op.placaCarreta,cafsDB.filter(c=>c.opId===op.id).reduce((s,c)=>s+(Number(c.pallets)||0),0))}</div>
             ${op.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${esc(op.placaCarreta)}</div>`:''}
           </div>
           <div>
@@ -4287,7 +4295,11 @@ function calcD(){
   if(el){if(dDoc!==null){el.style.display='inline-block';el.textContent='⏱ Doca: '+fDiff(dDoc);}else el.style.display='none';}
 }
 let cafIdx=0;
-function cafR(c,i){return `<div class="caf-row" id="cr-${i}"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('.caf-row').remove()">✕</button></div>`;}
+function cafR(c,i){
+  const real=c.num?cafsDB.find(x=>x.num===c.num):null;
+  const info=real?`<div style="font-size:.62rem;color:var(--t2);padding:2px 0 0 2px">📦 ${real.pallets||0} pallet(s) · vence ${real.venc?fmtD(real.venc):'—'} · <span style="color:${real.status==='Entrega Realizada'?'var(--green)':'var(--t2)'}">${esc(real.status)}</span></div>`:'';
+  return `<div id="cr-${i}"><div class="caf-row"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('#cr-${i}').remove()">✕</button></div>${info}</div>`;
+}
 function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
 
 async function saveCard(){
@@ -7231,10 +7243,15 @@ function _buscarVeiculo(placa){
   const p=placa.trim().toUpperCase();
   return veiculosCadastro.find(v=>v.placa===p)||null;
 }
+// A capacidade de carga é característica da CARRETA (o baú), não do cavalo — então prioriza
+// a placa da carreta na busca, e só cai pra placa do cavalo se não tiver carreta (TRUCK/TOCO).
+function _buscarVeiculoOp(placaCavalo,placaCarreta){
+  return _buscarVeiculo(placaCarreta)||_buscarVeiculo(placaCavalo);
+}
 
-// Retorna {pct, capacidade, pallets, veiculo} ou null se a placa não estiver cadastrada
-function _ocupacaoVeiculo(placa,pallets){
-  const v=_buscarVeiculo(placa);
+// Retorna {pct, capacidade, pallets, veiculo} ou null se nenhuma das duas placas estiver cadastrada
+function _ocupacaoVeiculo(placaCavalo,placaCarreta,pallets){
+  const v=_buscarVeiculoOp(placaCavalo,placaCarreta);
   if(!v||!v.capacidadePallets)return null;
   const pct=Math.min(999,Math.round((pallets||0)/v.capacidadePallets*100));
   return{pct,capacidade:v.capacidadePallets,pallets:pallets||0,veiculo:v};
@@ -7247,10 +7264,10 @@ function _corOcupacao(pct){
 }
 
 // Pequeno selo de ocupação pra usar em qualquer card (Lista, Gestão de Doca...)
-function _seloOcupacaoHTML(placa,pallets){
-  const oc=_ocupacaoVeiculo(placa,pallets);
+function _seloOcupacaoHTML(placaCavalo,placaCarreta,pallets){
+  const oc=_ocupacaoVeiculo(placaCavalo,placaCarreta,pallets);
   if(!oc)return'';
-  return `<span title="${oc.pallets} de ${oc.capacidade} pallets (placa ${esc(placa)})" style="font-size:.6rem;font-weight:800;color:${_corOcupacao(oc.pct)};background:var(--bg3);border-radius:3px;padding:1px 5px;margin-left:4px">🚛 ${oc.pct}%</span>`;
+  return `<span title="${oc.pallets} de ${oc.capacidade} pallets (placa ${esc(oc.veiculo.placa)})" style="font-size:.6rem;font-weight:800;color:${_corOcupacao(oc.pct)};background:var(--bg3);border-radius:3px;padding:1px 5px;margin-left:4px">🚛 ${oc.pct}%</span>`;
 }
 
 async function saveVeiculoToDB(v){
