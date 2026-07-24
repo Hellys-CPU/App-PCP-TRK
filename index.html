@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v259</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v261</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -764,7 +764,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
     <div id="progPalletsWrap" style="margin-top:16px"></div>
-  </div>
 </div>
 
 <!-- MASSA -->
@@ -1320,9 +1319,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="mhdr"><h2>👤 Identificação do Turno</h2></div>
     <div class="mbody">
       <p style="font-size:.8rem;color:var(--t2);margin-bottom:12px">Este é um login compartilhado. Informe seu nome para registrar quem está operando neste turno.</p>
-      <div class="fg"><label>Seu nome completo</label><input id="turnoNome" placeholder="Ex: João Silva" style="font-size:16px"/></div>
+      <div class="fg"><label>Turno atual</label><input id="turnoAtual" disabled></div>
+      <div class="fg" style="margin-top:10px"><label>Seu nome completo</label><input id="turnoNome" placeholder="Ex: João Silva" style="font-size:16px"/></div>
     </div>
-    <div class="mftr">
+    <div class="mfoot">
       <button class="btn btn-p" style="width:100%" onclick="_iniciarTurno()">▶ Iniciar Turno</button>
     </div>
   </div>
@@ -1422,7 +1422,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
         <div class="fg"><label>Cor do Avatar</label><div id="euCores" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>
       </div>
-    </div>
       <!-- Permissões customizadas -->
       <div style="margin-top:14px;border-top:1px solid var(--bd);padding-top:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -1444,7 +1443,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </div>
       </div>
     </div>
-    <div class="mftr">
+    <div class="mfoot">
       <button class="btn" onclick="closeEditUserModal()">Cancelar</button>
       <button class="btn btn-p" onclick="confirmEditUser()">💾 Salvar Alterações</button>
     </div>
@@ -1475,7 +1474,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         • Histórico completo de alterações
       </div>
     </div>
-    <div class="mftr">
+    <div class="mfoot">
       <button class="btn btn-g" onclick="_fecharExtracaoCompleta()">Cancelar</button>
       <button class="btn btn-s" onclick="_gerarExtracaoCompleta()">📊 Gerar Excel</button>
     </div>
@@ -1483,22 +1482,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 <!-- MODAL CAF -->
-<div class="overlay" id="overlayTurno">
-  <div class="modal" style="max-width:420px">
-    <div class="mhdr" style="border-top-color:var(--blue)">
-      <h2 style="color:var(--blue)">🕒 Quem está operando?</h2>
-    </div>
-    <div class="mbody">
-      <p style="font-size:.78rem;color:var(--t2);margin-bottom:10px">Login compartilhado. Informe o nome de quem está no turno.</p>
-      <div class="fg"><label>Turno atual</label><input id="turnoAtual" disabled></div>
-      <div class="fg"><label>Nome do operador</label><input id="turnoNome" placeholder="Ex: João Silva"></div>
-    </div>
-    <div class="mfoot">
-      <button class="btn btn-s" id="btnConfirmarTurno" onclick="confirmarTurno()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
 <div class="overlay" id="overlaySessaoExistente">
   <div class="modal" style="max-width:420px">
     <div class="mhdr" style="border-top-color:var(--red)">
@@ -1689,11 +1672,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v259';
+const APP_VERSION='v261';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v261:['🧹 Auditoria completa do código: removido modal de turno duplicado, corrigida validação de doca dupla que usava data errada, corrigida estrutura HTML de 3 modais (rodapés sem estilo e permissões fora do corpo), blindado boot contra localStorage corrompido.'],
+  v260:['🐛 Corrigido bug que impedia perfis com permissão customizada (ex: Liderança) de salvar CAF, mesmo com caf_criar/caf_editar liberado.'],
   v259:['🎨 Alerta de CAF sem baixa agora vem compacto por padrão, expansível, com botão de fechar (não trava mais o cadastro no tablet).'],
   v258:['🐛 Corrigido bug onde permissão customizada de criar/editar CAF (ex: perfil Liderança) não liberava atrelar rua nem escolher status.'],
   v257:['🐛 Corrigido bug que impedia o perfil Doca de salvar atribuição de doca e status Em Carregamento.'],
@@ -1867,8 +1852,8 @@ async function exigirTurnoOperador(perfilRaw){
       return;
     }
   }catch(e){console.warn('consultar turno:',e);}
-  document.getElementById('turnoAtual').value=_turnoAtualLabel();
-  document.getElementById('turnoNome').value='';
+  const elTA=document.getElementById('turnoAtual');if(elTA)elTA.value=_turnoAtualLabel();
+  const elTN=document.getElementById('turnoNome');if(elTN)elTN.value='';
   elStatus.style.display='none';
   elOv.classList.add('open');
 }
@@ -3734,7 +3719,7 @@ function tempoAguardandoDescarga(op){
 // ══════════════════════════════════════════════════════════════════
 // ALERTA CRÍTICO: veículo aguardando descarga há 24h+ — decisão necessária
 // ══════════════════════════════════════════════════════════════════
-window._alerta24hDispensados=new Set(JSON.parse(localStorage.getItem('trk_24h_dispensados')||'[]'));
+window._alerta24hDispensados=(()=>{try{return new Set(JSON.parse(localStorage.getItem('trk_24h_dispensados')||'[]'));}catch(e){return new Set();}})();
 window._alerta24hUltimoSom=0;
 window._audioCtxDesbloqueado=false;
 
@@ -5801,7 +5786,10 @@ async function saveCAF(){
   // Trava de duplo-clique — evita criar CAF duplicada por clique duplo/rápido
   const btnSalvarCAF=document.querySelector('#overlayCAF .btn-s');
   if(btnSalvarCAF){if(btnSalvarCAF.disabled)return;btnSalvarCAF.disabled=true;setTimeout(()=>{if(btnSalvarCAF)btnSalvarCAF.disabled=false;},2500);}
-  const perfilPermitido=['admin','supervisor','operador_caf','torre_controle'].includes(_perfil());
+  // Permite salvar quem tem caf_criar/caf_editar liberado (perfil ou permissão customizada,
+  // ex: Liderança), OU quem só pode avançar status específicos (ex: torre_controle, que não
+  // tem caf_editar mas precisa dar baixa/avançar status de "Processo de Entrega")
+  const perfilPermitido=hasPerm('caf_criar')||hasPerm('caf_editar')||_cafStatusPermitido(currentUser?.perfil).length>0;
   if(!perfilPermitido){showToast('⛔ Sem permissão para salvar CAFs','err');return;}
   const existentePreCheck=editCAFId?cafsDB.find(c=>c.id===editCAFId):null;
   let num=(document.getElementById('cafNum')?.value||'').trim();
@@ -8952,7 +8940,7 @@ function validarDoca(){
   // Bloqueio de doca dupla no modal
   if(st === 'EMCARR' && doca && editId){
     const op=ops.find(o=>o.id===editId);
-    const dataOp=document.getElementById('fDataOp')?.value||op?.dataOp||'';
+    const dataOp=document.getElementById('fDO')?.value||op?.dataOp||'';
     const docaEmUso=ops.find(o=>
       o.id!==editId &&
       o.doca===doca &&
@@ -9289,17 +9277,8 @@ function _setFiltrosHoje(){
 // ══════════════════════════════════════════════════════════════════
 // SEGURANÇA — Sanitização contra XSS
 // ══════════════════════════════════════════════════════════════════
-// Escapa HTML para uso seguro em innerHTML
-function esc(s){
-  if(s===null||s===undefined)return'';
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;')
-    .replace(/`/g,'&#96;');
-}
+// (função esc definida no início do script — duplicata removida)
+
 // ════════════════════════════════════════════════════════════
 // IMPORTADOR DE PLANILHA BASE (.xlsb/.xlsx)
 // Lê a aba BASE, insere viagens novas e atualiza status
@@ -9809,6 +9788,7 @@ async function _checkTurno(){
     }
   }catch(e){}
   // Sem turno ativo — mostra modal
+  const elTA=document.getElementById('turnoAtual');if(elTA)elTA.value=_turnoAtualLabel();
   document.getElementById('overlayTurno').classList.add('open');
 }
 async function _iniciarTurno(){
@@ -9826,6 +9806,8 @@ async function _iniciarTurno(){
       document.getElementById('overlayTurno').classList.remove('open');
       const av=document.getElementById('uAv');if(av)av.textContent=nome.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
       const nm=document.getElementById('uName');if(nm)nm.textContent=nome;
+      const elStatus=document.getElementById('statusOperador');
+      if(elStatus){elStatus.style.display='';elStatus.textContent=`Operando: ${nome} (${d.turno})`;}
       showToast('✅ Turno iniciado: '+nome+' ('+d.turno+')','ok');
     }else{showToast('Erro: '+(d?.erro||'desconhecido'),'err');}
   }catch(e){showToast('Erro de conexão','err');}
