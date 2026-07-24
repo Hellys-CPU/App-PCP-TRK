@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v268</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v269</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -832,6 +832,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
     <button class="btn btn-g" onclick="exportCAFs()" style="font-size:.72rem">📥 CSV</button>
+    <button class="btn btn-g" onclick="exportarTempoStatusCAF()" style="font-size:.72rem">⏱ Tempo por Status (CSV)</button>
   </div>
   <div style="padding:10px 16px 20px;overflow-x:auto">
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
@@ -1725,11 +1726,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v268';
+const APP_VERSION='v269';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v269:['⏱ Nova exportação na aba CAFs: Tempo por Status (CSV) — mostra quanto tempo cada CAF ficou em cada status, com entrada/saída e duração, a partir do histórico real.'],
   v268:['🎨 Lista: seta de expandir CAF aumentada (área clicável maior, melhor pra tablet) e agora gira (▸/▾) mostrando se está aberta ou fechada.'],
   v267:['🚪 Gestão de Doca (kanban): card agora mostra CAF + pallets + vencimento de verdade (não só contagem), com selo de % de ocupação. Modal de viagem: linha de CAF vinculada mostra pallets/vencimento quando bate com CAF real do banco.'],
   v266:['🐛 Ocupação de veículo agora busca pela placa da carreta E do cavalo (a capacidade de carga é da carreta — antes só olhava o cavalo e o selo nunca aparecia pra viagens tipo CARRETA).'],
@@ -7447,6 +7449,56 @@ async function _vincularCAF(cafId,op){
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();
   showToast(`✅ CAF ${esc(c.num)} vinculada a ${esc(op.codigoCurto||op.id)}`,'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TEMPO POR STATUS DA CAF — extrai do histórico (hist) quanto tempo cada
+// CAF ficou em cada status, gerando um CSV com 1 linha por período/status.
+// ══════════════════════════════════════════════════════════════════
+function _segmentosStatusCAF(c){
+  const hist=Array.isArray(c.hist)?[...c.hist].sort((a,b)=>new Date(a.t)-new Date(b.t)):[];
+  const segmentos=[];
+  let statusAtual=null,inicioAtual=c.criadoEm||null;
+  hist.forEach(h=>{
+    let m=h.txt.match(/CAF criada \(status: (.+)\)/);
+    if(m){statusAtual=m[1];inicioAtual=h.t;return;}
+    m=h.txt.match(/Status alterado: (.+) → (.+)/);
+    if(m){
+      const[,de,para]=m;
+      if(statusAtual!==null&&inicioAtual){
+        segmentos.push({status:statusAtual,inicio:inicioAtual,fim:h.t});
+      }
+      statusAtual=para;inicioAtual=h.t;
+    }
+  });
+  // Segmento aberto (status atual, ainda em andamento) — só fecha "agora" se não for status terminal
+  const terminal=['Entrega Realizada','cancelada'].includes(statusAtual||c.status);
+  if(statusAtual===null){statusAtual=c.status;inicioAtual=c.criadoEm||new Date().toISOString();}
+  segmentos.push({status:statusAtual,inicio:inicioAtual,fim:terminal?inicioAtual:new Date().toISOString(),emAndamento:!terminal});
+  return segmentos;
+}
+function _fmtDuracaoMin(min){
+  if(min<60)return `${min}min`;
+  const h=Math.floor(min/60),m=min%60;
+  return `${h}h${m>0?' '+m+'min':''}`;
+}
+function exportarTempoStatusCAF(){
+  if(!cafsDB.length){showToast('⚠ Nenhuma CAF carregada','err');return;}
+  const rows=[['CAF','Rota','Status','Entrada','Saída','Duração (min)','Duração','Situação']];
+  cafsDB.forEach(c=>{
+    _segmentosStatusCAF(c).forEach(s=>{
+      const durMin=Math.round((new Date(s.fim)-new Date(s.inicio))/60000);
+      rows.push([
+        c.num,c.rota||'',s.status,
+        new Date(s.inicio).toLocaleString('pt-BR'),
+        s.emAndamento?'—':new Date(s.fim).toLocaleString('pt-BR'),
+        durMin,_fmtDuracaoMin(durMin),
+        s.emAndamento?'Em andamento':'Concluído'
+      ]);
+    });
+  });
+  dlCSV(rows,'TRK_Tempo_Status_CAF');
+  showToast('✅ Extração gerada — '+(rows.length-1)+' períodos de status','ok');
 }
 
 function exportCAFs(){
