@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v261</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v262</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1672,11 +1672,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v261';
+const APP_VERSION='v262';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v262:['📊 Análise: novo gráfico de Pareto — Atraso por Rota (barras + % acumulado, regra dos 80/20).'],
   v261:['🧹 Auditoria completa do código: removido modal de turno duplicado, corrigida validação de doca dupla que usava data errada, corrigida estrutura HTML de 3 modais (rodapés sem estilo e permissões fora do corpo), blindado boot contra localStorage corrompido.'],
   v260:['🐛 Corrigido bug que impedia perfis com permissão customizada (ex: Liderança) de salvar CAF, mesmo com caf_criar/caf_editar liberado.'],
   v259:['🎨 Alerta de CAF sem baixa agora vem compacto por padrão, expansível, com botão de fechar (não trava mais o cadastro no tablet).'],
@@ -4671,6 +4672,49 @@ async function exportPPTX(){
   showToast('✅ PPTX gerado','ok');
 }
 
+// Gráfico de Pareto: barras (maior→menor) + linha de % acumulado + referência dos 80%
+// Uso genérico: recebe [[rótulo, valor], ...] já ordenado ou não — a função ordena sozinha.
+function _paretoSVG(dados,opts){
+  opts=opts||{};
+  const cor=opts.corBarra||'#dc2626';
+  const arr=dados.filter(d=>d[1]>0).sort((a,b)=>b[1]-a[1]);
+  if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem dados de atraso no período — 🎉</div>';
+  const total=arr.reduce((s,d)=>s+d[1],0);
+  let acc=0;
+  const pontos=arr.map(([lb,v])=>{acc+=v;return{lb,v,pctAcc:acc/total*100};});
+
+  const larguraBarra=64,gap=14,margemEsq=42,margemDir=42,margemTopo=16,alturaGrafico=200,margemBaixo=64;
+  const w=margemEsq+margemDir+pontos.length*(larguraBarra+gap);
+  const h=margemTopo+alturaGrafico+margemBaixo;
+  const maxV=pontos[0].v;
+  const xBar=i=>margemEsq+i*(larguraBarra+gap);
+  const yBar=v=>margemTopo+alturaGrafico-(v/maxV*alturaGrafico);
+  const yPct=p=>margemTopo+alturaGrafico-(p/100*alturaGrafico);
+
+  const barras=pontos.map((p,i)=>{
+    const x=xBar(i),yTop=yBar(p.v),altura=alturaGrafico-(yTop-margemTopo);
+    return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${altura}" fill="${cor}" rx="3"/>
+      <text x="${x+larguraBarra/2}" y="${yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text)">${p.v}</text>
+      <text x="${x+larguraBarra/2}" y="${margemTopo+alturaGrafico+16}" text-anchor="middle" font-size="10" fill="var(--t2)" transform="rotate(20,${x+larguraBarra/2},${margemTopo+alturaGrafico+16})">${esc(p.lb)}</text>`;
+  }).join('');
+
+  const linhaPts=pontos.map((p,i)=>`${xBar(i)+larguraBarra/2},${yPct(p.pctAcc)}`).join(' ');
+  const bolinhas=pontos.map((p,i)=>`<circle cx="${xBar(i)+larguraBarra/2}" cy="${yPct(p.pctAcc)}" r="3.5" fill="#f59e0b"/>
+    <text x="${xBar(i)+larguraBarra/2}" y="${yPct(p.pctAcc)-9}" text-anchor="middle" font-size="10" font-weight="700" fill="#f59e0b">${p.pctAcc.toFixed(0)}%</text>`).join('');
+
+  const y80=yPct(80);
+
+  return `<div style="overflow-x:auto">
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.9}px">
+      <line x1="${margemEsq}" y1="${y80}" x2="${w-margemDir+10}" y2="${y80}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="${w-margemDir+12}" y="${y80+4}" font-size="9" fill="#f59e0b">80%</text>
+      ${barras}
+      <polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2"/>
+      ${bolinhas}
+    </svg>
+  </div>`;
+}
+
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
   try{
@@ -5072,7 +5116,13 @@ function renderAnalise(){
     </tbody>
   </table>
 </div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📊 Pareto — Atraso por Rota</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Barras = quantidade de viagens em atraso por rota, do maior pro menor · Linha laranja = % acumulado (a régua clássica dos 80/20: geralmente poucas rotas concentram a maior parte do problema)</p>
+  ${_paretoSVG(rArr.map(([r,d])=>[r,d.t-d.ok]))}
+</div>
 <div class="an-card">
+
   <h3>🔵 Distribuição por Status</h3>
   <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
     <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(stArr,total)}</svg>
