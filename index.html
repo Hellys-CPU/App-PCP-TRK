@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v263</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v265</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -572,6 +572,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
     <button class="tab" id="tb-pallets" onclick="setView('pallets')" style="color:#f59e0b">🔄 Retorno de Pallets</button>
     <button class="tab" id="tb-insumos" onclick="setView('insumos')" style="color:#8b5cf6">🧰 Insumos HUB</button>
+    <button class="tab" id="tb-veiculos" onclick="setView('veiculos')" style="color:#0ea5e9">🚛 Veículos</button>
     <div class="tab-drop" id="dropRelatorios">
       <button type="button" class="tab-drop-btn" id="tbg-relatorios" onclick="event.stopPropagation();toggleTabDrop('dropRelatorios')">📊 Relatórios ▾</button>
       <div class="tab-drop-panel" id="panelRelatorios">
@@ -1113,6 +1114,36 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
 
+<!-- MODAL CADASTRO DE VEÍCULO -->
+<div class="overlay" id="overlayVeiculo">
+  <div class="modal" style="max-width:440px">
+    <div class="mhdr" style="border-top-color:#0ea5e9">
+      <h2 id="vecTitle" style="color:#0ea5e9">🚛 Novo Veículo</h2>
+      <div class="mhdr-actions">
+        <button class="btn btn-del" id="vecBtnDel" onclick="deleteVeiculo(document.getElementById('vecPlaca').value)" style="display:none;font-size:.7rem">🗑 Excluir</button>
+        <button class="mclose" onclick="closeVeiculoModal()">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div class="fgrid" style="gap:11px">
+        <div class="fg"><label>Placa</label><input id="vecPlaca" placeholder="AAA0A00" style="text-transform:uppercase"></div>
+        <div class="fg"><label>Tipologia</label><select id="vecTipologia"><option value="">Selecione</option><option value="CARRETA">CARRETA</option><option value="TOCO">TOCO</option><option value="TRUCK">TRUCK</option><option value="VAN">VAN</option><option value="UTILITÁRIO">UTILITÁRIO</option></select></div>
+        <div class="fg"><label>Comprimento (m)</label><input id="vecComprimento" type="number" step="0.01" min="0" placeholder="Ex: 14.00" oninput="_recalcularCapacidadeModal()"></div>
+        <div class="fg"><label>Largura (m)</label><input id="vecLargura" type="number" step="0.01" min="0" placeholder="Ex: 2.40" oninput="_recalcularCapacidadeModal()"></div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-top:11px;text-align:center">
+        <div style="font-size:.62rem;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Capacidade Calculada</div>
+        <div id="vecCapacidadeCalc" style="font-size:1.1rem;font-weight:800;color:var(--green)">—</div>
+      </div>
+      <div class="fg" style="margin-top:11px"><label>Observações</label><textarea id="vecObs" rows="2"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closeVeiculoModal()">Cancelar</button>
+      <button class="btn btn-s" onclick="saveVeiculo()" style="background:#0ea5e9">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DE NOVIDADES (histórico de versão, aberto manualmente pelo badge) -->
 <div class="overlay" id="overlayNovidades">
   <div class="modal" style="max-width:460px">
@@ -1133,6 +1164,26 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div style="font-size:3rem;margin-bottom:14px">👆</div>
   <div style="font-size:1.3rem;font-weight:800">Toque na tela para ativar o modo Tela Cheia</div>
   <div style="font-size:.85rem;color:#aaa;margin-top:8px">O navegador exige esse toque uma vez — depois disso fica automático</div>
+</div>
+
+<!-- CADASTRO DE VEÍCULOS -->
+<div class="view" id="view-veiculos">
+  <div class="toolbar">
+    <span style="font-size:.8rem;font-weight:700;color:#0ea5e9">🚛 Cadastro de Veículos — Metragem e Capacidade de Pallets</span>
+    <div class="sp"></div>
+    <button class="btn btn-p" id="veiculoBtnNovo" style="background:#0ea5e9;font-size:.73rem" onclick="openNewVeiculo()">+ Cadastrar Veículo</button>
+  </div>
+  <div style="padding:12px 16px">
+    <p style="font-size:.72rem;color:var(--t2);margin-bottom:10px">A capacidade é calculada automaticamente pela metragem informada, usando pallet PBR (1,00 x 1,20m), só piso — sem considerar empilhamento. Quando cadastrado, o veículo passa a mostrar um selo de % de ocupação na Lista e na Gestão de Doca.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%;font-size:.78rem">
+        <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
+          <th style="padding:6px 8px">Placa</th><th>Tipologia</th><th style="text-align:center">Comprimento</th><th style="text-align:center">Largura</th><th style="text-align:center">Capacidade</th><th>Obs.</th><th></th>
+        </tr></thead>
+        <tbody id="veiculosTBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- TV YARD MODE -->
@@ -1387,6 +1438,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-caf" onclick="setView('caf')"><span class="mni">📦</span>CAFs</button>
     <button class="mnav-btn" id="mn-pallets" onclick="setView('pallets')"><span class="mni">🔄</span>Pallets</button>
     <button class="mnav-btn" id="mn-insumos" onclick="setView('insumos')"><span class="mni">🧰</span>Insumos</button>
+    <button class="mnav-btn" id="mn-veiculos" onclick="setView('veiculos')"><span class="mni">🚛</span>Veículos</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
     <button class="mnav-btn" id="mn-tv" onclick="setView('tv')"><span class="mni">📺</span>TV</button>
     <button class="mnav-btn" id="mn-tv-yard" onclick="setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
@@ -1559,20 +1611,20 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
-  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1},
-  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:1},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0,veiculos_gerir:1},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:1},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
+  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0},
+  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
 };
 
 const ABAS_BASE = {
-  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','analise','tv','tv-yard','admin'],
-  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','analise','tv','tv-yard','admin'],
-  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','analise','tv','tv-yard'],
+  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','tv','tv-yard','admin'],
+  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','tv','tv-yard','admin'],
+  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','veiculos','analise','tv','tv-yard'],
   doca:['painel','lista','prog','pallets','tv','tv-yard'],
   operador_caf:['painel','lista','caf'],
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
@@ -1596,12 +1648,13 @@ const TODAS_PERMS = [
   {key:'pallet_auditoria',label:'Retorno Pallets: responsável pela doca (Qtd. Prevista/Recebida)'},
   {key:'insumo_gerir',label:'Insumos HUB: registrar entrada/saída e fazer checklist de turno'},
   {key:'insumo_credito_debito',label:'Insumos HUB: crédito/débito manual de saldo (liderança)'},
+  {key:'veiculos_gerir',label:'Cadastro de Veículos: criar/editar/excluir'},
 ];
 
 const TODAS_ABAS = [
   {key:'painel',label:'Painel'},{key:'lista',label:'Lista'},{key:'prog',label:'Gestão de Doca'},
   {key:'massa',label:'Em Massa'},{key:'fup',label:'FUP FC'},{key:'amazon',label:'FUP Amazon'},
-  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'insumos',label:'Insumos HUB'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
+  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'insumos',label:'Insumos HUB'},{key:'veiculos',label:'Cadastro de Veículos'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
   {key:'tv-yard',label:'TV Yard'},{key:'admin',label:'Admin'},
 ];
 
@@ -1672,11 +1725,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v263';
+const APP_VERSION='v265';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v265:['🚛 Cadastro de Veículos virou aba própria (não mais dentro do Admin), com permissão granular veiculos_gerir — Torre de Controle já tem acesso. Importados 64 veículos reais da planilha de metragem.'],
+  v264:['🚛 Novo Cadastro de Veículos (Admin): placa, metragem e capacidade de pallets calculada automaticamente (PBR 1,00x1,20m). Selo de % de ocupação na Lista e Gestão de Doca.'],
   v263:['🐛 Corrigido heatmap de SLA — última semana não fechava os 7 dias, desalinhando a coluna mais recente com o cabeçalho D-S-T-Q-Q-S-S.'],
   v262:['📊 Análise: novo gráfico de Pareto — Atraso por Rota (barras + % acumulado, regra dos 80/20).'],
   v261:['🧹 Auditoria completa do código: removido modal de turno duplicado, corrigida validação de doca dupla que usava data errada, corrigida estrutura HTML de 3 modais (rodapés sem estilo e permissões fora do corpo), blindado boot contra localStorage corrompido.'],
@@ -1779,6 +1834,8 @@ const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas',TABELA_PALLETS='retornos_pallets',TABELA_INV_PALLETS='inventario_pallets';
 const TABELA_INSUMOS='insumos_hub',TABELA_INSUMOS_MOV='insumos_movimentacoes',TABELA_CHECKLIST='checklist_turno';
+const TABELA_VEICULOS='veiculos_cadastro';
+const PALLET_PBR={comp:1.20,larg:1.00}; // pallet PBR padrão: 1,00 x 1,20m
 const TURNOS_HUB=[{id:'T1_06_18',lb:'Turno 1 (06h–18h)'},{id:'T2_18_06',lb:'Turno 2 (18h–06h)'}];
 const FCS_PALLETS=['GR8','XC9','GR9','GR5'];
 let supabaseOK=false,realtimeWS=null;
@@ -2116,7 +2173,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -2124,7 +2181,7 @@ function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localSt
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3236,6 +3293,11 @@ function exportListCSV(){
 function renderList(){
   buildListSels();
   _buildListHeaderSels(ops); // popula selects inline do header
+  // Carrega o cadastro de veículos sob demanda (uma vez) — alimenta o selo de ocupação nas linhas
+  if(supabaseOK&&!_veiculosLoadTried){
+    _veiculosLoadTried=true;
+    loadVeiculosCadastro().then(()=>renderList());
+  }
   let data=getListFilt();
   // ── Aplica ordenação ──
   const sc=_listSort.col, sd=_listSort.dir==='asc'?1:-1;
@@ -3288,7 +3350,7 @@ function renderList(){
           ${cafsDaOp.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:.72rem;cursor:pointer" onclick="event.stopPropagation();openEditCAF('${esc(c.id)}')" title="Abrir CAF">
             <strong style="color:#16a34a">📦 CAF ${esc(c.num)}</strong> · ${c.pallets||0} pallet(s) · <span class="sb sb-${c.status}" style="font-size:.6rem">${esc(c.status)}</span>
           </div>`).join('')}
-          <div style="align-self:center;font-size:.68rem;color:var(--t2);font-weight:700">Total: ${totalPallets} pallet(s) em ${cafsDaOp.length} CAF(s)</div>
+          <div style="align-self:center;font-size:.68rem;color:var(--t2);font-weight:700">Total: ${totalPallets} pallet(s) em ${cafsDaOp.length} CAF(s)${_seloOcupacaoHTML(op.placa,totalPallets)}</div>
         </div>`:'<span style="font-size:.72rem;color:var(--t3)">Nenhuma CAF vinculada a esta viagem ainda.</span>'}
       </td>
     </tr>`;
@@ -3356,6 +3418,10 @@ function renderProg(){
   if(supabaseOK&&!cafsDB.length){
     loadCAFs().then(()=>renderProg());
     return;
+  }
+  if(supabaseOK&&!_veiculosLoadTried){
+    _veiculosLoadTried=true;
+    loadVeiculosCadastro().then(()=>renderProg());
   }
   // Widget de saldo de pallets — carrega sob demanda se ainda não tiver dados
   if(supabaseOK&&!inventarioPallets.length){
@@ -3482,7 +3548,7 @@ function renderProg(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
           <div>
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase;letter-spacing:.3px">🚛 Placa</div>
-            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(op.placa)||'—'}</div>
+            <div style="font-weight:800;font-size:.82rem;color:var(--text)">${esc(op.placa)||'—'}${_seloOcupacaoHTML(op.placa,cafsDB.filter(c=>c.opId===op.id).reduce((s,c)=>s+(Number(c.pallets)||0),0))}</div>
             ${op.placaCarreta?`<div style="font-size:.6rem;color:var(--t3)">Carreta: ${esc(op.placaCarreta)}</div>`:''}
           </div>
           <div>
@@ -4066,6 +4132,7 @@ document.getElementById('overlayUser').addEventListener('click',function(e){if(e
 document.getElementById('overlayCAF').addEventListener('click',function(e){if(e.target===this)closeCAFModal();});
 document.getElementById('overlayPallet').addEventListener('click',function(e){if(e.target===this)closePalletModal();});
 document.getElementById('overlayInsumo').addEventListener('click',function(e){if(e.target===this)closeInsumoModal();});
+document.getElementById('overlayVeiculo').addEventListener('click',function(e){if(e.target===this)closeVeiculoModal();});
 document.getElementById('overlayNovidades').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 document.getElementById('overlayChecklistAtivo').addEventListener('click',function(e){if(e.target===this)closeChecklistAtivoModal();});
 document.getElementById('overlayInsumoMov').addEventListener('click',function(e){if(e.target===this)closeInsumoMovModal();});
@@ -4485,6 +4552,7 @@ function setView(name){
   if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
   if(name==='pallets'){loading(true);Promise.all([loadPallets(),loadInventarioPallets()]).then(()=>{loading(false);renderInventarioPallets();renderPallets();});}
   if(name==='insumos'){loading(true);Promise.all([loadInsumosHub(),loadInsumosMovimentacoes(),loadChecklistsTurno()]).then(()=>{_insumosLoadTried=true;loading(false);setInsumosModo('inventario');renderInsumosTable();});}
+  if(name==='veiculos'){loading(true);_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>{loading(false);renderVeiculosCadastro();});}
   if(name==='prog')renderProg();
   if(name==='tv-yard'){
     loadRuas().catch(()=>{});
@@ -4516,7 +4584,7 @@ function setView(name){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
-  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();}
+  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());}
   curPage=name;pingOnlineDB().then(()=>_renderOnlinePresence()).catch(()=>{});
 }
 
@@ -5411,11 +5479,11 @@ function _tempoNoStatusAtualCAF(c){
 const ABAS_INFO = {
   painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
   massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
-  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
+  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, veiculos:{ic:'🚛',lb:'Veículos'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
   'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
 };
 // Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
-const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','massa','fup','amazon','analise','tv','tv-yard','admin'];
+const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','veiculos','massa','fup','amazon','analise','tv','tv-yard','admin'];
 
 // Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
@@ -6567,6 +6635,7 @@ let editInsumoId=null;
 let insumoMovAtualId=null;
 let checklistAtivoId=null;
 let _insumosLoadTried=false;
+let _veiculosLoadTried=false;
 
 function genInsumoId(){return 'INS-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
 function genMovId(){return 'MOV-'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase();}
@@ -7120,6 +7189,165 @@ function imprimirChecklist(checklistId){
   <script>window.print();window.onafterprint=()=>window.close();<\/script>
   </body></html>`);
   win.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CADASTRO DE VEÍCULOS — placa, metragem, capacidade de pallets (auto) e % de ocupação
+// ══════════════════════════════════════════════════════════════════
+let veiculosCadastro=[];
+let editVeiculoPlaca=null;
+
+// Calcula quantos pallets PBR (1,00 x 1,20m) cabem no piso do veículo, testando
+// as duas orientações possíveis do pallet e usando a que aproveita melhor o espaço.
+// Só considera 1 andar (sem empilhamento), por decisão de negócio.
+function _calcCapacidadePallets(comprimento,largura){
+  comprimento=Number(comprimento)||0;largura=Number(largura)||0;
+  if(comprimento<=0||largura<=0)return 0;
+  const orientA=Math.floor(comprimento/PALLET_PBR.comp)*Math.floor(largura/PALLET_PBR.larg);
+  const orientB=Math.floor(comprimento/PALLET_PBR.larg)*Math.floor(largura/PALLET_PBR.comp);
+  return Math.max(orientA,orientB);
+}
+
+async function loadVeiculosCadastro(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_VEICULOS}?order=placa.asc&limit=1000`);
+    if(Array.isArray(data)){
+      veiculosCadastro=data.map(r=>({
+        placa:r.placa,tipologia:r.tipologia||'',comprimento:r.comprimento||0,largura:r.largura||0,
+        capacidadePallets:r.capacidade_pallets||0,obs:r.obs||'',
+        criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''
+      }));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){console.warn('Tabela veiculos_cadastro não existe.');veiculosCadastro=[];}
+    else console.error('loadVeiculosCadastro error:',e);
+  }
+}
+
+function _buscarVeiculo(placa){
+  if(!placa)return null;
+  const p=placa.trim().toUpperCase();
+  return veiculosCadastro.find(v=>v.placa===p)||null;
+}
+
+// Retorna {pct, capacidade, pallets, veiculo} ou null se a placa não estiver cadastrada
+function _ocupacaoVeiculo(placa,pallets){
+  const v=_buscarVeiculo(placa);
+  if(!v||!v.capacidadePallets)return null;
+  const pct=Math.min(999,Math.round((pallets||0)/v.capacidadePallets*100));
+  return{pct,capacidade:v.capacidadePallets,pallets:pallets||0,veiculo:v};
+}
+function _corOcupacao(pct){
+  if(pct>100)return'var(--red)'; // acima da capacidade — sinal de atenção (overbooking/erro de cadastro)
+  if(pct>=90)return'var(--green)';
+  if(pct>=70)return'var(--yellow)';
+  return'var(--t2)';
+}
+
+// Pequeno selo de ocupação pra usar em qualquer card (Lista, Gestão de Doca...)
+function _seloOcupacaoHTML(placa,pallets){
+  const oc=_ocupacaoVeiculo(placa,pallets);
+  if(!oc)return'';
+  return `<span title="${oc.pallets} de ${oc.capacidade} pallets (placa ${esc(placa)})" style="font-size:.6rem;font-weight:800;color:${_corOcupacao(oc.pct)};background:var(--bg3);border-radius:3px;padding:1px 5px;margin-left:4px">🚛 ${oc.pct}%</span>`;
+}
+
+async function saveVeiculoToDB(v){
+  const row={
+    placa:v.placa,tipologia:v.tipologia||null,comprimento:v.comprimento,largura:v.largura,
+    capacidade_pallets:v.capacidadePallets,obs:v.obs||null,
+    criado_por:v.criadoPor,criado_em:v.criadoEm,atualizado_por:v.atualizadoPor,atualizado_em:new Date().toISOString()
+  };
+  try{await sbUpsert(TABELA_VEICULOS,row,'placa');return true;}
+  catch(e){console.error('saveVeiculoToDB:',e);return false;}
+}
+
+function renderVeiculosCadastro(){
+  const el=document.getElementById('veiculosTBody');if(!el)return;
+  const podeGerir=hasPerm('veiculos_gerir');
+  const btnNovo=document.getElementById('veiculoBtnNovo');if(btnNovo)btnNovo.style.display=podeGerir?'':'none';
+  if(!veiculosCadastro.length){el.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t3)">Nenhum veículo cadastrado ainda.</td></tr>';return;}
+  el.innerHTML=veiculosCadastro.map(v=>`<tr style="border-bottom:1px solid var(--bd)">
+    <td style="padding:6px 8px;font-weight:800">${esc(v.placa)}</td>
+    <td>${esc(v.tipologia)||'—'}</td>
+    <td style="text-align:center">${v.comprimento} m</td>
+    <td style="text-align:center">${v.largura} m</td>
+    <td style="text-align:center;font-weight:800;color:var(--green)">${v.capacidadePallets} pallets</td>
+    <td style="font-size:.68rem;color:var(--t2)">${esc(v.obs)||'—'}</td>
+    <td style="text-align:center">${podeGerir?`<button class="btn btn-g" style="font-size:.65rem;padding:2px 8px" onclick="openEditVeiculo('${esc(v.placa)}')">✏️</button> <button class="btn btn-del" style="font-size:.65rem;padding:2px 8px" onclick="deleteVeiculo('${esc(v.placa)}')">🗑</button>`:''}</td>
+  </tr>`).join('');
+}
+
+function _recalcularCapacidadeModal(){
+  const c=parseFloat(document.getElementById('vecComprimento')?.value)||0;
+  const l=parseFloat(document.getElementById('vecLargura')?.value)||0;
+  const cap=_calcCapacidadePallets(c,l);
+  const el=document.getElementById('vecCapacidadeCalc');
+  if(el)el.textContent=cap>0?`${cap} pallets (calculado automaticamente)`:'—';
+}
+
+function openNewVeiculo(){
+  if(!hasPerm('veiculos_gerir')){showToast('⛔ Sem permissão','err');return;}
+  editVeiculoPlaca=null;
+  document.getElementById('vecTitle').textContent='🚛 Novo Veículo';
+  document.getElementById('vecBtnDel').style.display='none';
+  document.getElementById('vecPlaca').disabled=false;
+  ['vecPlaca','vecTipologia','vecComprimento','vecLargura','vecObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  _recalcularCapacidadeModal();
+  document.getElementById('overlayVeiculo').classList.add('open');
+}
+function openEditVeiculo(placa){
+  const v=veiculosCadastro.find(x=>x.placa===placa);if(!v)return;
+  if(!hasPerm('veiculos_gerir')){showToast('⛔ Sem permissão','err');return;}
+  editVeiculoPlaca=placa;
+  document.getElementById('vecTitle').textContent='🚛 Editar — '+v.placa;
+  document.getElementById('vecBtnDel').style.display='';
+  document.getElementById('vecPlaca').value=v.placa;
+  document.getElementById('vecPlaca').disabled=true; // placa é a chave, não muda depois de criada
+  document.getElementById('vecTipologia').value=v.tipologia||'';
+  document.getElementById('vecComprimento').value=v.comprimento||'';
+  document.getElementById('vecLargura').value=v.largura||'';
+  document.getElementById('vecObs').value=v.obs||'';
+  _recalcularCapacidadeModal();
+  document.getElementById('overlayVeiculo').classList.add('open');
+}
+function closeVeiculoModal(){document.getElementById('overlayVeiculo').classList.remove('open');editVeiculoPlaca=null;}
+
+async function saveVeiculo(){
+  if(!hasPerm('veiculos_gerir')){showToast('⛔ Sem permissão','err');return;}
+  const placa=(document.getElementById('vecPlaca')?.value||'').trim().toUpperCase();
+  const comprimento=parseFloat(document.getElementById('vecComprimento')?.value);
+  const largura=parseFloat(document.getElementById('vecLargura')?.value);
+  if(!placa){showToast('⚠ Informe a placa','err');return;}
+  if(!comprimento||!largura||comprimento<=0||largura<=0){showToast('⚠ Informe comprimento e largura válidos (em metros)','err');return;}
+  const who=_nomeOperadorAtual();
+  const existente=editVeiculoPlaca?veiculosCadastro.find(x=>x.placa===editVeiculoPlaca):null;
+  const nowIso=new Date().toISOString();
+  const obj={
+    placa,tipologia:document.getElementById('vecTipologia')?.value||'',comprimento,largura,
+    capacidadePallets:_calcCapacidadePallets(comprimento,largura),
+    obs:document.getElementById('vecObs')?.value||'',
+    criadoPor:existente?existente.criadoPor:who,criadoEm:existente?existente.criadoEm:nowIso,
+    atualizadoPor:who
+  };
+  loading(true);
+  const ok=await saveVeiculoToDB(obj);
+  await loadVeiculosCadastro();
+  loading(false);
+  if(ok){showToast(editVeiculoPlaca?'✅ Veículo atualizado':'✅ Veículo cadastrado!','ok');closeVeiculoModal();renderVeiculosCadastro();}
+  else showToast('❌ Erro ao salvar veículo','err');
+}
+
+async function deleteVeiculo(placa){
+  if(!hasPerm('veiculos_gerir'))return;
+  if(!confirm(`Excluir o veículo de placa ${placa} do cadastro?`))return;
+  loading(true);
+  try{await sbDelete(TABELA_VEICULOS,'placa',placa);}catch(e){console.error('deleteVeiculo:',e);}
+  await loadVeiculosCadastro();
+  loading(false);
+  renderVeiculosCadastro();
+  showToast('🗑 Veículo excluído','ok');
 }
 
 async function desvincularCAF(){
@@ -9181,7 +9409,7 @@ function _updateRTIndicator(){
 async function _renderOnlinePresence(){
   const el=document.getElementById('onlineBar');
   if(!el)return;
-  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
   let lista=[];
   // 1ª fonte: Ably Presence (tempo real)
   if(_ablyChannel&&_ablyOK){
