@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v258</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v259</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1689,11 +1689,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v258';
+const APP_VERSION='v259';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v259:['🎨 Alerta de CAF sem baixa agora vem compacto por padrão, expansível, com botão de fechar (não trava mais o cadastro no tablet).'],
   v258:['🐛 Corrigido bug onde permissão customizada de criar/editar CAF (ex: perfil Liderança) não liberava atrelar rua nem escolher status.'],
   v257:['🐛 Corrigido bug que impedia o perfil Doca de salvar atribuição de doca e status Em Carregamento.'],
   v256:['📊 Gauge visual (medidor) mostrando o quão precário está o estoque de pallets na TZX, com faixas Crítico/Atenção/Controlado/Ótimo.'],
@@ -3819,11 +3820,25 @@ function _dispensarAlerta24h(opId){
 }
 
 // ── SLA de baixa de CAF: toda CAF de viagem do dia deve ser baixada até 23:59 ──
-function _verificarCAFsSemBaixa(){
+let _cafSlaExpandido=false;
+function _cafSlaDismissKey(){return 'trk_caf_sla_dismiss_'+hojeLocal();}
+function fecharCafSlaBanner(){
+  try{localStorage.setItem(_cafSlaDismissKey(),'1');}catch(e){}
+  const banner=document.getElementById('_cafSlaBanner');if(banner)banner.remove();
+}
+function toggleCafSlaBanner(){
+  _cafSlaExpandido=!_cafSlaExpandido;
+  _verificarCAFsSemBaixa(true);
+}
+function _verificarCAFsSemBaixa(forcarRender){
   const hoje=hojeLocal();
   const hora=new Date().getHours();
   // Só alerta a partir das 20h (pra dar tempo da operação)
   if(hora<20)return;
+  // Se a pessoa já fechou o aviso hoje, não volta a incomodar (mas o dado continua contando —
+  // reaparece naturalmente amanhã se o problema persistir)
+  let dismissado=false;
+  try{dismissado=localStorage.getItem(_cafSlaDismissKey())==='1';}catch(e){}
   const viagensHoje=ops.filter(o=>o.dataOp===hoje&&['FIN','AGUDESC'].includes(o.status));
   const cafsPendentes=[];
   viagensHoje.forEach(op=>{
@@ -3836,11 +3851,15 @@ function _verificarCAFsSemBaixa(){
     });
   });
   const banner=document.getElementById('_cafSlaBanner');
-  if(!cafsPendentes.length){if(banner)banner.remove();return;}
-  const hx=`<div id="_cafSlaBanner" style="position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#78350f;border-top:2px solid var(--yellow);padding:8px 16px;font-size:.72rem;color:#fef3c7;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-weight:800">⚠ ${cafsPendentes.length} CAF(s) sem baixa — viagem do dia já finalizada (SLA: baixar até 23:59)</span>
-    ${cafsPendentes.slice(0,8).map(p=>`<span style="background:#fef3c7;color:#78350f;border-radius:3px;padding:1px 6px;font-weight:700">${esc(p.caf)} (${esc(p.status)}) → ${esc(p.op)}</span>`).join('')}
-    ${cafsPendentes.length>8?`<span style="font-weight:600">+${cafsPendentes.length-8} outras</span>`:''}
+  if(!cafsPendentes.length||(dismissado&&!forcarRender)){if(banner)banner.remove();return;}
+  const listaDetalhada=_cafSlaExpandido?`
+    <div style="width:100%;display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;max-height:110px;overflow-y:auto">
+      ${cafsPendentes.map(p=>`<span style="background:#fef3c7;color:#78350f;border-radius:3px;padding:1px 6px;font-weight:700;font-size:.68rem">${esc(p.caf)} (${esc(p.status)}) → ${esc(p.op)}</span>`).join('')}
+    </div>`:'';
+  const hx=`<div id="_cafSlaBanner" style="position:fixed;bottom:0;left:0;right:0;z-index:99998;background:#78350f;border-top:2px solid var(--yellow);padding:6px 12px;font-size:.7rem;color:#fef3c7;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-height:150px;overflow-y:auto">
+    <span style="font-weight:800;cursor:pointer;flex:1;min-width:0" onclick="toggleCafSlaBanner()">⚠ ${cafsPendentes.length} CAF(s) sem baixa — SLA: baixar até 23:59 <span style="text-decoration:underline">${_cafSlaExpandido?'▲ recolher':'▾ ver detalhes'}</span></span>
+    <button onclick="fecharCafSlaBanner()" style="background:none;border:1px solid #fef3c7;color:#fef3c7;border-radius:4px;padding:1px 8px;font-size:.68rem;cursor:pointer;flex-shrink:0">✕ Fechar</button>
+    ${listaDetalhada}
   </div>`;
   if(banner)banner.outerHTML=hx;
   else document.body.insertAdjacentHTML('beforeend',hx);
