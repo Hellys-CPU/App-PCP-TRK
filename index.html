@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v267</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v268</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1725,11 +1725,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v267';
+const APP_VERSION='v268';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v268:['🎨 Lista: seta de expandir CAF aumentada (área clicável maior, melhor pra tablet) e agora gira (▸/▾) mostrando se está aberta ou fechada.'],
   v267:['🚪 Gestão de Doca (kanban): card agora mostra CAF + pallets + vencimento de verdade (não só contagem), com selo de % de ocupação. Modal de viagem: linha de CAF vinculada mostra pallets/vencimento quando bate com CAF real do banco.'],
   v266:['🐛 Ocupação de veículo agora busca pela placa da carreta E do cavalo (a capacidade de carga é da carreta — antes só olhava o cavalo e o selo nunca aparecia pra viagens tipo CARRETA).'],
   v265:['🚛 Cadastro de Veículos virou aba própria (não mais dentro do Admin), com permissão granular veiculos_gerir — Torre de Controle já tem acesso. Importados 64 veículos reais da planilha de metragem.'],
@@ -3331,7 +3332,7 @@ function renderList(){
       <td style="color:var(--t2);font-size:.7rem">${i+1}</td>
       <td style="font-size:.72rem">
         <div style="display:flex;align-items:center;gap:4px">
-          <button onclick="event.stopPropagation();toggleCAFExpandRow('${rowId}')" style="background:none;border:none;color:var(--t2);cursor:pointer;padding:0;font-size:.7rem;line-height:1" title="Ver CAFs vinculadas">▸</button>
+          <button id="btn-${rowId}" onclick="event.stopPropagation();toggleCAFExpandRow('${rowId}')" style="background:var(--bg3);border:1px solid var(--bd);color:var(--t2);cursor:pointer;padding:2px 7px;font-size:1.05rem;line-height:1;border-radius:4px;min-width:26px;min-height:26px" title="Ver CAFs vinculadas">▸</button>
           <span style="color:var(--red);font-weight:700">${op.codigoCurto?esc(op.codigoCurto):esc(op.id)}</span>
         </div>
         <div style="color:var(--t3);font-weight:500;font-size:.58rem;margin-left:14px" title="ID interno do banco">${esc(op.id)}</div>
@@ -3370,7 +3371,9 @@ function toggleCAFExpandRow(rowId){
   const row=document.getElementById(rowId);if(!row)return;
   const jaAberta=row.style.display!=='none';
   document.querySelectorAll('#listBody tr[id^="det-"]').forEach(r=>r.style.display='none');
+  document.querySelectorAll('#listBody button[id^="btn-det-"]').forEach(b=>b.textContent='▸');
   row.style.display=jaAberta?'none':'table-row';
+  const btn=document.getElementById('btn-'+rowId);if(btn)btn.textContent=jaAberta?'▸':'▾';
 }
 
 // Alterna entre a tabela de Viagens e a tabela de Retorno de Pallets na aba Lista
