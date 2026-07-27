@@ -563,7 +563,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v269</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v270</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1726,11 +1726,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v269';
+const APP_VERSION='v270';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v270:['🐛 Corrigido bug que zerava os alertas de CAF sem baixa/processo de entrega nos cards (c.op_id inexistente, correto é c.opId). 🔄 Modal de viagem: status da CAF vinculada agora é editável direto ali, sem trocar de aba. ⚠ Validação imediata quando digita CAF manualmente (não some mais sem avisar).'],
   v269:['⏱ Nova exportação na aba CAFs: Tempo por Status (CSV) — mostra quanto tempo cada CAF ficou em cada status, com entrada/saída e duração, a partir do histórico real.'],
   v268:['🎨 Lista: seta de expandir CAF aumentada (área clicável maior, melhor pra tablet) e agora gira (▸/▾) mostrando se está aberta ou fechada.'],
   v267:['🚪 Gestão de Doca (kanban): card agora mostra CAF + pallets + vencimento de verdade (não só contagem), com selo de % de ocupação. Modal de viagem: linha de CAF vinculada mostra pallets/vencimento quando bate com CAF real do banco.'],
@@ -3004,7 +3005,7 @@ function _quickStatusBtns(op){
 }
 function _cafAlertBadge(op){
   if(!op.cafs || !op.cafs.length)return'';
-  const cafsDaOp = cafsDB.filter(c=>c.op_id===op.id);
+  const cafsDaOp = cafsDB.filter(c=>c.opId===op.id);
   if(!cafsDaOp.length)return'';
   if(op.status==='TRAN'){
     const semProcesso=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
@@ -4302,8 +4303,46 @@ function calcD(){
 let cafIdx=0;
 function cafR(c,i){
   const real=c.num?cafsDB.find(x=>x.num===c.num):null;
-  const info=real?`<div style="font-size:.62rem;color:var(--t2);padding:2px 0 0 2px">📦 ${real.pallets||0} pallet(s) · vence ${real.venc?fmtD(real.venc):'—'} · <span style="color:${real.status==='Entrega Realizada'?'var(--green)':'var(--t2)'}">${esc(real.status)}</span></div>`:'';
-  return `<div id="cr-${i}"><div class="caf-row"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('#cr-${i}').remove()">✕</button></div>${info}</div>`;
+  let info='';
+  if(real){
+    const podeStatus=_cafStatusPermitido(currentUser?.perfil);
+    const selHtml=podeStatus.length?`<select onchange="alterarStatusCAFInline('${esc(real.id)}',this.value)" style="background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);font-size:.62rem;padding:1px 4px;margin-left:4px">
+        ${['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo','Processo de Entrega','Entrega Realizada','cancelada'].map(s=>`<option value="${s}" ${s===real.status?'selected':''} ${podeStatus.includes(s)?'':'disabled'}>${s}</option>`).join('')}
+      </select>`:`<span style="color:${real.status==='Entrega Realizada'?'var(--green)':'var(--t2)'}">${esc(real.status)}</span>`;
+    info=`<div style="font-size:.62rem;color:var(--t2);padding:2px 0 0 2px;display:flex;align-items:center">📦 ${real.pallets||0} pallet(s) · vence ${real.venc?fmtD(real.venc):'—'} · ${selHtml}</div>`;
+  }
+  return `<div id="cr-${i}"><div class="caf-row"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234" onblur="_validarCafManualInline(this,${i})"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('#cr-${i}').remove()">✕</button></div>${info}</div>`;
+}
+// Confere na hora (sem esperar salvar a viagem inteira) se o CAF digitado manualmente existe e
+// pode ser vinculado — antes disso a linha só sumia silenciosamente no salvamento se não desse certo.
+function _validarCafManualInline(input,i){
+  const num=input.value.trim();
+  const container=document.getElementById('cr-'+i);
+  const antigo=container?.querySelector('.caf-check-inline');if(antigo)antigo.remove();
+  if(!num||!container)return;
+  const c=cafsDB.find(x=>x.num===num);
+  let msg='';
+  if(!c)msg='<span style="color:var(--t2)">ℹ CAF não encontrada no banco — será salva como referência manual, sem vínculo automático.</span>';
+  else if(c.opId&&c.opId!==editCAFId&&c.opId!==(ops.find(o=>o.id===editId)?.id))msg=`<span style="color:var(--red)">⛔ Já vinculada à viagem ${esc(c.opId)} — não vai vincular aqui.</span>`;
+  else if(c.status!=='Produzida')msg=`<span style="color:var(--red)">⛔ Status atual é "${esc(c.status)}" — só é possível vincular quando estiver "Produzida".</span>`;
+  else msg='<span style="color:var(--green)">✅ Pronta para vincular ao salvar.</span>';
+  container.insertAdjacentHTML('beforeend',`<div class="caf-check-inline" style="font-size:.6rem;padding:2px 0 0 2px">${msg}</div>`);
+}
+async function alterarStatusCAFInline(cafId,novoStatus){
+  const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  if(!_cafStatusPermitido(currentUser?.perfil).includes(novoStatus)){showToast('⛔ Seu perfil não pode definir este status','err');return;}
+  if(c.status===novoStatus)return;
+  const opIdVoltar=editId; // guarda pra reabrir depois
+  document.getElementById('overlay').classList.remove('open'); // fecha o modal da viagem temporariamente
+  openEditCAF(cafId);
+  // Aguarda o modal da CAF montar os campos, ajusta o status e salva sozinho — reaproveita 100% da
+  // lógica já validada de saveCAF() (liberação/ocupação de rua, incremento de pallets, histórico)
+  setTimeout(async()=>{
+    const sel=document.getElementById('cafStatus');
+    if(sel)sel.value=novoStatus;
+    await saveCAF();
+    if(opIdVoltar)openEdit(opIdVoltar); // volta pro modal da viagem, já atualizado
+  },80);
 }
 function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
 
