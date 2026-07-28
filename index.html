@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v271</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v272</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1731,11 +1731,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v271';
+const APP_VERSION='v272';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v272:['🚛 Análise: novo card "Veículos sem Cadastro" — lista placas usadas em viagens sem capacidade cadastrada, ordenadas por frequência, com atalho pra cadastrar na hora. Alerta correspondente no Painel.'],
   v271:['🔁 Novo status \"Declínio\" nas viagens (IDA) e no Retorno de Pallets — ao marcar, o sistema oferece gerar automaticamente uma viagem/retorno substituto pra suprir aquela rota/FC. CAFs vinculadas a uma viagem em Declínio voltam a ficar disponíveis sozinhas.'],
   v270:['🐛 Corrigido bug que zerava os alertas de CAF sem baixa/processo de entrega nos cards (c.op_id inexistente, correto é c.opId). 🔄 Modal de viagem: status da CAF vinculada agora é editável direto ali, sem trocar de aba. ⚠ Validação imediata quando digita CAF manualmente (não some mais sem avisar).'],
   v269:['⏱ Nova exportação na aba CAFs: Tempo por Status (CSV) — mostra quanto tempo cada CAF ficou em cada status, com entrada/saída e duração, a partir do histórico real.'],
@@ -2987,9 +2988,16 @@ function renderKPIs(){
     _insumosLoadTried=true;
     loadInsumosHub().then(()=>renderKPIs());
   }
+  // Cadastro de Veículos — carrega sob demanda (uma vez) para saber quais placas faltam cadastrar
+  if(supabaseOK&&!_veiculosLoadTried){
+    _veiculosLoadTried=true;
+    loadVeiculosCadastro().then(()=>renderKPIs());
+  }
   const palPendentes=pallets.filter(p=>['EM_TRANSITO','AGU_DESCARGA'].includes(p.status)).length;
   const palDivergencia=pallets.filter(p=>p.status==='FINALIZADO'&&p.qtdRecebida!=null&&p.qtdPrevista!==p.qtdRecebida).length;
   const insAlertas=insumosHub.filter(i=>i.limiteMinimo!=null&&_insumoOperacional(i)<=i.limiteMinimo).length;
+  const placasSemCadastro=new Set();
+  d.forEach(o=>{[o.placa,o.placaCarreta].filter(Boolean).forEach(pl=>{const p=String(pl).trim().toUpperCase();if(p&&!_buscarVeiculo(p))placasSemCadastro.add(p);});});
   document.getElementById('kpiBar').innerHTML=[
     {cl:'c-red',v:d.length,l:'Total'},{cl:'c-gy',v:c('PROG'),l:'Programado'},
     {cl:'c-ye',v:c('AGUCARR'),l:'Ag.Carregamento'},{cl:'c-or',v:c('EMCARR'),l:'Em Carregamento'},
@@ -2997,7 +3005,8 @@ function renderKPIs(){
     {cl:'c-gr',v:c('FIN'),l:'Finalizado'},{cl:'c-red',v:c('CANC')+c('REC'),l:'Canc/Recusado'},
   ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('')
   +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">🔄 ${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`
-  +`<div class="kpi ${insAlertas?'c-red':'c-gy'}" onclick="setView('insumos')" style="cursor:pointer" title="Ir para Insumos HUB"><div class="v">🧰 ${insAlertas}</div><div class="l">Insumos no Limite</div></div>`;
+  +`<div class="kpi ${insAlertas?'c-red':'c-gy'}" onclick="setView('insumos')" style="cursor:pointer" title="Ir para Insumos HUB"><div class="v">🧰 ${insAlertas}</div><div class="l">Insumos no Limite</div></div>`
+  +`<div class="kpi ${placasSemCadastro.size?'c-red':'c-gy'}" onclick="setView('analise')" style="cursor:pointer" title="Ver quais placas faltam cadastrar"><div class="v">🚛 ${placasSemCadastro.size}</div><div class="l">Veículos s/ Cadastro</div></div>`;
 }
 
 function _quickStatusBtns(op){
@@ -4875,6 +4884,10 @@ function _paretoSVG(dados,opts){
 
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
+  if(supabaseOK&&!_veiculosLoadTried){
+    _veiculosLoadTried=true;
+    loadVeiculosCadastro().then(()=>renderAnalise());
+  }
   try{
   const lbl=document.getElementById('aFiltroLabel');if(lbl)lbl.textContent=getAnaliseLabel();
   // Popula select de transportadora com as disponíveis
@@ -5278,6 +5291,29 @@ function renderAnalise(){
   <h3>📊 Pareto — Atraso por Rota</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Barras = quantidade de viagens em atraso por rota, do maior pro menor · Linha laranja = % acumulado (a régua clássica dos 80/20: geralmente poucas rotas concentram a maior parte do problema)</p>
   ${_paretoSVG(rArr.map(([r,d])=>[r,d.t-d.ok]))}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>🚛 Veículos sem Cadastro</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Placas usadas em viagens do período que ainda não têm metragem/capacidade cadastrada — sem isso, o selo de ocupação (%) não aparece pra elas na Lista nem na Gestão de Doca. Ordenado pelas que mais aparecem primeiro.</p>
+  ${(()=>{
+    const vistas={};
+    data.forEach(o=>{
+      [o.placa,o.placaCarreta].filter(Boolean).forEach(pl=>{
+        const p=String(pl).trim().toUpperCase();
+        if(p&&!_buscarVeiculo(p))vistas[p]=(vistas[p]||0)+1;
+      });
+    });
+    const semCadastro=Object.entries(vistas).sort((a,b)=>b[1]-a[1]);
+    if(!semCadastro.length)return '<div style="text-align:center;padding:16px;color:var(--green);font-size:.8rem">✅ Todas as placas usadas no período já estão cadastradas</div>';
+    return `<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
+      <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase"><th style="padding:6px 8px">Placa</th><th style="text-align:center">Viagens no período</th><th></th></tr></thead>
+      <tbody>${semCadastro.slice(0,15).map(([placa,n])=>`<tr style="border-bottom:1px solid var(--bd)">
+        <td style="padding:6px 8px;font-weight:800">${esc(placa)}</td>
+        <td style="text-align:center">${n}</td>
+        <td style="text-align:center">${hasPerm('veiculos_gerir')?`<button class="btn btn-g" style="font-size:.65rem;padding:2px 8px" onclick="_cadastrarVeiculoRapido('${esc(placa)}')">+ Cadastrar</button>`:''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  })()}
 </div>
 <div class="an-card">
 
@@ -7396,6 +7432,12 @@ function _recalcularCapacidadeModal(){
   const cap=_calcCapacidadePallets(c,l);
   const el=document.getElementById('vecCapacidadeCalc');
   if(el)el.textContent=cap>0?`${cap} pallets (calculado automaticamente)`:'—';
+}
+
+// Abre o cadastro de veículo já com a placa preenchida — usado no card "Veículos sem Cadastro" da Análise
+function _cadastrarVeiculoRapido(placa){
+  openNewVeiculo();
+  const el=document.getElementById('vecPlaca');if(el)el.value=placa;
 }
 
 function openNewVeiculo(){
