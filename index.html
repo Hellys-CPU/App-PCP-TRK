@@ -288,6 +288,7 @@ body.dark .countdown{color:#58a6ff;}
 .sb-FIN{background:var(--green2);color:var(--green3);border:1px solid #86efac;}
 .sb-CANC{background:var(--red4);color:var(--red);border:1px solid #fca5a5;}
 .sb-REC{background:var(--red4);color:var(--red);border:1px solid #fca5a5;}
+.sb-DECLINIO{background:#f3e8ff;color:#a855f7;border:1px solid #d8b4fe;}
 .sb-PERN{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
 
 /* MODAL */
@@ -563,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v270</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v271</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -907,6 +908,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <option value="EM_TRANSITO">Em Trânsito</option>
       <option value="AGU_DESCARGA">Aguardando Descarga</option>
       <option value="FINALIZADO">Finalizado</option>
+      <option value="CANCELADO">Cancelado</option>
+      <option value="DECLINIO">Declínio</option>
     </select>
     <input type="date" id="rpFData" onchange="renderPallets()" title="Filtrar por data da operação"/>
     <input id="rpBusca" placeholder="🔍 motorista, placa, transportadora..." oninput="renderPallets()" style="padding:4px 9px;width:210px;"/>
@@ -957,6 +960,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
             <option value="EM_TRANSITO">Em Trânsito</option>
             <option value="AGU_DESCARGA">Aguardando Descarga</option>
             <option value="FINALIZADO">Finalizado</option>
+            <option value="CANCELADO">Cancelado</option>
+            <option value="DECLINIO">Declínio</option>
           </select>
         </div>
       </div>
@@ -1726,11 +1731,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v270';
+const APP_VERSION='v271';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v271:['🔁 Novo status \"Declínio\" nas viagens (IDA) e no Retorno de Pallets — ao marcar, o sistema oferece gerar automaticamente uma viagem/retorno substituto pra suprir aquela rota/FC. CAFs vinculadas a uma viagem em Declínio voltam a ficar disponíveis sozinhas.'],
   v270:['🐛 Corrigido bug que zerava os alertas de CAF sem baixa/processo de entrega nos cards (c.op_id inexistente, correto é c.opId). 🔄 Modal de viagem: status da CAF vinculada agora é editável direto ali, sem trocar de aba. ⚠ Validação imediata quando digita CAF manualmente (não some mais sem avisar).'],
   v269:['⏱ Nova exportação na aba CAFs: Tempo por Status (CSV) — mostra quanto tempo cada CAF ficou em cada status, com entrada/saída e duração, a partir do histórico real.'],
   v268:['🎨 Lista: seta de expandir CAF aumentada (área clicável maior, melhor pra tablet) e agora gira (▸/▾) mostrando se está aberta ou fechada.'],
@@ -2724,9 +2730,9 @@ const TIPOS=['LTL','FLT','Inbound','Extra']; // tipo de carga da VIAGEM — mant
 const TIPOS_CAF=['LTL','FLT','Inbound','NC']; // tipo da CAF em si — usa NC no lugar de Extra
 const TIPOLS=['CARRETA','TOCO','TRUCK','VAN','UTILITÁRIO'];
 let TRANSPS=['FRATELLI','GALEGOS','PRC','FULLFLEX','HORIZONTE','SPEED','VOXEL','NEW ALPHA','REALUZ','SETAG','INNOVATION','SABOIA'];
-const STS=[{id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},{id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},{id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},{id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'PERN',lb:'EM PERNOITE'}];
-const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','PERN'];
-const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f59e0b'};
+const STS=[{id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},{id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},{id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},{id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'DECLINIO',lb:'DECLÍNIO'},{id:'PERN',lb:'EM PERNOITE'}];
+const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','DECLINIO','PERN'];
+const COL_BRD={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',DECLINIO:'#a855f7',PERN:'#f59e0b'};
 
 let ops=[],editId=null,seq=1000,mRows=[],fupGrouped=false,curPage='painel';
 let CFG={alertas:true,timer:true,countdown:true,sync:true,banner:true,limiteAtraso:30,slaMeta:92,pisoCAF:27,pisoPallets:30};
@@ -4378,6 +4384,7 @@ async function saveCard(){
       await syncCAFsStatus(op,op.status,statusAntes);
       if(op.status==='FIN'){setTimeout(checkCAFsSemBaixa,1000);await _autoGerarRetornoPallets(op);}
     }
+    var _precisaOfertarSubstituta=(op.status==='DECLINIO'&&statusAntes!=='DECLINIO')?op:null;
   }else{
     const id=g('fId')||genId();
     const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
@@ -4387,6 +4394,32 @@ async function saveCard(){
     if(newOp.status==='FIN')await _autoGerarRetornoPallets(newOp);
   }
   loading(false);closeModal();
+  if(typeof _precisaOfertarSubstituta!=='undefined'&&_precisaOfertarSubstituta)_ofertarViagemSubstituta(_precisaOfertarSubstituta);
+}
+
+// Quando uma viagem é marcada como "Declínio", oferece gerar automaticamente uma nova
+// viagem pra suprir a mesma rota — reaproveita os dados básicos, mas NÃO copia as CAFs
+// vinculadas (elas precisam ser revinculadas manualmente à nova viagem, pra não burlar
+// a validação de "CAF já vinculada a outra operação").
+function _ofertarViagemSubstituta(opOriginal){
+  if(!confirm(`A viagem ${opOriginal.codigoCurto||opOriginal.id} foi marcada como Declínio.\n\nGerar automaticamente uma nova viagem pra suprir essa rota?`))return;
+  const who=currentUser?.nome||'Usuário';
+  const novo={
+    id:genId(),dataProg:opOriginal.dataProg,dataOp:opOriginal.dataOp,rota:opOriginal.rota,
+    tipoCarga:opOriginal.tipoCarga,tipologia:opOriginal.tipologia,transp:opOriginal.transp,mot:'',
+    placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:opOriginal.planApres,planSaida:opOriginal.planSaida,
+    planChegFC:opOriginal.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',
+    status:'PROG',doca:'',obs:`Gerada para suprir o declínio da viagem ${opOriginal.codigoCurto||opOriginal.id}. Vincule manualmente as CAFs que estavam nela.`,
+    ocorr:[],cafs:[],hist:[{t:ts(),txt:`[${who}] Gerada para suprir o declínio de ${opOriginal.id}`}],
+    updatedAt:ts(),updatedBy:who,gerarRetornoPallets:false,retornoPalletsId:''
+  };
+  editId=null;
+  document.getElementById('mTitle').textContent='Nova Operação (substituta do declínio)';
+  document.getElementById('btnDeletar').style.display='none';
+  document.getElementById('btnDuplicar').style.display='none';
+  document.getElementById('btnImprimir').style.display='none';
+  buildForm(novo);document.getElementById('overlay').classList.add('open');
+  showToast('⚠ Lembre-se de vincular manualmente as CAFs da viagem original','info');
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -6346,7 +6379,9 @@ function _palletStatusInfo(st){
   return{
     EM_TRANSITO:{lb:'Em Trânsito',cor:'var(--orange)',ic:'🚚'},
     AGU_DESCARGA:{lb:'Aguardando Descarga',cor:'var(--yellow)',ic:'⏳'},
-    FINALIZADO:{lb:'Finalizado',cor:'var(--green)',ic:'✅'}
+    FINALIZADO:{lb:'Finalizado',cor:'var(--green)',ic:'✅'},
+    CANCELADO:{lb:'Cancelado',cor:'var(--red)',ic:'❌'},
+    DECLINIO:{lb:'Declínio',cor:'#a855f7',ic:'🔁'}
   }[st]||{lb:st,cor:'var(--t2)',ic:'•'};
 }
 
@@ -6609,7 +6644,22 @@ async function savePallet(){
     _publishAbly('pallets_update',{action:editPalletId?'update':'insert'});
     showToast(editPalletId?'✅ Retorno atualizado':'✅ Retorno registrado!','ok');
     closePalletModal();renderPallets();renderInventarioPallets();
+    if(statusEscolhido==='DECLINIO'&&statusAnterior!=='DECLINIO')_ofertarRetornoSubstituto(p);
   }else showToast('❌ Erro ao salvar Retorno de Pallets','err');
+}
+
+// Quando um Retorno de Pallets é marcado como "Declínio", oferece gerar automaticamente
+// um novo retorno pra suprir aquele — reaproveita FC/transportadora/tipologia, mas zera
+// quantidades e horários, já que é um retorno novo, ainda não aconteceu de fato.
+function _ofertarRetornoSubstituto(pOriginal){
+  if(!confirm(`O Retorno de Pallets do FC ${pOriginal.fc} foi marcado como Declínio.\n\nGerar automaticamente um novo retorno pra suprir esse FC?`))return;
+  openNewPallet();
+  document.getElementById('rpMTitle').textContent='🔄 Novo Retorno (substituto do declínio)';
+  document.getElementById('rpFC').value=pOriginal.fc;
+  document.getElementById('rpTransp').value=pOriginal.transp||'';
+  document.getElementById('rpTipol').value=pOriginal.tipologia||'';
+  document.getElementById('rpObs').value=`Gerado para suprir o declínio do retorno anterior (${pOriginal.id}).`;
+  showToast('⚠ Revise os dados do retorno substituto antes de salvar','info');
 }
 
 // Avança rapidamente o status de um card sem abrir o modal completo
@@ -7828,8 +7878,8 @@ async function syncCAFsStatus(op, novoStatus, prevStatus){
   let novoStatusCAF=null;
   // TRAN: NÃO muda — alerta visual no card até mudança manual
   // FIN: NÃO muda — Entrega Realizada deve ser dado manualmente na aba CAF
-  // CANC/REC: CAFs voltam para "aberta" automaticamente (libera para outra viagem)
-  if(['CANC','REC'].includes(novoStatus)) novoStatusCAF='Vinculada a Veículo'; // volta para disponível
+  // CANC/REC/DECLINIO: CAFs voltam para "aberta" automaticamente (libera para outra viagem)
+  if(['CANC','REC','DECLINIO'].includes(novoStatus)) novoStatusCAF='Vinculada a Veículo'; // volta para disponível
 
   if(!novoStatusCAF)return;
 
@@ -8148,9 +8198,9 @@ function renderTV(){
   }).length;
 
   // Mapa de status para posição na estrada (0=início, 4=fim)
-  const statusPos={'PROG':0,'AGUCARR':0,'EMCARR':1,'TRAN':2,'AGUDESC':3,'FIN':4,'PERN':2,'CANC':null,'REC':null};
-  const statusCor={'PROG':'#6b7280','AGUCARR':'#f59e0b','EMCARR':'var(--orange)','TRAN':'#3b82f6','AGUDESC':'#8b5cf6','FIN':'#22c55e','PERN':'#f59e0b','CANC':'#374151','REC':'#374151'};
-  const statusIcon={'PROG':'📋','AGUCARR':'⏳','EMCARR':'📦','TRAN':'🚛','AGUDESC':'🏭','FIN':'✅','PERN':'🌙','CANC':'❌','REC':'🚫'};
+  const statusPos={'PROG':0,'AGUCARR':0,'EMCARR':1,'TRAN':2,'AGUDESC':3,'FIN':4,'PERN':2,'CANC':null,'REC':null,'DECLINIO':null};
+  const statusCor={'PROG':'#6b7280','AGUCARR':'#f59e0b','EMCARR':'var(--orange)','TRAN':'#3b82f6','AGUDESC':'#8b5cf6','FIN':'#22c55e','PERN':'#f59e0b','CANC':'#374151','REC':'#374151','DECLINIO':'#a855f7'};
+  const statusIcon={'PROG':'📋','AGUCARR':'⏳','EMCARR':'📦','TRAN':'🚛','AGUDESC':'🏭','FIN':'✅','PERN':'🌙','CANC':'❌','REC':'🚫','DECLINIO':'🔁'};
 
   // Gera a estrada SVG para uma rota
   function rotaEstrada(rota, d){
