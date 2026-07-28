@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v272</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v273</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1731,11 +1731,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v272';
+const APP_VERSION='v273';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v273:['📦 Análise: novo card de Ocupação e Volume por Viagem — ocupação média, volume médio de pallets/viagem, e % de viagens cumprindo a meta mínima configurada.'],
   v272:['🚛 Análise: novo card "Veículos sem Cadastro" — lista placas usadas em viagens sem capacidade cadastrada, ordenadas por frequência, com atalho pra cadastrar na hora. Alerta correspondente no Painel.'],
   v271:['🔁 Novo status \"Declínio\" nas viagens (IDA) e no Retorno de Pallets — ao marcar, o sistema oferece gerar automaticamente uma viagem/retorno substituto pra suprir aquela rota/FC. CAFs vinculadas a uma viagem em Declínio voltam a ficar disponíveis sozinhas.'],
   v270:['🐛 Corrigido bug que zerava os alertas de CAF sem baixa/processo de entrega nos cards (c.op_id inexistente, correto é c.opId). 🔄 Modal de viagem: status da CAF vinculada agora é editável direto ali, sem trocar de aba. ⚠ Validação imediata quando digita CAF manualmente (não some mais sem avisar).'],
@@ -5313,6 +5314,33 @@ function renderAnalise(){
         <td style="text-align:center">${hasPerm('veiculos_gerir')?`<button class="btn btn-g" style="font-size:.65rem;padding:2px 8px" onclick="_cadastrarVeiculoRapido('${esc(placa)}')">+ Cadastrar</button>`:''}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
+  })()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📦 Ocupação e Volume por Viagem</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Considera só viagens com CAF vinculada no período. Ocupação média só entra quem tem veículo cadastrado (senão não dá pra calcular %). Meta mínima configurada: ${CFG.pisoPallets||30} pallets/veículo.</p>
+  ${(()=>{
+    const viagensComCAF=data.map(o=>{
+      const cafsOp=cafsDB.filter(c=>c.opId===o.id);
+      const totalPal=cafsOp.reduce((s,c)=>s+(Number(c.pallets)||0),0);
+      return {op:o,totalPal,cafsOp};
+    }).filter(x=>x.cafsOp.length>0);
+    if(!viagensComCAF.length)return '<div style="text-align:center;padding:16px;color:var(--t3);font-size:.8rem">Sem viagens com CAF vinculada no período.</div>';
+    const meta=CFG.pisoPallets||30;
+    const comOcupacao=viagensComCAF.map(v=>_ocupacaoVeiculo(v.op.placa,v.op.placaCarreta,v.totalPal)).filter(Boolean);
+    const ocupMedia=comOcupacao.length?Math.round(comOcupacao.reduce((s,o)=>s+o.pct,0)/comOcupacao.length):null;
+    const volMedio=Math.round(viagensComCAF.reduce((s,v)=>s+v.totalPal,0)/viagensComCAF.length);
+    const atingemMeta=viagensComCAF.filter(v=>v.totalPal>=meta).length;
+    const pctMeta=Math.round(atingemMeta/viagensComCAF.length*100);
+    const kpi=(v,l,cor)=>`<div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center;flex:1;min-width:150px">
+      <div style="font-size:1.5rem;font-weight:800;color:${cor}">${v}</div>
+      <div style="font-size:.65rem;color:var(--t2);margin-top:2px">${l}</div>
+    </div>`;
+    return `<div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${kpi(ocupMedia!=null?ocupMedia+'%':'—','Ocupação Média'+(comOcupacao.length<viagensComCAF.length?` (${comOcupacao.length}/${viagensComCAF.length} c/ cadastro)`:''),ocupMedia==null?'var(--t2)':ocupMedia>=90?'var(--green)':ocupMedia>=70?'var(--yellow)':'var(--red)')}
+      ${kpi(volMedio,'Volume Médio (pallets/viagem)','var(--text)')}
+      ${kpi(pctMeta+'%',`Viagens na Meta (≥${meta} pallets) — ${atingemMeta}/${viagensComCAF.length}`,pctMeta>=80?'var(--green)':pctMeta>=50?'var(--yellow)':'var(--red)')}
+    </div>`;
   })()}
 </div>
 <div class="an-card">
