@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v273</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v274</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1731,11 +1731,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v273';
+const APP_VERSION='v274';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v274:['🎨 FUP Amazon por FC: relatório mais largo (aproveitando espaço da tela), VG em destaque no lugar do OP, e horário real formatado certinho (sem o "T" cru do ISO).'],
   v273:['📦 Análise: novo card de Ocupação e Volume por Viagem — ocupação média, volume médio de pallets/viagem, e % de viagens cumprindo a meta mínima configurada.'],
   v272:['🚛 Análise: novo card "Veículos sem Cadastro" — lista placas usadas em viagens sem capacidade cadastrada, ordenadas por frequência, com atalho pra cadastrar na hora. Alerta correspondente no Painel.'],
   v271:['🔁 Novo status \"Declínio\" nas viagens (IDA) e no Retorno de Pallets — ao marcar, o sistema oferece gerar automaticamente uma viagem/retorno substituto pra suprir aquela rota/FC. CAFs vinculadas a uma viagem em Declínio voltam a ficar disponíveis sozinhas.'],
@@ -10117,7 +10118,7 @@ function renderAmazon(){
 
   // Monta cards por status
   let html = `
-    <div id="amazonReport" style="max-width:900px;margin:0 auto;font-family:'Segoe UI',sans-serif">
+    <div id="amazonReport" style="max-width:1400px;margin:0 auto;font-family:'Segoe UI',sans-serif">
       <!-- Cabeçalho -->
       <div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div>
@@ -10175,7 +10176,7 @@ function renderAmazon(){
                 const dFC = dMin(o.planChegFC, o.realChegFC);
                 const fmtDelta = d => d===null ? '' : d===0 ? '<span style="color:var(--green)">0</span>' : d>0 ? `<span style="color:var(--red)">+${d}min</span>` : `<span style="color:var(--green)">${d}min</span>`;
                 const fmtTime = (pl, rl) => {
-                  const p = pl||'—', r = rl||'—';
+                  const p = pl||'—', r = rl?(toTime(rl)||rl):'—';
                   return `<span style="color:var(--t2)">${p}</span> → <span style="font-weight:600;color:${rl?'var(--text)':'var(--t3)'}">${r}</span>`;
                 };
                 const cafsTxt = o.cafs?.length
@@ -10183,7 +10184,8 @@ function renderAmazon(){
                   : '<span style="color:var(--t3)">—</span>';
                 return `<tr style="border-top:1px solid var(--bd);background:${i%2===0?'var(--bg1)':'var(--bg2)'}">
                   <td style="padding:6px 8px">
-                    <div style="font-weight:700;color:var(--red);font-size:.68rem">${esc(o.id)}</div>
+                    <div style="font-weight:700;color:var(--red);font-size:.68rem">${esc(o.codigoCurto||o.id)}</div>
+                    <div style="color:var(--t3);font-size:.56rem" title="ID interno">${esc(o.id)}</div>
                     ${o.sm?`<div style="color:var(--t2);font-size:.6rem">${esc(o.sm)}</div>`:''}
                   </td>
                   <td style="padding:6px 8px;color:var(--text)">${esc(o.transp||'—')}</td>
@@ -10214,7 +10216,7 @@ function renderAmazon(){
           <span style="font-size:.75rem;color:var(--t2)">${ops_st.length} viagem(s)</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:4px">
-          ${ops_st.map(o=>`<span style="background:var(--bg3);border-radius:4px;padding:2px 8px;font-size:.65rem;color:var(--t2)" title="${esc(o.transp||'')} · ${esc(o.mot||'')}">${esc(o.id)}</span>`).join('')}
+          ${ops_st.map(o=>`<span style="background:var(--bg3);border-radius:4px;padding:2px 8px;font-size:.65rem;color:var(--t2)" title="${esc(o.id)} · ${esc(o.transp||'')} · ${esc(o.mot||'')}">${esc(o.codigoCurto||o.id)}</span>`).join('')}
         </div>
       </div>`;
   });
