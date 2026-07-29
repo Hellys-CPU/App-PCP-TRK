@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v274</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v275</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1731,11 +1731,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v274';
+const APP_VERSION='v275';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v275:['🐛 Corrigido bug onde a tabela de Retorno de Pallets dentro da aba Lista não atualizava sozinha após salvar, avançar status ou atribuir doca — em 4 pontos diferentes do código.'],
   v274:['🎨 FUP Amazon por FC: relatório mais largo (aproveitando espaço da tela), VG em destaque no lugar do OP, e horário real formatado certinho (sem o "T" cru do ISO).'],
   v273:['📦 Análise: novo card de Ocupação e Volume por Viagem — ocupação média, volume médio de pallets/viagem, e % de viagens cumprindo a meta mínima configurada.'],
   v272:['🚛 Análise: novo card "Veículos sem Cadastro" — lista placas usadas em viagens sem capacidade cadastrada, ordenadas por frequência, com atalho pra cadastrar na hora. Alerta correspondente no Painel.'],
@@ -6708,7 +6709,7 @@ async function savePallet(){
   if(ok){
     _publishAbly('pallets_update',{action:editPalletId?'update':'insert'});
     showToast(editPalletId?'✅ Retorno atualizado':'✅ Retorno registrado!','ok');
-    closePalletModal();renderPallets();renderInventarioPallets();
+    closePalletModal();renderPallets();renderInventarioPallets();if(_listaModo==='pallets')renderListaPallets();
     if(statusEscolhido==='DECLINIO'&&statusAnterior!=='DECLINIO')_ofertarRetornoSubstituto(p);
   }else showToast('❌ Erro ao salvar Retorno de Pallets','err');
 }
@@ -6763,7 +6764,7 @@ async function avancarStatusPallet(id){
     _publishAbly('pallets_update',{action:'update'});
     if(proximo==='FINALIZADO'&&qtdPrevista&&qtdPrevista!==qtdRecebida)showToast(`⚠ Finalizado com divergência: previsto ${qtdPrevista} × recebido ${qtdRecebida}`,'err');
     else showToast('✅ Status atualizado','ok');
-    renderPallets();renderInventarioPallets();
+    renderPallets();renderInventarioPallets();if(_listaModo==='pallets')renderListaPallets();
   }
   else showToast('❌ Erro ao atualizar status','err');
 }
@@ -6777,7 +6778,7 @@ async function deletePallet(){
   await loadPallets();
   loading(false);
   _publishAbly('pallets_update',{action:'delete'});
-  closePalletModal();renderPallets();renderInventarioPallets();
+  closePalletModal();renderPallets();renderInventarioPallets();if(_listaModo==='pallets')renderListaPallets();
   showToast('🗑 Retorno excluído','ok');
 }
 
@@ -9575,6 +9576,7 @@ function _subscribeAbly(){
     await loadPallets();
     await loadInventarioPallets();
     if(curPage==='pallets'){renderPallets();renderInventarioPallets();}
+    if(curPage==='lista'&&_listaModo==='pallets')renderListaPallets();
     if(curPage==='prog')renderProg();
     if(curPage==='tv-yard')renderTVYard();
   });
@@ -9729,7 +9731,7 @@ async function atribuirDocaPallet(id,doca){
   if(ok){
     _publishAbly('pallets_update',{action:'update'});
     showToast(doca?`✅ Retorno ${p.fc} → ${doca}`:`${prev} liberada`,'ok');
-    renderProg();renderPallets();
+    renderProg();renderPallets();if(_listaModo==='pallets')renderListaPallets();
   }else showToast('❌ Erro ao atribuir doca','err');
 }
 
