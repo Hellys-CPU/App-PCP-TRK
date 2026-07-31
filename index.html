@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v280</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v281</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1757,11 +1757,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v280';
+const APP_VERSION='v281';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v281:['💰 Redução adicional de egress: medido que o histórico da CAF (hist) é 82% do peso da tabela (404KB de 491KB em 550 CAFs). TV e TV Yard agora buscam CAF sem esse campo, já que nunca exibem histórico — reduz o payload desses fetches em ~5,6x.'],
   v280:['💰 Redução de consumo (egress) do Supabase: TV e TV Yard agora usam o mesmo esquema adaptativo do resto do sistema — busca no banco só a cada 4 ciclos quando o tempo real (Ably) já está funcionando, em vez de toda vez. Reduz o consumo de telas de TV ligadas o dia inteiro em ~75%.'],
   v279:['📋 Report PCP: "CAFs Prontas" agora inclui as já vinculadas a veículo, mostrando evidência do vínculo (VG, placa, motorista). Layout ajustado pra caber a informação nova.'],
   v278:['🐛 Corrigido aviso de "nova versão disponível" que disparava pra QUALQUER diferença de versão (inclusive pedindo pra "atualizar" pra uma versão mais antiga que a publicada estava desatualizada) — agora só avisa se for de fato mais nova.'],
@@ -4718,7 +4719,7 @@ function setView(name){
     if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
   }
   if(name==='tv'){
-    Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());
+    Promise.all([loadRuas(),loadCAFs(false)]).catch(()=>{}).finally(()=>renderTV());
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
     window._tvTickCount=0;
@@ -4727,7 +4728,7 @@ function setView(name){
       // Mesmo esquema: Ably OK → busca no banco só a cada 4 ticks (1min); Ably caído → todo tick (15s)
       window._tvTickCount=(window._tvTickCount||0)+1;
       if(_ablyOK&&window._tvTickCount%4!==0){renderTV();return;}
-      Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());
+      Promise.all([loadRuas(),loadCAFs(false)]).catch(()=>{}).finally(()=>renderTV());
     },15000);
     // Fullscreen
     const el=document.documentElement;
@@ -5791,10 +5792,13 @@ function ruaNumeroDe(ruaId){
 }
 
 // Supabase CAF CRUD
-async function loadCAFs(){
+async function loadCAFs(comHist=true){
   if(!supabaseOK)return;
   try{
-    const data=await sbFetch(`${TABELA_CAF}?order=criado_em.desc&limit=2000`);
+    // hist é ~82% do peso da linha (medido: 404KB de 491KB em 550 CAFs) — quem só precisa
+    // exibir status/pallets/vencimento (TV, TV Yard) não precisa desse campo. Corta egress ~5x.
+    const cols='id,num_caf,tipo,rota,volume,pallets,vencimento,status,op_id,obs,criado_por,criado_em,rua_id,codigo_curto,esteira_num'+(comHist?',hist':'');
+    const data=await sbFetch(`${TABELA_CAF}?select=${cols}&order=criado_em.desc&limit=2000`);
     if(Array.isArray(data)){
       cafsDB=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
@@ -9121,7 +9125,7 @@ let _tvYardInterval=null;
 function renderTVYard(){
   const el=document.getElementById('tv-yard-wrap');if(!el)return;
   if(supabaseOK&&!cafsDB.length){
-    loadCAFs().then(()=>renderTVYard());
+    loadCAFs(false).then(()=>renderTVYard());
     return;
   }
   if(supabaseOK&&!inventarioPallets.length){
