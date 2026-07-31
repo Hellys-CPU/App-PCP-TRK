@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v277</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v279</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1757,11 +1757,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v277';
+const APP_VERSION='v279';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v279:['📋 Report PCP: "CAFs Prontas" agora inclui as já vinculadas a veículo, mostrando evidência do vínculo (VG, placa, motorista). Layout ajustado pra caber a informação nova.'],
+  v278:['🐛 Corrigido aviso de "nova versão disponível" que disparava pra QUALQUER diferença de versão (inclusive pedindo pra "atualizar" pra uma versão mais antiga que a publicada estava desatualizada) — agora só avisa se for de fato mais nova.'],
   v277:['🏭 Novo: Esteiras — Colaborador do Turno (Liderança atribui quem está em cada esteira, a qualquer momento). CAF ganhou campo Esteira. Nova aba "📋 Report PCP" (menu Relatórios): CAFs Prontas, CAF Produzindo (com esteira/colaborador) e Expedição por FC — contando só quem entrou em Processo de Entrega hoje de fato, pelo histórico real.'],
   v276:['🚛 Análise: card "Veículos sem Cadastro" agora mostra a transportadora (a mais recente vista) de cada placa, e já sugere isso na observação ao cadastrar rápido.'],
   v275:['🐛 Corrigido bug onde a tabela de Retorno de Pallets dentro da aba Lista não atualizava sozinha após salvar, avançar status ou atribuir doca — em 4 pontos diferentes do código.'],
@@ -1827,7 +1829,9 @@ async function _checarVersaoRemota(){
     if(!res.ok)return;
     const txt=await res.text();
     const m=txt.match(/APP_VERSION\s*=\s*'(v\d+)'/);
-    if(m&&m[1]&&m[1]!==APP_VERSION)_mostrarBannerNovaVersao(m[1]);
+    // Só avisa se a versão publicada for REALMENTE mais nova (número maior) — antes disparava
+    // pra qualquer diferença, o que pedia pra "atualizar" até pra versões mais antigas/desatualizadas.
+    if(m&&m[1]&&m[1]!==APP_VERSION&&_verMaiorQue(m[1],APP_VERSION))_mostrarBannerNovaVersao(m[1]);
   }catch(e){/* falha de rede — não incomoda o usuário por isso, tenta de novo no próximo ciclo */}
 }
 function _mostrarBannerNovaVersao(novaVersao){
@@ -7655,7 +7659,7 @@ function renderReportPCP(){
   const horaEl=document.getElementById('reportPCPHora');if(horaEl)horaEl.textContent='Gerado '+new Date().toLocaleString('pt-BR');
   const hoje=hojeLocal();
 
-  const prontas=cafsDB.filter(c=>c.status==='Produzida').sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const produzindo=cafsDB.filter(c=>c.status==='Em Produção').sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
 
   // Expedição: usa o histórico de cada CAF pra achar quem entrou em "Processo de Entrega" HOJE de fato
@@ -7671,38 +7675,46 @@ function renderReportPCP(){
   });
   const fcsOrd=Object.keys(porFC).sort();
 
-  const rowCAF=(c,mostrarEsteira)=>`<tr style="border-bottom:1px solid var(--bd)">
+  // Evidência do vínculo: busca a viagem (VG/placa/motorista) que já está com essa CAF atrelada
+  const _vinculoHTML=c=>{
+    if(!c.opId)return '<span style="color:var(--t3)">—</span>';
+    const op=ops.find(o=>o.id===c.opId);
+    if(!op)return `<span style="color:var(--t3)" title="${esc(c.opId)}">Vinculada (viagem não encontrada)</span>`;
+    return `<span style="color:var(--green);font-weight:700">🔗 ${esc(op.codigoCurto||op.id)}</span> <span style="color:var(--t2)">· ${esc(op.placa)||'—'} · ${esc(op.mot)||'—'}</span>`;
+  };
+
+  const rowCAF=(c,mostrarEsteira,mostrarVinculo)=>`<tr style="border-bottom:1px solid var(--bd)">
     ${mostrarEsteira?`<td style="padding:5px 8px;text-align:center;font-weight:700">${c.esteiraNum??'—'}</td>`:''}
     <td style="padding:5px 8px;font-weight:700">${esc(c.num)}</td>
     <td style="text-align:center">${c.pallets||0}</td>
     <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
     <td>${c.venc?fmtD(c.venc):'—'}</td>
     ${mostrarEsteira?`<td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>`:''}
+    ${mostrarVinculo?`<td>${_vinculoHTML(c)}</td>`:''}
   </tr>`;
 
   el.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="an-card">
-        <h3>✅ CAFs Prontas (${prontas.length})</h3>
-        <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
-          <table style="width:100%;font-size:.76rem">
-            <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-              <th style="padding:5px 8px">Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Data Promessa</th>
-            </tr></thead>
-            <tbody>${prontas.length?prontas.map(c=>rowCAF(c,false)).join(''):'<tr><td colspan="4" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF pronta no momento.</td></tr>'}</tbody>
-          </table>
-        </div>
+    <div class="an-card">
+      <h3>✅ CAFs Prontas (${prontas.length})</h3>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Inclui "Produzida" e "Vinculada a Veículo" — quando já vinculada, mostra a viagem (VG), placa e motorista.</p>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+        <table style="width:100%;font-size:.76rem">
+          <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+            <th style="padding:5px 8px">Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Vínculo (Viagem)</th>
+          </tr></thead>
+          <tbody>${prontas.length?prontas.map(c=>rowCAF(c,false,true)).join(''):'<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF pronta no momento.</td></tr>'}</tbody>
+        </table>
       </div>
-      <div class="an-card">
-        <h3>🏭 CAF Produzindo (${produzindo.length})</h3>
-        <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
-          <table style="width:100%;font-size:.76rem">
-            <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-              <th style="padding:5px 8px;text-align:center">Esteira</th><th>Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th>
-            </tr></thead>
-            <tbody>${produzindo.length?produzindo.map(c=>rowCAF(c,true)).join(''):'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF em produção no momento.</td></tr>'}</tbody>
-          </table>
-        </div>
+    </div>
+    <div class="an-card" style="margin-top:14px">
+      <h3>🏭 CAF Produzindo (${produzindo.length})</h3>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+        <table style="width:100%;font-size:.76rem">
+          <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+            <th style="padding:5px 8px;text-align:center">Esteira</th><th>Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th>
+          </tr></thead>
+          <tbody>${produzindo.length?produzindo.map(c=>rowCAF(c,true,false)).join(''):'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF em produção no momento.</td></tr>'}</tbody>
+        </table>
       </div>
     </div>
     <div class="an-card" style="margin-top:14px">
