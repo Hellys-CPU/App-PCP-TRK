@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v284</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v285</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1762,11 +1762,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v284';
+const APP_VERSION='v285';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v285:['📋 Report PCP: Expedição agora conta por VIAGEM, não por CAF individual — uma viagem com várias CAFs conta só 1 vez como grade do dia.'],
   v284:['🚪 Mapa de Doca (Ag. Descarga) agora aparece também na Gestão de Doca, não só na Análise — com VG, placa e motorista nos cards e na fila de espera (antes só mostrava o OP interno).'],
   v283:['📋 Report PCP: "CAF Produzindo" agora inclui "Em Auditoria GRIS" (sinalizada com 🔍 GRIS). "Expedidas" agora também conta CAF cuja viagem vinculada já avançou pra Em Trânsito ou além — não depende só do status manual da CAF.'],
   v282:['💰 Redução MAIOR de egress: 95% das CAFs já estão finalizadas (521 de 550) e a TV nunca precisa delas. TV/TV Yard agora buscam só as ativas, usando um array separado (nunca sobrescreve o cafsDB compartilhado com Lista/Doca/Report PCP — sem risco de "sumir" CAF antiga de outras telas).'],
@@ -7704,26 +7705,26 @@ function renderReportPCP(){
   const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const produzindo=cafsDB.filter(c=>['Em Produção','Em Auditoria GRIS'].includes(c.status)).sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
 
-  // Uma CAF conta como "expedida" se: o próprio status já é Entrega Realizada, OU a viagem
-  // vinculada a ela já avançou pra Em Trânsito (TRAN), Aguardando Descarga (AGUDESC) ou
-  // Finalizado (FIN) — ou seja, o caminhão já saiu de fato, mesmo que ninguém tenha voltado
-  // na CAF pra marcar "Entrega Realizada" manualmente ainda.
-  const _cafJaExpedida=c=>{
-    if(c.status==='Entrega Realizada')return true;
-    const op=c.opId?ops.find(o=>o.id===c.opId):null;
-    return !!(op&&['TRAN','AGUDESC','FIN'].includes(op.status));
-  };
+  // Uma VIAGEM conta como "expedida" se ela já avançou pra Em Trânsito (TRAN), Aguardando
+  // Descarga (AGUDESC) ou Finalizado (FIN) — ou seja, o caminhão já saiu de fato.
+  const _vgJaExpedida=op=>['TRAN','AGUDESC','FIN'].includes(op.status);
 
-  // Expedição: usa o histórico de cada CAF pra achar quem entrou em "Processo de Entrega" HOJE de fato
+  // Expedição: a unidade que conta é a VIAGEM (1 viagem = 1 grade saindo), não cada CAF dela —
+  // uma viagem com 2 CAFs continua sendo só 1 grade. Considera "do dia" toda viagem que tenha
+  // pelo menos 1 CAF que entrou em "Processo de Entrega" HOJE de fato (pelo histórico real).
   const porFC={};
+  const vgsContadas=new Set();
   cafsDB.forEach(c=>{
+    if(!c.opId||vgsContadas.has(c.opId))return; // já contou essa viagem por outra CAF dela
     const segs=_segmentosStatusCAF(c);
     const entrouHoje=segs.some(s=>s.status==='Processo de Entrega'&&(s.inicio||'').slice(0,10)===hoje);
     if(!entrouHoje)return;
-    const fc=_fcFromRota(c.rota)||c.rota||'—';
+    const op=ops.find(o=>o.id===c.opId);if(!op)return;
+    vgsContadas.add(c.opId);
+    const fc=_fcFromRota(op.rota)||op.rota||'—';
     if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0};
     porFC[fc].doDia++;
-    if(_cafJaExpedida(c))porFC[fc].expedidas++;
+    if(_vgJaExpedida(op))porFC[fc].expedidas++;
   });
   const fcsOrd=Object.keys(porFC).sort();
 
@@ -7772,7 +7773,7 @@ function renderReportPCP(){
     </div>
     <div class="an-card" style="margin-top:14px">
       <h3>🚚 Expedição — Hoje (${fmtD(hoje)})</h3>
-      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Conta só as CAFs que entraram em "Processo de Entrega" hoje de fato (pelo histórico real) — não o acumulado de todos os dias. Considera "expedida" quando o próprio status já é Entrega Realizada, ou quando a viagem vinculada já avançou pra Em Trânsito (ou além) — não depende de alguém voltar na CAF pra marcar manualmente.</p>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">A unidade contada é a <b>viagem</b> (1 viagem = 1 grade), não cada CAF — uma viagem com várias CAFs conta só 1 vez. Considera "do dia" toda viagem com pelo menos 1 CAF que entrou em "Processo de Entrega" hoje de fato (pelo histórico real). "Expedida" quando a viagem já avançou pra Em Trânsito ou além.</p>
       ${fcsOrd.length?`<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
         <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
           <th style="padding:6px 8px">FC</th><th style="text-align:center">Grades do Dia</th><th style="text-align:center">Expedidas</th><th style="text-align:center">Faltantes</th>
