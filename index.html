@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v279</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v280</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1757,11 +1757,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v279';
+const APP_VERSION='v280';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v280:['💰 Redução de consumo (egress) do Supabase: TV e TV Yard agora usam o mesmo esquema adaptativo do resto do sistema — busca no banco só a cada 4 ciclos quando o tempo real (Ably) já está funcionando, em vez de toda vez. Reduz o consumo de telas de TV ligadas o dia inteiro em ~75%.'],
   v279:['📋 Report PCP: "CAFs Prontas" agora inclui as já vinculadas a veículo, mostrando evidência do vínculo (VG, placa, motorista). Layout ajustado pra caber a informação nova.'],
   v278:['🐛 Corrigido aviso de "nova versão disponível" que disparava pra QUALQUER diferença de versão (inclusive pedindo pra "atualizar" pra uma versão mais antiga que a publicada estava desatualizada) — agora só avisa se for de fato mais nova.'],
   v277:['🏭 Novo: Esteiras — Colaborador do Turno (Liderança atribui quem está em cada esteira, a qualquer momento). CAF ganhou campo Esteira. Nova aba "📋 Report PCP" (menu Relatórios): CAFs Prontas, CAF Produzindo (com esteira/colaborador) e Expedição por FC — contando só quem entrou em Processo de Entrega hoje de fato, pelo histórico real.'],
@@ -4698,7 +4699,15 @@ function setView(name){
     loadRuas().catch(()=>{});
     renderTVYard();
     if(_tvYardInterval)clearInterval(_tvYardInterval);
-    _tvYardInterval=setInterval(()=>{if(curPage==='tv-yard'){loadRuas().catch(()=>{});renderTVYard();}},30000);
+    window._tvYardTickCount=0;
+    _tvYardInterval=setInterval(()=>{
+      if(curPage!=='tv-yard')return;
+      // Ably já entrega isso em tempo real — o polling aqui é só rede de segurança.
+      // Com Ably OK, só busca no banco a cada 4 ticks (2min); Ably caído, busca todo tick (30s).
+      window._tvYardTickCount=(window._tvYardTickCount||0)+1;
+      if(_ablyOK&&window._tvYardTickCount%4!==0){renderTVYard();return;}
+      loadRuas().catch(()=>{});renderTVYard();
+    },30000);
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
     _agendarAutoReloadTV();
@@ -4712,7 +4721,14 @@ function setView(name){
     Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
-    _tvInterval=setInterval(()=>{if(curPage==='tv'){Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());}},15000);
+    window._tvTickCount=0;
+    _tvInterval=setInterval(()=>{
+      if(curPage!=='tv')return;
+      // Mesmo esquema: Ably OK → busca no banco só a cada 4 ticks (1min); Ably caído → todo tick (15s)
+      window._tvTickCount=(window._tvTickCount||0)+1;
+      if(_ablyOK&&window._tvTickCount%4!==0){renderTV();return;}
+      Promise.all([loadRuas(),loadCAFs()]).catch(()=>{}).finally(()=>renderTV());
+    },15000);
     // Fullscreen
     const el=document.documentElement;
     if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});
