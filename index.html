@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v286</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v287</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1213,6 +1213,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="sp"></div>
     <span id="reportPCPHora" style="font-size:.7rem;color:var(--t2)"></span>
     <button class="btn btn-g" onclick="renderReportPCP()" style="font-size:.7rem">🔄 Atualizar</button>
+    <button class="btn btn-p" onclick="imprimirReportPCP()" style="font-size:.7rem;background:#f59e0b">📸 Extrair (Print/PDF)</button>
   </div>
   <div id="reportPCPBody" style="padding:14px 16px"></div>
 </div>
@@ -1762,11 +1763,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v286';
+const APP_VERSION='v287';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v287:['📸 Report PCP: botão "Extrair (Print/PDF)" — gera uma versão limpa e compacta das 3 seções (Expedição, CAF Produzindo, CAFs Prontas) numa janela de impressão, pronta pra tirar print e mandar no grupo ou salvar em PDF.'],
   v286:['📋 Report PCP: Expedição reescrita — agora 100% baseada em viagens do dia (não em CAF, que já aparece nas seções de cima), com colunas Grades do Dia/Expedidas/Faltantes/Canceladas por FC.'],
   v285:['📋 Report PCP: Expedição agora conta por VIAGEM, não por CAF individual — uma viagem com várias CAFs conta só 1 vez como grade do dia.'],
   v284:['🚪 Mapa de Doca (Ag. Descarga) agora aparece também na Gestão de Doca, não só na Análise — com VG, placa e motorista nos cards e na fila de espera (antes só mostrava o OP interno).'],
@@ -7784,6 +7786,78 @@ function renderReportPCP(){
         }).join('')}</tbody>
       </table></div>`:'<div style="text-align:center;padding:14px;color:var(--t3);font-size:.8rem">Nenhuma viagem programada para hoje ainda.</div>'}
     </div>`;
+}
+
+// Extrai o Report PCP numa janela de impressão limpa — pra imprimir, salvar em PDF, ou
+// simplesmente tirar um print e mandar no grupo mostrando como está o dia.
+function imprimirReportPCP(){
+  const hoje=hojeLocal();
+  const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const produzindo=cafsDB.filter(c=>['Em Produção','Em Auditoria GRIS'].includes(c.status)).sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
+  const porFC={};
+  ops.filter(o=>o.dataOp===hoje).forEach(op=>{
+    const fc=_fcFromRota(op.rota)||op.rota||'—';
+    if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0,canceladas:0,faltantes:0};
+    porFC[fc].doDia++;
+    if(['TRAN','AGUDESC','FIN'].includes(op.status))porFC[fc].expedidas++;
+    else if(['CANC','DECLINIO'].includes(op.status))porFC[fc].canceladas++;
+    else porFC[fc].faltantes++;
+  });
+  const fcsOrd=Object.keys(porFC).sort();
+
+  const win=window.open('','_blank','width=860,height=1000');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report PCP ${fmtD(hoje)}</title>
+  <style>
+  body{font-family:'Segoe UI',sans-serif;padding:20px;font-size:12px;color:#1a1a1a;background:#fff}
+  h1{color:#f59e0b;font-size:19px;margin-bottom:2px}
+  h2{font-size:11px;color:#666;margin-bottom:14px;font-weight:400}
+  .sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#444;margin:16px 0 6px;border-bottom:2px solid #f59e0b;padding-bottom:3px}
+  table{width:100%;border-collapse:collapse;margin-bottom:6px}
+  th{background:#fef3e2;padding:5px 7px;text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px;color:#666}
+  td{padding:4px 7px;border-bottom:1px solid #eee;font-size:11px}
+  .ctr{text-align:center}
+  .g{color:#16a34a;font-weight:700}.r{color:#cc0000;font-weight:700}.p{color:#7c3aed;font-weight:700}
+  .gris{background:#7c3aed15;color:#7c3aed;border:1px solid #7c3aed40;border-radius:3px;padding:0 4px;font-size:9px;font-weight:700;margin-left:4px}
+  @media print{body{padding:8px}}
+  </style></head><body>
+  <h1>📋 Report P.C.P</h1>
+  <h2>${fmtD(hoje)} · Gerado ${new Date().toLocaleString('pt-BR')} por ${esc(currentUser?.nome||'—')}</h2>
+
+  <div class="sec">🚚 Expedição — Hoje</div>
+  <table><tr><th>FC</th><th class="ctr">Grades do Dia</th><th class="ctr">Expedidas</th><th class="ctr">Faltantes</th><th class="ctr">Canceladas</th></tr>
+  ${fcsOrd.length?fcsOrd.map(fc=>{const d=porFC[fc];return `<tr>
+    <td><b>${esc(fc)}</b></td><td class="ctr"><b>${d.doDia}</b></td>
+    <td class="ctr g">${d.expedidas}</td><td class="ctr ${d.faltantes>0?'r':'g'}">${d.faltantes}</td>
+    <td class="ctr ${d.canceladas>0?'p':''}">${d.canceladas}</td>
+  </tr>`;}).join(''):'<tr><td colspan="5">Nenhuma viagem programada para hoje.</td></tr>'}
+  </table>
+
+  <div class="sec">🏭 CAF Produzindo (${produzindo.length})</div>
+  <table><tr><th class="ctr">Esteira</th><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th></tr>
+  ${produzindo.length?produzindo.map(c=>`<tr>
+    <td class="ctr">${c.esteiraNum??'—'}</td>
+    <td><b>${esc(c.num)}</b>${c.status==='Em Auditoria GRIS'?'<span class="gris">🔍 GRIS</span>':''}</td>
+    <td class="ctr">${c.pallets||0}</td><td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
+    <td>${c.venc?fmtD(c.venc):'—'}</td><td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>
+  </tr>`).join(''):'<tr><td colspan="6">Nenhuma CAF em produção.</td></tr>'}
+  </table>
+
+  <div class="sec">✅ CAFs Prontas (${prontas.length})</div>
+  <table><tr><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Vínculo</th></tr>
+  ${prontas.length?prontas.map(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return `<tr>
+      <td><b>${esc(c.num)}</b></td><td class="ctr">${c.pallets||0}</td>
+      <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td><td>${c.venc?fmtD(c.venc):'—'}</td>
+      <td>${op?esc(op.codigoCurto||op.id)+' · '+esc(op.placa||'—'):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5">Nenhuma CAF pronta.</td></tr>'}
+  </table>
+
+  <div style="font-size:9px;color:#999;margin-top:16px">TRK PCP 2026 · Total Express · Gerado automaticamente</div>
+  <script>window.print();window.onafterprint=()=>window.close();<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 async function desvincularCAF(){
