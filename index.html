@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v285</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v286</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1762,11 +1762,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v285';
+const APP_VERSION='v286';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v286:['📋 Report PCP: Expedição reescrita — agora 100% baseada em viagens do dia (não em CAF, que já aparece nas seções de cima), com colunas Grades do Dia/Expedidas/Faltantes/Canceladas por FC.'],
   v285:['📋 Report PCP: Expedição agora conta por VIAGEM, não por CAF individual — uma viagem com várias CAFs conta só 1 vez como grade do dia.'],
   v284:['🚪 Mapa de Doca (Ag. Descarga) agora aparece também na Gestão de Doca, não só na Análise — com VG, placa e motorista nos cards e na fila de espera (antes só mostrava o OP interno).'],
   v283:['📋 Report PCP: "CAF Produzindo" agora inclui "Em Auditoria GRIS" (sinalizada com 🔍 GRIS). "Expedidas" agora também conta CAF cuja viagem vinculada já avançou pra Em Trânsito ou além — não depende só do status manual da CAF.'],
@@ -7705,26 +7706,19 @@ function renderReportPCP(){
   const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const produzindo=cafsDB.filter(c=>['Em Produção','Em Auditoria GRIS'].includes(c.status)).sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
 
-  // Uma VIAGEM conta como "expedida" se ela já avançou pra Em Trânsito (TRAN), Aguardando
-  // Descarga (AGUDESC) ou Finalizado (FIN) — ou seja, o caminhão já saiu de fato.
-  const _vgJaExpedida=op=>['TRAN','AGUDESC','FIN'].includes(op.status);
-
-  // Expedição: a unidade que conta é a VIAGEM (1 viagem = 1 grade saindo), não cada CAF dela —
-  // uma viagem com 2 CAFs continua sendo só 1 grade. Considera "do dia" toda viagem que tenha
-  // pelo menos 1 CAF que entrou em "Processo de Entrega" HOJE de fato (pelo histórico real).
+  // Expedição: 100% baseada em VIAGEM (a CAF já aparece nas seções de cima) — pega toda
+  // viagem programada pra HOJE (dataOp = hoje) e classifica pelo status atual dela:
+  //  · Expedida        → já avançou pra Em Trânsito, Aguardando Descarga ou Finalizado
+  //  · Cancelada        → Cancelada ou Declínio (não é "faltante" de verdade, é baixa do dia)
+  //  · Faltante         → ainda Programado, Aguard. Carregamento ou Em Carregamento
   const porFC={};
-  const vgsContadas=new Set();
-  cafsDB.forEach(c=>{
-    if(!c.opId||vgsContadas.has(c.opId))return; // já contou essa viagem por outra CAF dela
-    const segs=_segmentosStatusCAF(c);
-    const entrouHoje=segs.some(s=>s.status==='Processo de Entrega'&&(s.inicio||'').slice(0,10)===hoje);
-    if(!entrouHoje)return;
-    const op=ops.find(o=>o.id===c.opId);if(!op)return;
-    vgsContadas.add(c.opId);
+  ops.filter(o=>o.dataOp===hoje).forEach(op=>{
     const fc=_fcFromRota(op.rota)||op.rota||'—';
-    if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0};
+    if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0,canceladas:0,faltantes:0};
     porFC[fc].doDia++;
-    if(_vgJaExpedida(op))porFC[fc].expedidas++;
+    if(['TRAN','AGUDESC','FIN'].includes(op.status))porFC[fc].expedidas++;
+    else if(['CANC','DECLINIO'].includes(op.status))porFC[fc].canceladas++;
+    else porFC[fc].faltantes++; // PROG, AGUCARR, EMCARR, PERN
   });
   const fcsOrd=Object.keys(porFC).sort();
 
@@ -7773,21 +7767,22 @@ function renderReportPCP(){
     </div>
     <div class="an-card" style="margin-top:14px">
       <h3>🚚 Expedição — Hoje (${fmtD(hoje)})</h3>
-      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">A unidade contada é a <b>viagem</b> (1 viagem = 1 grade), não cada CAF — uma viagem com várias CAFs conta só 1 vez. Considera "do dia" toda viagem com pelo menos 1 CAF que entrou em "Processo de Entrega" hoje de fato (pelo histórico real). "Expedida" quando a viagem já avançou pra Em Trânsito ou além.</p>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">100% baseado em viagem (a CAF já aparece nas seções acima) — todas as viagens programadas pra hoje, por FC de destino. Expedida = já em Trânsito ou além · Faltante = ainda Programado/Aguard. Carregamento/Em Carregamento · Cancelada = Cancelada ou Declínio.</p>
       ${fcsOrd.length?`<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
         <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
-          <th style="padding:6px 8px">FC</th><th style="text-align:center">Grades do Dia</th><th style="text-align:center">Expedidas</th><th style="text-align:center">Faltantes</th>
+          <th style="padding:6px 8px">FC</th><th style="text-align:center">Grades do Dia</th><th style="text-align:center">Expedidas</th><th style="text-align:center">Faltantes</th><th style="text-align:center">Canceladas</th>
         </tr></thead>
         <tbody>${fcsOrd.map(fc=>{
-          const d=porFC[fc],falt=d.doDia-d.expedidas;
+          const d=porFC[fc];
           return `<tr style="border-bottom:1px solid var(--bd)">
             <td style="padding:6px 8px;font-weight:800">${esc(fc)}</td>
             <td style="text-align:center;font-weight:700">${d.doDia}</td>
             <td style="text-align:center;color:var(--green);font-weight:700">${d.expedidas}</td>
-            <td style="text-align:center;color:${falt>0?'var(--red)':'var(--green)'};font-weight:700">${falt}</td>
+            <td style="text-align:center;color:${d.faltantes>0?'var(--red)':'var(--green)'};font-weight:700">${d.faltantes}</td>
+            <td style="text-align:center;color:${d.canceladas>0?'#a855f7':'var(--t2)'};font-weight:700">${d.canceladas}</td>
           </tr>`;
         }).join('')}</tbody>
-      </table></div>`:'<div style="text-align:center;padding:14px;color:var(--t3);font-size:.8rem">Nenhuma CAF entrou em Processo de Entrega hoje ainda.</div>'}
+      </table></div>`:'<div style="text-align:center;padding:14px;color:var(--t3);font-size:.8rem">Nenhuma viagem programada para hoje ainda.</div>'}
     </div>`;
 }
 
