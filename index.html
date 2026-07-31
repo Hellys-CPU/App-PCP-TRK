@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v282</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v284</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -767,6 +767,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
     <div id="progPalletsWrap" style="margin-top:16px"></div>
+    <div class="an-card" style="margin:16px 16px 0">
+      <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
+      <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
+      <div id="progMapaDocaWrap"></div>
+    </div>
 </div>
 
 <!-- MASSA -->
@@ -1757,11 +1762,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v282';
+const APP_VERSION='v284';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v284:['🚪 Mapa de Doca (Ag. Descarga) agora aparece também na Gestão de Doca, não só na Análise — com VG, placa e motorista nos cards e na fila de espera (antes só mostrava o OP interno).'],
+  v283:['📋 Report PCP: "CAF Produzindo" agora inclui "Em Auditoria GRIS" (sinalizada com 🔍 GRIS). "Expedidas" agora também conta CAF cuja viagem vinculada já avançou pra Em Trânsito ou além — não depende só do status manual da CAF.'],
   v282:['💰 Redução MAIOR de egress: 95% das CAFs já estão finalizadas (521 de 550) e a TV nunca precisa delas. TV/TV Yard agora buscam só as ativas, usando um array separado (nunca sobrescreve o cafsDB compartilhado com Lista/Doca/Report PCP — sem risco de "sumir" CAF antiga de outras telas).'],
   v281:['💰 Redução adicional de egress: medido que o histórico da CAF (hist) é 82% do peso da tabela (404KB de 491KB em 550 CAFs). TV e TV Yard agora buscam CAF sem esse campo, já que nunca exibem histórico — reduz o payload desses fetches em ~5,6x.'],
   v280:['💰 Redução de consumo (egress) do Supabase: TV e TV Yard agora usam o mesmo esquema adaptativo do resto do sistema — busca no banco só a cada 4 ciclos quando o tempo real (Ably) já está funcionando, em vez de toda vez. Reduz o consumo de telas de TV ligadas o dia inteiro em ~75%.'],
@@ -3768,6 +3775,8 @@ function renderProg(){
         </div>`;
     }
   }
+  const mapaWrap=document.getElementById('progMapaDocaWrap');
+  if(mapaWrap)mapaWrap.innerHTML=_renderMapaDoca();
 }
 
 
@@ -7693,7 +7702,17 @@ function renderReportPCP(){
   const hoje=hojeLocal();
 
   const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
-  const produzindo=cafsDB.filter(c=>c.status==='Em Produção').sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
+  const produzindo=cafsDB.filter(c=>['Em Produção','Em Auditoria GRIS'].includes(c.status)).sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
+
+  // Uma CAF conta como "expedida" se: o próprio status já é Entrega Realizada, OU a viagem
+  // vinculada a ela já avançou pra Em Trânsito (TRAN), Aguardando Descarga (AGUDESC) ou
+  // Finalizado (FIN) — ou seja, o caminhão já saiu de fato, mesmo que ninguém tenha voltado
+  // na CAF pra marcar "Entrega Realizada" manualmente ainda.
+  const _cafJaExpedida=c=>{
+    if(c.status==='Entrega Realizada')return true;
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    return !!(op&&['TRAN','AGUDESC','FIN'].includes(op.status));
+  };
 
   // Expedição: usa o histórico de cada CAF pra achar quem entrou em "Processo de Entrega" HOJE de fato
   const porFC={};
@@ -7704,7 +7723,7 @@ function renderReportPCP(){
     const fc=_fcFromRota(c.rota)||c.rota||'—';
     if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0};
     porFC[fc].doDia++;
-    if(c.status==='Entrega Realizada')porFC[fc].expedidas++;
+    if(_cafJaExpedida(c))porFC[fc].expedidas++;
   });
   const fcsOrd=Object.keys(porFC).sort();
 
@@ -7718,7 +7737,7 @@ function renderReportPCP(){
 
   const rowCAF=(c,mostrarEsteira,mostrarVinculo)=>`<tr style="border-bottom:1px solid var(--bd)">
     ${mostrarEsteira?`<td style="padding:5px 8px;text-align:center;font-weight:700">${c.esteiraNum??'—'}</td>`:''}
-    <td style="padding:5px 8px;font-weight:700">${esc(c.num)}</td>
+    <td style="padding:5px 8px;font-weight:700">${esc(c.num)}${c.status==='Em Auditoria GRIS'?' <span style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed55;border-radius:4px;padding:1px 5px;font-size:.6rem;font-weight:700" title="Em Auditoria GRIS">🔍 GRIS</span>':''}</td>
     <td style="text-align:center">${c.pallets||0}</td>
     <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
     <td>${c.venc?fmtD(c.venc):'—'}</td>
@@ -7741,6 +7760,7 @@ function renderReportPCP(){
     </div>
     <div class="an-card" style="margin-top:14px">
       <h3>🏭 CAF Produzindo (${produzindo.length})</h3>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Inclui "Em Produção" e "Em Auditoria GRIS" (sinalizada com 🔍 GRIS ao lado do número).</p>
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;font-size:.76rem">
           <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
@@ -7752,7 +7772,7 @@ function renderReportPCP(){
     </div>
     <div class="an-card" style="margin-top:14px">
       <h3>🚚 Expedição — Hoje (${fmtD(hoje)})</h3>
-      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Conta só as CAFs que entraram em "Processo de Entrega" hoje de fato (pelo histórico real) — não o acumulado de todos os dias.</p>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Conta só as CAFs que entraram em "Processo de Entrega" hoje de fato (pelo histórico real) — não o acumulado de todos os dias. Considera "expedida" quando o próprio status já é Entrega Realizada, ou quando a viagem vinculada já avançou pra Em Trânsito (ou além) — não depende de alguém voltar na CAF pra marcar manualmente.</p>
       ${fcsOrd.length?`<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
         <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
           <th style="padding:6px 8px">FC</th><th style="text-align:center">Grades do Dia</th><th style="text-align:center">Expedidas</th><th style="text-align:center">Faltantes</th>
@@ -9587,6 +9607,7 @@ function _renderMapaDoca(){
         <div style="font-size:.8rem;font-weight:800;color:${cor}">${esc(op.codigoCurto||op.id)}</div>
         <div style="font-size:.62rem;color:var(--gray2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)}</div>
         <div style="font-size:.62rem;color:var(--t2)">${esc(op.placa)||'—'}</div>
+        <div style="font-size:.6rem;color:var(--t3)">${esc(op.mot)||'—'}</div>
         ${t!==null?`<div style="font-size:.65rem;color:${alerta?'var(--red)':'var(--t2)'};margin-top:4px;font-weight:${alerta?700:400}">🕐 ${t>59?Math.floor(t/60)+'h '+t%60+'min':t+'min'}${alerta?' ⚠':''}</div>`:''}
       `:`<div style="font-size:1.5rem;color:var(--bg4)">🟢</div><div style="font-size:.62rem;color:var(--t3)">Livre</div>`}
     </div>`;
@@ -9599,7 +9620,7 @@ function _renderMapaDoca(){
     html+=`<div style="margin-top:10px;background:var(--yellow2);border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 10px">
       <div style="font-size:.65rem;font-weight:700;color:var(--yellow);margin-bottom:5px">⏳ Fila de espera (${fila.length})</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${fila.map(o=>`<span style="background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:2px 7px;font-size:.65rem;font-weight:700;color:var(--red)">${o.id}</span>`).join('')}
+        ${fila.map(o=>`<span style="background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:3px 9px;font-size:.65rem;font-weight:700;color:var(--red)" title="${esc(o.id)}">${esc(o.codigoCurto||o.id)} <span style="color:var(--t2);font-weight:600">· ${esc(o.placa)||'—'} · ${esc(o.mot)||'—'}</span></span>`).join('')}
       </div>
     </div>`;
   }
