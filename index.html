@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v276</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v277</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -580,6 +580,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <button class="tab fup-tab" id="tb-fup" onclick="setView('fup');closeAllTabDrops()">📋 FUP FC</button>
         <button class="tab" id="tb-amazon" onclick="setView('amazon');closeAllTabDrops()">📦 FUP Amazon</button>
         <button class="tab" id="tb-analise" onclick="setView('analise');closeAllTabDrops()" style="color:#0891b2">📈 Análise</button>
+        <button class="tab" id="tb-reportpcp" onclick="setView('reportpcp');closeAllTabDrops()" style="color:#f59e0b">📋 Report PCP</button>
       </div>
     </div>
     <div class="tab-drop" id="dropTV">
@@ -1003,6 +1004,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="toolbar">
     <button class="btn btn-s" id="insModoInv" onclick="setInsumosModo('inventario')" style="font-size:.72rem">📦 Inventário</button>
     <button class="btn btn-g" id="insModoChk" onclick="setInsumosModo('checklist')" style="font-size:.72rem">📋 Checklist de Turno</button>
+    <button class="btn btn-g" id="insModoEst" onclick="setInsumosModo('esteiras')" style="font-size:.72rem">🏭 Esteiras</button>
     <div class="sp"></div>
     <span id="insKpiResumo" style="font-size:.68rem;color:var(--t2)"></span>
   </div>
@@ -1040,6 +1042,13 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div class="sec">🕘 Histórico de Checklists</div>
       <div id="insChkHistorico" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))"></div>
     </div>
+  </div>
+
+  <!-- ── ESTEIRAS — Colaborador atual ── -->
+  <div id="insEstWrap" style="display:none;padding:12px 16px 20px">
+    <div class="sec" style="margin-top:0">🏭 Esteiras — Colaborador do Turno</div>
+    <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Atribuição de quem está em cada esteira agora — muda a qualquer momento, sem precisar esperar virar o turno. Aparece automaticamente na CAF quando ela for atribuída a uma esteira.</p>
+    <div id="esteirasGrid" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))"></div>
   </div>
 </div>
 
@@ -1190,6 +1199,17 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       </table>
     </div>
   </div>
+</div>
+
+<!-- REPORT PCP -->
+<div class="view" id="view-reportpcp">
+  <div class="toolbar">
+    <span style="font-size:.8rem;font-weight:700;color:#f59e0b">📋 Report P.C.P</span>
+    <div class="sp"></div>
+    <span id="reportPCPHora" style="font-size:.7rem;color:var(--t2)"></span>
+    <button class="btn btn-g" onclick="renderReportPCP()" style="font-size:.7rem">🔄 Atualizar</button>
+  </div>
+  <div id="reportPCPBody" style="padding:14px 16px"></div>
 </div>
 
 <!-- TV YARD MODE -->
@@ -1591,6 +1611,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
           <select id="cafRua"><option value="">Nenhuma</option></select>
           <small style="font-size:.63rem;color:var(--t2)">Uma CAF por Rua. Libera automaticamente quando a CAF entra em trânsito.</small>
         </div>
+        <div class="fg">
+          <label>Esteira</label>
+          <select id="cafEsteira" onchange="_atualizarColaboradorEsteiraCAF()"><option value="">Nenhuma</option></select>
+          <small id="cafEsteiraColaborador" style="font-size:.63rem;color:var(--t2)"></small>
+        </div>
         <div class="fg"><label>Vencimento</label><input id="cafVenc" type="date"></div>
         <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0"></div>
         <div class="fg"><label>Pallets</label><input id="cafPal" type="number" min="0" step="0.5" placeholder="0"></div>
@@ -1617,24 +1642,24 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0,veiculos_gerir:1},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:1},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
-  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0},
-  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:1,esteira_gerir:1},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:1},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:0},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0,esteira_gerir:1},
+  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
 };
 
 const ABAS_BASE = {
-  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','tv','tv-yard','admin'],
-  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','tv','tv-yard','admin'],
-  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','veiculos','analise','tv','tv-yard'],
+  admin:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','reportpcp','tv','tv-yard','admin'],
+  supervisor:['painel','lista','prog','massa','fup','amazon','caf','pallets','insumos','veiculos','analise','reportpcp','tv','tv-yard','admin'],
+  torre_controle:['painel','lista','prog','massa','fup','amazon','caf','pallets','veiculos','analise','reportpcp','tv','tv-yard'],
   doca:['painel','lista','prog','pallets','tv','tv-yard'],
   operador_caf:['painel','lista','caf'],
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
-  lideranca:['painel','insumos','tv','tv-yard'],
+  lideranca:['painel','insumos','reportpcp','tv','tv-yard'],
   tv_publica:['tv','tv-yard'],
 };
 
@@ -1655,12 +1680,13 @@ const TODAS_PERMS = [
   {key:'insumo_gerir',label:'Insumos HUB: registrar entrada/saída e fazer checklist de turno'},
   {key:'insumo_credito_debito',label:'Insumos HUB: crédito/débito manual de saldo (liderança)'},
   {key:'veiculos_gerir',label:'Cadastro de Veículos: criar/editar/excluir'},
+  {key:'esteira_gerir',label:'Esteiras: atribuir colaborador por esteira'},
 ];
 
 const TODAS_ABAS = [
   {key:'painel',label:'Painel'},{key:'lista',label:'Lista'},{key:'prog',label:'Gestão de Doca'},
   {key:'massa',label:'Em Massa'},{key:'fup',label:'FUP FC'},{key:'amazon',label:'FUP Amazon'},
-  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'insumos',label:'Insumos HUB'},{key:'veiculos',label:'Cadastro de Veículos'},{key:'analise',label:'Análise'},{key:'tv',label:'TV'},
+  {key:'caf',label:'CAFs'},{key:'pallets',label:'Retorno de Pallets'},{key:'insumos',label:'Insumos HUB'},{key:'veiculos',label:'Cadastro de Veículos'},{key:'analise',label:'Análise'},{key:'reportpcp',label:'Report PCP'},{key:'tv',label:'TV'},
   {key:'tv-yard',label:'TV Yard'},{key:'admin',label:'Admin'},
 ];
 
@@ -1731,11 +1757,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v276';
+const APP_VERSION='v277';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v277:['🏭 Novo: Esteiras — Colaborador do Turno (Liderança atribui quem está em cada esteira, a qualquer momento). CAF ganhou campo Esteira. Nova aba "📋 Report PCP" (menu Relatórios): CAFs Prontas, CAF Produzindo (com esteira/colaborador) e Expedição por FC — contando só quem entrou em Processo de Entrega hoje de fato, pelo histórico real.'],
   v276:['🚛 Análise: card "Veículos sem Cadastro" agora mostra a transportadora (a mais recente vista) de cada placa, e já sugere isso na observação ao cadastrar rápido.'],
   v275:['🐛 Corrigido bug onde a tabela de Retorno de Pallets dentro da aba Lista não atualizava sozinha após salvar, avançar status ou atribuir doca — em 4 pontos diferentes do código.'],
   v274:['🎨 FUP Amazon por FC: relatório mais largo (aproveitando espaço da tela), VG em destaque no lugar do OP, e horário real formatado certinho (sem o "T" cru do ISO).'],
@@ -1852,6 +1879,7 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas',TABELA_PALLETS='retornos_pallets',TABELA_INV_PALLETS='inventario_pallets';
 const TABELA_INSUMOS='insumos_hub',TABELA_INSUMOS_MOV='insumos_movimentacoes',TABELA_CHECKLIST='checklist_turno';
 const TABELA_VEICULOS='veiculos_cadastro';
+const TABELA_ESTEIRAS='esteiras_colaborador';
 const PALLET_PBR={comp:1.20,larg:1.00}; // pallet PBR padrão: 1,00 x 1,20m
 const TURNOS_HUB=[{id:'T1_06_18',lb:'Turno 1 (06h–18h)'},{id:'T2_18_06',lb:'Turno 2 (18h–06h)'}];
 const FCS_PALLETS=['GR8','XC9','GR9','GR5'];
@@ -2190,7 +2218,7 @@ async function renderOnlineFromDB(){
     const cut=new Date(Date.now()-3*60*1000).toISOString();
     const data=await sbFetch(`${TABELA_SESS}?ultimo_ping=gte.${cut}`);
     const el=document.getElementById('onlineBar');if(!el)return;
-    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+    const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise',reportpcp:'Report PCP','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
     el.innerHTML=(data||[]).map(u=>`<div class="ob-item" title="${esc(u.nome)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor}">${u.avatar}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('');
   }catch(e){renderOnlineLocal();}
 }
@@ -2198,7 +2226,7 @@ function pingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localSt
 function unpingOnlineLocal(){if(!currentUser)return;try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');delete o[currentUser.user];localStorage.setItem('trk_online',JSON.stringify(o));}catch(e){}}
 function renderOnlineLocal(){
   const el=document.getElementById('onlineBar');if(!el)return;
-  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
+  try{const o=JSON.parse(localStorage.getItem('trk_online')||'{}');const cut=Date.now()-3*60*1000;const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise',reportpcp:'Report PCP','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};el.innerHTML=Object.values(o).filter(u=>u.ts>cut).map(u=>`<div class="ob-item" title="${esc(u.nome)}"><div class="ob-av" style="background:${u.cor};position:relative">${esc(u.av)}<div class="ob-dot"></div></div><div><div class="ob-name">${u.nome.split(' ')[0]}</div><div class="ob-pg">${pgL[u.pg]||'Sistema'}</div></div></div>`).join('');}catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4638,6 +4666,12 @@ function setView(name){
   closeAllTabDrops();
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
+  if(name==='reportpcp'){
+    loading(true);
+    Promise.all([loadCAFs(),(_esteirasLoadTried?Promise.resolve():loadEsteiras())]).then(()=>{
+      _esteirasLoadTried=true;loading(false);renderReportPCP();
+    });
+  }
   // Controle de visibilidade do Admin por perfil
   if(name==='admin'&&currentUser){
     const isAdmin=_perfil()==='admin';
@@ -4651,7 +4685,7 @@ function setView(name){
     if(admRuasCard)admRuasCard.style.display=isAdmin?'':'none';
   }
   if(name==='amazon'){_initAmazonSelects();renderAmazon();}
-  if(name==='caf'){buildCAFSelects();loading(true);Promise.all([loadCAFs(),loadRuas()]).then(()=>{loading(false);renderCAFs();});}
+  if(name==='caf'){loading(true);Promise.all([loadCAFs(),loadRuas(),loadEsteiras()]).then(()=>{_esteirasLoadTried=true;loading(false);buildCAFSelects();renderCAFs();});}
   if(name==='pallets'){loading(true);Promise.all([loadPallets(),loadInventarioPallets()]).then(()=>{loading(false);renderInventarioPallets();renderPallets();});}
   if(name==='insumos'){loading(true);Promise.all([loadInsumosHub(),loadInsumosMovimentacoes(),loadChecklistsTurno()]).then(()=>{_insumosLoadTried=true;loading(false);setInsumosModo('inventario');renderInsumosTable();});}
   if(name==='veiculos'){loading(true);_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>{loading(false);renderVeiculosCadastro();});}
@@ -5640,7 +5674,7 @@ function _tempoNoStatusAtualCAF(c){
 const ABAS_INFO = {
   painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
   massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
-  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, veiculos:{ic:'🚛',lb:'Veículos'}, analise:{ic:'📈',lb:'Análise'}, tv:{ic:'📺',lb:'TV'},
+  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, veiculos:{ic:'🚛',lb:'Veículos'}, analise:{ic:'📈',lb:'Análise'}, reportpcp:{ic:'📋',lb:'Report PCP'}, tv:{ic:'📺',lb:'TV'},
   'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
 };
 // Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
@@ -5748,7 +5782,7 @@ async function loadCAFs(){
         venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
         opId:r.op_id||'',obs:r.obs||'',
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
-        ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',
+        ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
         hist:Array.isArray(r.hist)?r.hist:[]
       }));
     }
@@ -5772,6 +5806,7 @@ async function saveCAFToDB(caf){
     criado_por:caf.criadoPor,
     criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
     rua_id:caf.ruaId||null,
+    esteira_num:caf.esteiraNum||null,
     hist:caf.hist||[],
   };
   try{
@@ -5812,9 +5847,19 @@ function buildCAFSelects(){
   const rSel=document.getElementById('cafFRota');
   const rModal=document.getElementById('cafRota');
   const tSel=document.getElementById('cafFTipo');
+  const eSel=document.getElementById('cafEsteira');
   if(rSel){const cur=rSel.value;rSel.innerHTML='<option value="">Todas as Rotas</option>'+ROTAS.map(r=>`<option${r===cur?' selected':''}>${r}</option>`).join('');}
   if(rModal){rModal.innerHTML='<option value="">Selecione a rota</option>'+ROTAS.map(r=>`<option>${r}</option>`).join('');}
   if(tSel&&tSel.options.length<=1){TIPOS_CAF.forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;tSel.appendChild(o);});}
+  if(eSel){const cur=eSel.value;eSel.innerHTML='<option value="">Nenhuma</option>'+esteirasColaborador.map(e=>`<option value="${e.esteiraNum}">Esteira ${e.esteiraNum}</option>`).join('');eSel.value=cur;}
+}
+
+// Mostra ao lado do campo Esteira quem é o colaborador atual atribuído a ela
+function _atualizarColaboradorEsteiraCAF(){
+  const sel=document.getElementById('cafEsteira');const el=document.getElementById('cafEsteiraColaborador');
+  if(!sel||!el)return;
+  const col=_colaboradorDaEsteira(sel.value);
+  el.textContent=sel.value?(col?'👤 '+col:'⚠ Sem colaborador atribuído a essa esteira'):'';
 }
 
 // ── Ordenação da tabela CAFs ──
@@ -6000,6 +6045,8 @@ function openNewCAF(){
   document.getElementById('cafNum').disabled=false;
   const cafNumHint0=document.getElementById('cafNumHint');if(cafNumHint0)cafNumHint0.style.display='none';
   document.getElementById('cafVenc').value='';
+  document.getElementById('cafEsteira').value='';
+  _atualizarColaboradorEsteiraCAF();
   document.getElementById('cafTipo').value='Inbound'; // default mais comum; muda conforme rota
   const _cs=document.getElementById('cafStatus');if(_cs)_cs.value='Em Produção';
   document.getElementById('cafRota').value='';
@@ -6034,6 +6081,8 @@ function openEditCAF(id){
   document.getElementById('cafTipo').value=c.tipo;
   document.getElementById('cafRota').value=c.rota;
   document.getElementById('cafVenc').value=c.venc||'';
+  document.getElementById('cafEsteira').value=c.esteiraNum||'';
+  _atualizarColaboradorEsteiraCAF();
   document.getElementById('cafVol').value=c.vol||'';
   document.getElementById('cafPal').value=c.pallets||'';
   document.getElementById('cafObs').value=c.obs||'';
@@ -6121,6 +6170,7 @@ async function saveCAF(){
     venc:document.getElementById('cafVenc')?.value||'',
     status:statusEscolhido,
     ruaId:ruaFinal,
+    esteiraNum:document.getElementById('cafEsteira')?.value?Number(document.getElementById('cafEsteira').value):null,
     opId:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.opId||''):'',
     obs:document.getElementById('cafObs')?.value||'',
     criadoPor:existente?existente.criadoPor:who,
@@ -6898,16 +6948,22 @@ async function saveInsumoToDB(i){
 
 // ── Alternância Inventário / Checklist ──
 function setInsumosModo(modo){
-  const wI=document.getElementById('insInvWrap'),wC=document.getElementById('insChkWrap');
-  const bI=document.getElementById('insModoInv'),bC=document.getElementById('insModoChk');
+  const wI=document.getElementById('insInvWrap'),wC=document.getElementById('insChkWrap'),wE=document.getElementById('insEstWrap');
+  const bI=document.getElementById('insModoInv'),bC=document.getElementById('insModoChk'),bE=document.getElementById('insModoEst');
   if(wI)wI.style.display=modo==='inventario'?'':'none';
   if(wC)wC.style.display=modo==='checklist'?'':'none';
+  if(wE)wE.style.display=modo==='esteiras'?'':'none';
   if(bI)bI.className='btn '+(modo==='inventario'?'btn-s':'btn-g');
   if(bC)bC.className='btn '+(modo==='checklist'?'btn-s':'btn-g');
+  if(bE)bE.className='btn '+(modo==='esteiras'?'btn-s':'btn-g');
   if(modo==='checklist'){
     if(!document.getElementById('chkData').value)document.getElementById('chkData').value=hojeLocal();
     renderChecklistHistorico();
     renderChecklistAtivo();
+  }
+  if(modo==='esteiras'){
+    if(!_esteirasLoadTried){_esteirasLoadTried=true;loading(true);loadEsteiras().then(()=>{loading(false);renderEsteiras();});}
+    else renderEsteiras();
   }
 }
 
@@ -7538,6 +7594,135 @@ async function deleteVeiculo(placa){
   loading(false);
   renderVeiculosCadastro();
   showToast('🗑 Veículo excluído','ok');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ESTEIRAS — atribuição de colaborador por esteira, gerida pela Liderança.
+// Fica sempre "atual" (sem reset por turno) até alguém trocar manualmente.
+// ══════════════════════════════════════════════════════════════════
+let esteirasColaborador=[];
+let _esteirasLoadTried=false;
+
+async function loadEsteiras(){
+  if(!supabaseOK)return;
+  try{
+    const data=await sbFetch(`${TABELA_ESTEIRAS}?order=esteira_num.asc&limit=50`);
+    if(Array.isArray(data)){
+      esteirasColaborador=data.map(r=>({esteiraNum:r.esteira_num,colaborador:r.colaborador||'',atualizadoPor:r.atualizado_por||'',atualizadoEm:r.atualizado_em||''}));
+    }
+  }catch(e){
+    const msg=e.message||'';
+    if(msg.includes('relation')||msg.includes('does not exist')||msg.includes('42P01')){console.warn('Tabela esteiras_colaborador não existe.');esteirasColaborador=[];}
+    else console.error('loadEsteiras error:',e);
+  }
+}
+
+function _colaboradorDaEsteira(esteiraNum){
+  if(esteiraNum==null||esteiraNum==='')return'';
+  const e=esteirasColaborador.find(x=>x.esteiraNum===Number(esteiraNum));
+  return e?e.colaborador:'';
+}
+
+function renderEsteiras(){
+  const el=document.getElementById('esteirasGrid');if(!el)return;
+  const podeGerir=hasPerm('esteira_gerir');
+  el.innerHTML=esteirasColaborador.map(e=>`
+    <div style="background:var(--bg3);border-radius:8px;padding:9px;text-align:center">
+      <div style="font-size:.62rem;color:var(--t2);font-weight:700;text-transform:uppercase">Esteira ${e.esteiraNum}</div>
+      <input value="${esc(e.colaborador)}" placeholder="—" ${podeGerir?'':'disabled'} onchange="salvarEsteira(${e.esteiraNum},this.value)"
+        style="width:100%;text-align:center;background:var(--bg2);border:1px solid var(--bd);border-radius:5px;color:var(--text);padding:5px 4px;font-size:.78rem;font-weight:700;margin-top:4px">
+    </div>`).join('');
+}
+
+async function salvarEsteira(esteiraNum,colaborador){
+  if(!hasPerm('esteira_gerir')){showToast('⛔ Sem permissão','err');return;}
+  const who=_nomeOperadorAtual();
+  try{
+    await sbUpsert(TABELA_ESTEIRAS,{esteira_num:esteiraNum,colaborador:colaborador.trim()||null,atualizado_por:who,atualizado_em:new Date().toISOString()},'esteira_num');
+    await loadEsteiras();
+    showToast(`✅ Esteira ${esteiraNum}: ${colaborador.trim()||'(vazio)'}`,'ok');
+    _publishAbly('cfg_update',{});
+  }catch(e){console.error('salvarEsteira:',e);showToast('❌ Erro ao salvar esteira','err');}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// REPORT PCP — visão de produção: CAFs Prontas, CAF Produzindo (com esteira/
+// colaborador) e Expedição por FC (contando só quem entrou em "Processo de
+// Entrega" HOJE, via histórico real — não o acumulado de sempre).
+// ══════════════════════════════════════════════════════════════════
+function renderReportPCP(){
+  const el=document.getElementById('reportPCPBody');if(!el)return;
+  const horaEl=document.getElementById('reportPCPHora');if(horaEl)horaEl.textContent='Gerado '+new Date().toLocaleString('pt-BR');
+  const hoje=hojeLocal();
+
+  const prontas=cafsDB.filter(c=>c.status==='Produzida').sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
+  const produzindo=cafsDB.filter(c=>c.status==='Em Produção').sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
+
+  // Expedição: usa o histórico de cada CAF pra achar quem entrou em "Processo de Entrega" HOJE de fato
+  const porFC={};
+  cafsDB.forEach(c=>{
+    const segs=_segmentosStatusCAF(c);
+    const entrouHoje=segs.some(s=>s.status==='Processo de Entrega'&&(s.inicio||'').slice(0,10)===hoje);
+    if(!entrouHoje)return;
+    const fc=_fcFromRota(c.rota)||c.rota||'—';
+    if(!porFC[fc])porFC[fc]={doDia:0,expedidas:0};
+    porFC[fc].doDia++;
+    if(c.status==='Entrega Realizada')porFC[fc].expedidas++;
+  });
+  const fcsOrd=Object.keys(porFC).sort();
+
+  const rowCAF=(c,mostrarEsteira)=>`<tr style="border-bottom:1px solid var(--bd)">
+    ${mostrarEsteira?`<td style="padding:5px 8px;text-align:center;font-weight:700">${c.esteiraNum??'—'}</td>`:''}
+    <td style="padding:5px 8px;font-weight:700">${esc(c.num)}</td>
+    <td style="text-align:center">${c.pallets||0}</td>
+    <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
+    <td>${c.venc?fmtD(c.venc):'—'}</td>
+    ${mostrarEsteira?`<td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>`:''}
+  </tr>`;
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="an-card">
+        <h3>✅ CAFs Prontas (${prontas.length})</h3>
+        <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+          <table style="width:100%;font-size:.76rem">
+            <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+              <th style="padding:5px 8px">Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Data Promessa</th>
+            </tr></thead>
+            <tbody>${prontas.length?prontas.map(c=>rowCAF(c,false)).join(''):'<tr><td colspan="4" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF pronta no momento.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="an-card">
+        <h3>🏭 CAF Produzindo (${produzindo.length})</h3>
+        <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+          <table style="width:100%;font-size:.76rem">
+            <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+              <th style="padding:5px 8px;text-align:center">Esteira</th><th>Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th>
+            </tr></thead>
+            <tbody>${produzindo.length?produzindo.map(c=>rowCAF(c,true)).join(''):'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF em produção no momento.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="an-card" style="margin-top:14px">
+      <h3>🚚 Expedição — Hoje (${fmtD(hoje)})</h3>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Conta só as CAFs que entraram em "Processo de Entrega" hoje de fato (pelo histórico real) — não o acumulado de todos os dias.</p>
+      ${fcsOrd.length?`<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
+        <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase">
+          <th style="padding:6px 8px">FC</th><th style="text-align:center">Grades do Dia</th><th style="text-align:center">Expedidas</th><th style="text-align:center">Faltantes</th>
+        </tr></thead>
+        <tbody>${fcsOrd.map(fc=>{
+          const d=porFC[fc],falt=d.doDia-d.expedidas;
+          return `<tr style="border-bottom:1px solid var(--bd)">
+            <td style="padding:6px 8px;font-weight:800">${esc(fc)}</td>
+            <td style="text-align:center;font-weight:700">${d.doDia}</td>
+            <td style="text-align:center;color:var(--green);font-weight:700">${d.expedidas}</td>
+            <td style="text-align:center;color:${falt>0?'var(--red)':'var(--green)'};font-weight:700">${falt}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`:'<div style="text-align:center;padding:14px;color:var(--t3);font-size:.8rem">Nenhuma CAF entrou em Processo de Entrega hoje ainda.</div>'}
+    </div>`;
 }
 
 async function desvincularCAF(){
@@ -9650,7 +9835,7 @@ function _updateRTIndicator(){
 async function _renderOnlinePresence(){
   const el=document.getElementById('onlineBar');
   if(!el)return;
-  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
+  const pgL={painel:'Painel',lista:'Lista',prog:'Gestão de Doca',massa:'Em Massa',fup:'FUP FC',amazon:'FUP Amazon',caf:'CAFs',pallets:'Retorno de Pallets',insumos:'Insumos HUB',veiculos:'Cadastro de Veículos',analise:'Análise',reportpcp:'Report PCP','tv-yard':'TV Yard',tv:'TV',admin:'Admin'};
   let lista=[];
   // 1ª fonte: Ably Presence (tempo real)
   if(_ablyChannel&&_ablyOK){
