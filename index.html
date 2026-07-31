@@ -564,7 +564,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- APP -->
 <div id="appRoot" style="display:none">
 <div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v281</span></div></div>
+  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v282</span></div></div>
   <div class="tabs">
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
@@ -1757,11 +1757,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v281';
+const APP_VERSION='v282';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v282:['💰 Redução MAIOR de egress: 95% das CAFs já estão finalizadas (521 de 550) e a TV nunca precisa delas. TV/TV Yard agora buscam só as ativas, usando um array separado (nunca sobrescreve o cafsDB compartilhado com Lista/Doca/Report PCP — sem risco de "sumir" CAF antiga de outras telas).'],
   v281:['💰 Redução adicional de egress: medido que o histórico da CAF (hist) é 82% do peso da tabela (404KB de 491KB em 550 CAFs). TV e TV Yard agora buscam CAF sem esse campo, já que nunca exibem histórico — reduz o payload desses fetches em ~5,6x.'],
   v280:['💰 Redução de consumo (egress) do Supabase: TV e TV Yard agora usam o mesmo esquema adaptativo do resto do sistema — busca no banco só a cada 4 ciclos quando o tempo real (Ably) já está funcionando, em vez de toda vez. Reduz o consumo de telas de TV ligadas o dia inteiro em ~75%.'],
   v279:['📋 Report PCP: "CAFs Prontas" agora inclui as já vinculadas a veículo, mostrando evidência do vínculo (VG, placa, motorista). Layout ajustado pra caber a informação nova.'],
@@ -4719,7 +4720,7 @@ function setView(name){
     if(_tvYardClockInterval){clearInterval(_tvYardClockInterval);_tvYardClockInterval=null;}
   }
   if(name==='tv'){
-    Promise.all([loadRuas(),loadCAFs(false)]).catch(()=>{}).finally(()=>renderTV());
+    Promise.all([loadRuas(),loadCAFs(false,true)]).catch(()=>{}).finally(()=>renderTV());
     renderTV();
     if(_tvInterval)clearInterval(_tvInterval);
     window._tvTickCount=0;
@@ -4728,7 +4729,7 @@ function setView(name){
       // Mesmo esquema: Ably OK → busca no banco só a cada 4 ticks (1min); Ably caído → todo tick (15s)
       window._tvTickCount=(window._tvTickCount||0)+1;
       if(_ablyOK&&window._tvTickCount%4!==0){renderTV();return;}
-      Promise.all([loadRuas(),loadCAFs(false)]).catch(()=>{}).finally(()=>renderTV());
+      Promise.all([loadRuas(),loadCAFs(false,true)]).catch(()=>{}).finally(()=>renderTV());
     },15000);
     // Fullscreen
     const el=document.documentElement;
@@ -5792,15 +5793,25 @@ function ruaNumeroDe(ruaId){
 }
 
 // Supabase CAF CRUD
-async function loadCAFs(comHist=true){
+let cafsDBTV=[]; // cópia enxuta (só CAFs ativas, sem histórico) — usada SÓ pela TV/TV Yard,
+                  // nunca sobrescreve o cafsDB principal (compartilhado com Lista/Doca/Report PCP/etc.)
+
+async function loadCAFs(comHist=true,apenasAtivas=false){
   if(!supabaseOK)return;
   try{
     // hist é ~82% do peso da linha (medido: 404KB de 491KB em 550 CAFs) — quem só precisa
     // exibir status/pallets/vencimento (TV, TV Yard) não precisa desse campo. Corta egress ~5x.
     const cols='id,num_caf,tipo,rota,volume,pallets,vencimento,status,op_id,obs,criado_por,criado_em,rua_id,codigo_curto,esteira_num'+(comHist?',hist':'');
-    const data=await sbFetch(`${TABELA_CAF}?select=${cols}&order=criado_em.desc&limit=2000`);
+    // apenasAtivas: filtra fora "Entrega Realizada"/"cancelada" no próprio banco — medido que 95%
+    // das CAFs já estão finalizadas (521 de 550), e a TV nunca precisa exibir isso. Corta ~19x
+    // a quantidade de linhas, e o corte fica sempre proporcional (não cresce com o tempo).
+    // IMPORTANTE: quando apenasAtivas=true, grava em cafsDBTV (variável separada) — nunca no
+    // cafsDB principal, pra não sumir CAFs finalizadas da Lista/Report PCP/etc. se a pessoa
+    // trocar de aba logo depois de passar pela TV.
+    const filtroStatus=apenasAtivas?`&status=not.in.(${encodeURIComponent('"Entrega Realizada","cancelada"')})`:'';
+    const data=await sbFetch(`${TABELA_CAF}?select=${cols}${filtroStatus}&order=criado_em.desc&limit=2000`);
     if(Array.isArray(data)){
-      cafsDB=data.map(r=>({
+      const mapeado=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
         rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
         venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
@@ -5809,6 +5820,8 @@ async function loadCAFs(comHist=true){
         ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
         hist:Array.isArray(r.hist)?r.hist:[]
       }));
+      if(apenasAtivas)cafsDBTV=mapeado;
+      else cafsDB=mapeado;
     }
   }catch(e){
     const msg=e.message||'';
@@ -8488,7 +8501,7 @@ function renderTV(){
     if(getSLA(o)==='late')d.late++;
   });
 
-  const cafAlert=cafsDB.filter(c=>{
+  const cafAlert=cafsDBTV.filter(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
     return op&&op.status==='TRAN'&&!['Processo de Entrega','Entrega Realizada'].includes(c.status);
   }).length;
@@ -8539,8 +8552,8 @@ function renderTV(){
         const cor=statusCor[o.status]||'#6b7280';
         const icon=statusIcon[o.status]||'🚛';
         const atrasado=getSLA(o)==='late';
-        const semBaixa=o.status==='FIN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Entrega Realizada','Entrega Realizada'].includes(c.status));
-        const semProc=o.status==='TRAN'&&cafsDB.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Processo de Entrega','Entrega Realizada'].includes(c.status));
+        const semBaixa=o.status==='FIN'&&cafsDBTV.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Entrega Realizada','Entrega Realizada'].includes(c.status));
+        const semProc=o.status==='TRAN'&&cafsDBTV.some(c=>(c.opId===o.id||o.cafs.some(x=>x.num===c.num))&&!['Processo de Entrega','Entrega Realizada'].includes(c.status));
         return`<div title="${o.id} · ${o.transp||'—'} · ${toTime(o.planChegFC)||'—'}"
           style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:2px;cursor:default">
           <div style="font-size:1.1rem;line-height:1;filter:drop-shadow(0 0 4px ${cor})">${icon}</div>
@@ -8632,8 +8645,8 @@ function renderTV(){
       'Vinculada a Veículo':{cor:'var(--green)',ic:'🚛'},
       'Processo de Entrega':{cor:'#bc8cff',ic:'📦'},
     };
-    const counts=Object.keys(st).map(s=>({s,n:cafsDB.filter(c=>c.status===s).length,...st[s]}));
-    const semRua=cafsDB.filter(c=>['Em Produção','Produzida'].includes(c.status)&&!c.ruaId).length;
+    const counts=Object.keys(st).map(s=>({s,n:cafsDBTV.filter(c=>c.status===s).length,...st[s]}));
+    const semRua=cafsDBTV.filter(c=>['Em Produção','Produzida'].includes(c.status)&&!c.ruaId).length;
     return`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
       <span style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase">📊 Pipeline de CAFs</span>
       ${counts.map(c=>`<div style="display:flex;align-items:center;gap:6px">
@@ -8641,7 +8654,7 @@ function renderTV(){
         <div><div style="font-size:1.1rem;font-weight:800;color:${c.cor};line-height:1">${c.n}</div><div style="font-size:.56rem;color:var(--t2)">${c.s}</div></div>
       </div>`).join('')}
       ${semRua>0?`<div style="margin-left:auto;background:#2b1800;border:1px solid #f0883e;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#f0883e;font-weight:700">⚠ ${semRua} CAF(s) sem rua atribuída</div>`:''}
-      ${(()=>{const prontas=cafsDB.filter(c=>c.status==='Produzida').length;return prontas>0?`<div style="${semRua>0?'':'margin-left:auto;'}background:#052e16;border:1px solid #14b8a6;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#14b8a6;font-weight:700">✅ ${prontas} CAF(s) Produzida(s) — prontas para alocação em viagem</div>`:'';})()}
+      ${(()=>{const prontas=cafsDBTV.filter(c=>c.status==='Produzida').length;return prontas>0?`<div style="${semRua>0?'':'margin-left:auto;'}background:#052e16;border:1px solid #14b8a6;border-radius:6px;padding:4px 10px;font-size:.65rem;color:#14b8a6;font-weight:700">✅ ${prontas} CAF(s) Produzida(s) — prontas para alocação em viagem</div>`:'';})()}
     </div>`;
   })()}
 
@@ -8654,7 +8667,7 @@ function renderTV(){
     const corOcup=pctOcup>=90?'var(--red)':pctOcup>=70?'var(--yellow)':'var(--green)';
 
     const detalhes=ruasOcup.map(r=>{
-      const c=cafsDB.find(x=>x.id===r.caf_id);
+      const c=cafsDBTV.find(x=>x.id===r.caf_id);
       const fc=c?_fcFromRota(c.rota):null;
       const desde=c?_tempoNoStatusAtualCAF(c):(r.atualizado_em?new Date(r.atualizado_em).getTime():agora);
       const horasParada=(agora-desde)/3600000;
@@ -9124,8 +9137,8 @@ let _tvYardInterval=null;
 
 function renderTVYard(){
   const el=document.getElementById('tv-yard-wrap');if(!el)return;
-  if(supabaseOK&&!cafsDB.length){
-    loadCAFs(false).then(()=>renderTVYard());
+  if(supabaseOK&&!cafsDBTV.length){
+    loadCAFs(false,true).then(()=>renderTVYard());
     return;
   }
   if(supabaseOK&&!inventarioPallets.length){
@@ -9142,7 +9155,7 @@ function renderTVYard(){
 
   // Ocupação de piso: conta pelo STATUS da CAF — some só ao chegar em Processo de Entrega/Entrega Realizada
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
-  const cafsPatio=cafsDB.filter(c=>['Em Produção','Produzida'].includes(c.status));
+  const cafsPatio=cafsDBTV.filter(c=>['Em Produção','Produzida'].includes(c.status));
   const cafCount=cafsPatio.length,palCount=Math.round(cafsPatio.reduce((s,c)=>s+(Number(c.pallets)||0),0));
   const cafPct=Math.min(100,Math.round(cafCount/CAF_MAX*100));
   const palPct=Math.min(100,Math.round(palCount/PAL_MAX*100));
@@ -9237,7 +9250,7 @@ function renderTVYard(){
   <!-- Cards do Yard -->
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">
     ${opsYard.length?opsYard.map(op=>{
-      const cafsDaOp=cafsDB.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
+      const cafsDaOp=cafsDBTV.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
       const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
       const agora=new Date();
       const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
