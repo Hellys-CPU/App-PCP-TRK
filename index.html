@@ -1284,6 +1284,17 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <h3>📊 Estatísticas</h3>
       <div class="stat-grid" id="statsGrid"></div>
     </div>
+    <div class="admin-card" id="adm-db-switch">
+      <h3>🗄️ Contingência de Banco (Egress)</h3>
+      <div style="font-size:.68rem;color:var(--t2);margin-bottom:10px">
+        Projeto Supabase ativo agora: <b id="admProjetoAtivoLbl" style="color:var(--red)">—</b>.
+        Use isso apenas se o projeto atual estiver perto do limite de egress do plano Free.
+        <b>Antes de trocar, restaure o backup dos dados no projeto de destino</b> — o sistema
+        não faz isso automaticamente, só aponta o app pra outro banco. A troca afeta todos os
+        dispositivos conectados imediatamente.
+      </div>
+      <button class="btn btn-s" style="font-size:.72rem;width:100%;border-color:var(--red);color:var(--red)" onclick="trocarProjetoSupabase()">🔄 Trocar Projeto Supabase Ativo</button>
+    </div>
     <div class="admin-card" id="adm-config">
       <h3>⚙️ Configurações</h3>
       <div class="config-row"><div><div class="config-label">Alertas de Atraso</div><div class="config-d">Destacar cards com atraso</div></div><label class="toggle-sw"><input type="checkbox" id="cfgAlertas" checked onchange="saveConfig()"><span class="slider"></span></label></div>
@@ -1891,9 +1902,18 @@ function _verMaiorQue(a,b){
   return na>nb;
 }
 
-const SUPABASE_URL='https://xolqsrcqvobfiiqqokkh.supabase.co';
+// ── Multi-projeto Supabase (contingência de egress) ──
+// PROJETOS_SUPABASE guarda as credenciais dos dois bancos possíveis. A troca entre eles é
+// controlada remotamente via /api/config (Cloudflare Pages Function + KV), pra afetar todos
+// os dispositivos ao mesmo tempo. Projeto A é sempre o padrão caso a config remota falhe.
+const PROJETOS_SUPABASE={
+  A:{url:'https://xolqsrcqvobfiiqqokkh.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY'},
+  B:{url:'https://bveebmfpbcwrjzoiyxet.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZWVibWZwYmN3cmp6b2l5eGV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDM5MDIsImV4cCI6MjEwMTI3OTkwMn0.sxwJO5dtfs5S4eL_whnlheiQKQAltynPf3yyy9sAnlc'}
+};
+let PROJETO_ATIVO='A';
+let SUPABASE_URL=PROJETOS_SUPABASE.A.url;
 const ABLY_KEY='ZpfXhw.Y7tPdA:6GvxKCdMMZ4rzn8ozhWgr8Zke0Ko24ZroECAJmCBL1g';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY';
+let SUPABASE_KEY=PROJETOS_SUPABASE.A.key;
 const TABELA='operacoes',TABELA_SESS='sessoes',TABELA_USR='usuarios',TABELA_CAF='cafs',TABELA_RUAS='ruas',TABELA_PALLETS='retornos_pallets',TABELA_INV_PALLETS='inventario_pallets';
 const TABELA_INSUMOS='insumos_hub',TABELA_INSUMOS_MOV='insumos_movimentacoes',TABELA_CHECKLIST='checklist_turno';
 const TABELA_VEICULOS='veiculos_cadastro';
@@ -2029,6 +2049,23 @@ async function sbDelete(table,col,val){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{method:'DELETE',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
   if(!res.ok)throw new Error(await res.text());
 }
+// Consulta a Cloudflare Pages Function /api/config pra saber qual projeto Supabase usar.
+// Roda ANTES de qualquer fetch no Supabase. Se a rota falhar por qualquer motivo (função ainda
+// não implantada, KV vazio, rede instável), cai silenciosamente pro Projeto A — nunca trava o boot.
+async function carregarConfigProjetoAtivo(){
+  try{
+    const res=await fetch('/api/config',{cache:'no-store'});
+    if(!res.ok)return;
+    const data=await res.json();
+    const alvo=(data&&data.projeto==='B')?'B':'A';
+    PROJETO_ATIVO=alvo;
+    SUPABASE_URL=PROJETOS_SUPABASE[alvo].url;
+    SUPABASE_KEY=PROJETOS_SUPABASE[alvo].key;
+  }catch(e){
+    console.warn('carregarConfigProjetoAtivo: usando Projeto A (padrão) —',e.message);
+  }
+}
+
 async function checkSupabase(){
   setDbStatus('loading','...');
   try{await sbFetch(`${TABELA}?limit=1`);setDbStatus('ok','Online ✓');supabaseOK=true;return true;}
@@ -4759,7 +4796,7 @@ function setView(name){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
-  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());}
+  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());const _lblProj=document.getElementById('admProjetoAtivoLbl');if(_lblProj)_lblProj.textContent=PROJETO_ATIVO;}
   curPage=name;pingOnlineDB().then(()=>_renderOnlinePresence()).catch(()=>{});
 }
 
@@ -9926,6 +9963,14 @@ function _subscribeAbly(){
     showToast('⚙️ Configurações atualizadas por '+( msg.data?.by||'outro usuário'),'info');
   });
 
+  // Troca de projeto Supabase (contingência de egress) — força reload em todo mundo, inclusive
+  // em quem acionou (garante consistência total do estado do app após a troca de banco).
+  _ablyChannel.subscribe('db_switch',(msg)=>{
+    const alvo=msg.data?.projeto||'A';
+    showToast(`🔄 Sistema mudou para o Projeto ${alvo}. Recarregando em instantes...`,'info');
+    setTimeout(()=>location.reload(),2500);
+  });
+
   // Presença nativa do Ably — NÃO consome mensagens (vs ping manual que custava ~9M/mês)
   _ablyChannel.presence.subscribe(['enter','leave','update'],async()=>{
     _renderOnlinePresence();
@@ -9940,6 +9985,29 @@ function _subscribeAbly(){
   }
 
   console.log('Ably: subscrito em todos os canais ✅');
+}
+
+// ── Troca manual do projeto Supabase ativo (contingência de egress) ──
+// Só deve ser chamada depois de já ter restaurado o backup dos dados no projeto de destino —
+// isso é responsabilidade de quem aciona, o sistema não faz backup/restore automático.
+async function trocarProjetoSupabase(){
+  if(!hasPerm('admin')&&_perfil()!=='admin'){showToast('⛔ Só admin pode trocar de projeto','err');return;}
+  const alvo=(PROJETO_ATIVO==='A')?'B':'A';
+  const ok1=confirm(`Trocar TODOS os dispositivos conectados do Projeto ${PROJETO_ATIVO} para o Projeto ${alvo}?\n\n⚠️ Confirme que você JÁ restaurou o backup dos dados no Projeto ${alvo} antes de continuar. Essa ação recarrega o sistema em todos os dispositivos imediatamente.`);
+  if(!ok1)return;
+  const senha=prompt('Digite a senha de confirmação da troca:');
+  if(senha===null)return;
+  try{
+    const res=await fetch('/api/config',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({senha,projeto:alvo})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){showToast('❌ '+(data.erro||'Falha ao trocar de projeto'),'err');return;}
+    _publishAbly('db_switch',{projeto:alvo});
+    showToast(`✅ Trocado para Projeto ${alvo}. Recarregando...`,'ok');
+    setTimeout(()=>location.reload(),1200);
+  }catch(e){showToast('❌ Erro de rede ao trocar de projeto: '+e.message,'err');}
 }
 
 // Publica notificação no canal Ably
@@ -10728,7 +10796,7 @@ function _iniciarAppComLock(){
   });
   _iniciarChecagemVersaoRemota();
   loadTheme();
-  initAuth();
+  carregarConfigProjetoAtivo().then(()=>initAuth());
 }
 
 _tabLockTentarReivindicar(venceu=>{
