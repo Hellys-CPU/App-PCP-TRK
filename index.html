@@ -2529,7 +2529,11 @@ async function bootApp(){
     try{
       const hadChanges=await loadFromSupabase();
       if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
-      if(curPage==='caf'){await loadCAFs();renderCAFs();}
+      // comHist=false: este é o polling de "rede de segurança" (Ably já cobre o realtime).
+      // hist é ~82% do peso da linha (ver comentário em loadCAFs) — não precisa aqui a cada 45/180s.
+      // Quando o usuário abre a aba CAF de fato (setView/entrada na tela), loadCAFs() roda
+      // sem esse parâmetro e traz hist completo normalmente.
+      if(curPage==='caf'){await loadCAFs(false);renderCAFs();}
     }catch(e){console.warn('sync:',e);}
   },45000); // 45s — equilibrio entre velocidade e consumo (Ably é o realtime principal)
   window._timerTick=setInterval(()=>{
@@ -5824,6 +5828,11 @@ async function loadCAFs(comHist=true,apenasAtivas=false){
     const filtroStatus=apenasAtivas?`&status=not.in.(${encodeURIComponent('"Entrega Realizada","cancelada"')})`:'';
     const data=await sbFetch(`${TABELA_CAF}?select=${cols}${filtroStatus}&order=criado_em.desc&limit=2000`);
     if(Array.isArray(data)){
+      // Quando comHist=false, o backend não devolve o campo — preserva o hist já em memória
+      // (vindo de uma carga anterior com comHist=true) em vez de sobrescrever com [] e apagar
+      // o histórico visível no modal de edição (openEditCAF lê cafsDB[].hist direto, sem refetch).
+      const histAnterior={};
+      if(!comHist&&!apenasAtivas)for(const c of cafsDB)if(Array.isArray(c.hist)&&c.hist.length)histAnterior[c.id]=c.hist;
       const mapeado=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
         rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
@@ -5831,7 +5840,7 @@ async function loadCAFs(comHist=true,apenasAtivas=false){
         opId:r.op_id||'',obs:r.obs||'',
         criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
         ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
-        hist:Array.isArray(r.hist)?r.hist:[]
+        hist:Array.isArray(r.hist)?r.hist:(histAnterior[r.id]||[])
       }));
       if(apenasAtivas)cafsDBTV=mapeado;
       else cafsDB=mapeado;
