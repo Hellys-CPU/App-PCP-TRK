@@ -1906,8 +1906,12 @@ function _verMaiorQue(a,b){
 // PROJETOS_SUPABASE guarda as credenciais dos dois bancos possíveis. A troca entre eles é
 // controlada remotamente via /api/config (Cloudflare Pages Function + KV), pra afetar todos
 // os dispositivos ao mesmo tempo. Projeto A é sempre o padrão caso a config remota falhe.
+// Projeto A = App-PCP-TRK na organização "backup" (mccghtypqzdrjpjplwqx), projeto principal
+// atual desde 03/08/2026 — substituiu o antigo A (org original, egress estourado, apagado).
+// Projeto B = App-PCP-TRK BACKUP (bveebmfpbcwrjzoiyxet) — contingência secundária, mesma
+// organização de origem do A antigo. Ambos ficam disponíveis pra troca via /api/config.
 const PROJETOS_SUPABASE={
-  A:{url:'https://xolqsrcqvobfiiqqokkh.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbHFzcmNxdm9iZmlpcXFva2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjA1MDcsImV4cCI6MjA5NzQzNjUwN30.LeItET-NQjAt87q2zq5uneFdXJAz9SzeCz35_bLyGQY'},
+  A:{url:'https://mccghtypqzdrjpjplwqx.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jY2dodHlwcXpkcmpwanBsd3F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MjUzMjIsImV4cCI6MjEwMTMwMTMyMn0.LS8EPyiAAfRkcxLhc5fK1dGgvZEOXhIn_2vwo6ar4_A'},
   B:{url:'https://bveebmfpbcwrjzoiyxet.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2ZWVibWZwYmN3cmp6b2l5eGV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3MDM5MDIsImV4cCI6MjEwMTI3OTkwMn0.sxwJO5dtfs5S4eL_whnlheiQKQAltynPf3yyy9sAnlc'}
 };
 let PROJETO_ATIVO='A';
