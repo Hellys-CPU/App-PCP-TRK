@@ -1295,6 +1295,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       </div>
       <button class="btn btn-s" style="font-size:.72rem;width:100%;border-color:var(--red);color:var(--red)" onclick="trocarProjetoSupabase()">🔄 Trocar Projeto Supabase Ativo</button>
     </div>
+    <div class="admin-card" id="adm-db-monitor" style="display:none">
+      <h3>📡 Monitoramento dos Bancos</h3>
+      <div id="dbMonitorBody" style="font-size:.72rem;color:var(--t2)">Carregando...</div>
+      <button class="btn btn-s" style="font-size:.68rem;width:100%;margin-top:8px" onclick="verificarSaudeBancos()">🔄 Verificar agora</button>
+    </div>
     <div class="admin-card" id="adm-config">
       <h3>⚙️ Configurações</h3>
       <div class="config-row"><div><div class="config-label">Alertas de Atraso</div><div class="config-d">Destacar cards com atraso</div></div><label class="toggle-sw"><input type="checkbox" id="cfgAlertas" checked onchange="saveConfig()"><span class="slider"></span></label></div>
@@ -4817,7 +4822,11 @@ function setView(name){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
-  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());const _lblProj=document.getElementById('admProjetoAtivoLbl');if(_lblProj)_lblProj.textContent=PROJETO_ATIVO;}
+  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());const _lblProj=document.getElementById('admProjetoAtivoLbl');if(_lblProj)_lblProj.textContent=PROJETO_ATIVO;
+    const _monitorCard=document.getElementById('adm-db-monitor');
+    if(currentUser?.user==='hellys'){if(_monitorCard)_monitorCard.style.display='';verificarSaudeBancos();}
+    else if(_monitorCard)_monitorCard.style.display='none';
+  }
   curPage=name;pingOnlineDB().then(()=>_renderOnlinePresence()).catch(()=>{});
 }
 
@@ -10029,6 +10038,57 @@ async function trocarProjetoSupabase(){
     showToast(`✅ Trocado para Projeto ${alvo}. Recarregando...`,'ok');
     setTimeout(()=>location.reload(),1200);
   }catch(e){showToast('❌ Erro de rede ao trocar de projeto: '+e.message,'err');}
+}
+
+// ── Monitoramento de saúde dos dois bancos Supabase (A e B) ──
+// Consulta a tabela `sessoes` (presença) de CADA projeto diretamente via REST, usando as
+// credenciais já conhecidas em PROJETOS_SUPABASE — não depende de qual projeto está ativo
+// agora. Se os DOIS bancos mostrarem ping muito recente ao mesmo tempo, é sinal de split-brain
+// (alguma aba/dispositivo ainda gravando no banco errado) — mesmo bug que já tivemos.
+async function _fetchUltimoPing(proj){
+  try{
+    const r=await fetch(`${proj.url}/rest/v1/sessoes?select=ultimo_ping&order=ultimo_ping.desc&limit=1`,{
+      headers:{'apikey':proj.key,'Authorization':`Bearer ${proj.key}`}
+    });
+    if(!r.ok)return{ok:false};
+    const d=await r.json();
+    return{ok:true,ultimo:d[0]?.ultimo_ping?new Date(d[0].ultimo_ping):null};
+  }catch(e){return{ok:false};}
+}
+
+async function verificarSaudeBancos(){
+  const el=document.getElementById('dbMonitorBody');
+  if(!el)return;
+  if(currentUser?.user!=='hellys')return; // painel restrito ao login da Hellys
+  el.textContent='Verificando...';
+  const [a,b]=await Promise.all([_fetchUltimoPing(PROJETOS_SUPABASE.A),_fetchUltimoPing(PROJETOS_SUPABASE.B)]);
+  const agora=Date.now();
+  const segA=a.ok&&a.ultimo?Math.round((agora-a.ultimo.getTime())/1000):null;
+  const segB=b.ok&&b.ultimo?Math.round((agora-b.ultimo.getTime())/1000):null;
+  const ativoAgora=PROJETO_ATIVO;
+  // Split-brain: os dois bancos com ping há menos de 90s ao mesmo tempo
+  const splitBrain=segA!==null&&segB!==null&&segA<90&&segB<90;
+
+  const linha=(nome,ok,seg)=>{
+    if(!ok)return `<div>${nome}: <span style="color:var(--red)">offline / sem resposta</span></div>`;
+    if(seg===null)return `<div>${nome}: <span style="color:var(--t2)">sem atividade registrada</span></div>`;
+    const cor=seg<90?'var(--green,#16a34a)':(seg<600?'#d97706':'var(--t2)');
+    const txt=seg<60?`${seg}s atrás`:seg<3600?`${Math.round(seg/60)}min atrás`:`${Math.round(seg/3600)}h atrás`;
+    return `<div>${nome}: <span style="color:${cor}">${txt}</span></div>`;
+  };
+
+  let html=`<div style="margin-bottom:6px">Projeto ativo (config remota): <b>${ativoAgora}</b></div>`;
+  html+=linha('Projeto A',a.ok,segA);
+  html+=linha('Projeto B',b.ok,segB);
+
+  if(splitBrain){
+    html=`<div style="background:var(--red);color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;font-weight:600">
+      ⚠️ ALERTA: os dois bancos mostram atividade recente ao mesmo tempo — possível dispositivo
+      gravando no banco errado. Confirme se todos os dispositivos recarregaram após a última troca.
+    </div>`+html;
+  }
+  el.innerHTML=html;
+  return{splitBrain,segA,segB};
 }
 
 // Publica notificação no canal Ably
