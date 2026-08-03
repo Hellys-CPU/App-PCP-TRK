@@ -5,6 +5,7 @@
 // Requer um binding de KV chamado CONFIG_KV, configurado em:
 // Painel Cloudflare > Pages > (projeto) > Settings > Functions > KV namespace bindings
 // Variable name: CONFIG_KV  |  KV namespace: trk_config
+// redeploy trigger
 
 const SENHA_TROCA = 'Hellys8020';
 const CHAVE_KV = 'activeProject';
