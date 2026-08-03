@@ -2100,7 +2100,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -2130,7 +2130,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -2167,7 +2167,7 @@ async function saveToSupabase(op){
   // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
   // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
   const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,motorista_usou_app:op.motoristaUsouApp||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -4385,6 +4385,17 @@ function buildForm(op){
     <button class="btn btn-g" style="font-size:.72rem;flex-shrink:0" onclick="addCaf()">+ Manual</button>
   </div>
 </div>
+<div class="sec">📱 Motorista utilizou o App?</div>
+<div class="fgrid c1">
+  <div class="fg">
+    <select id="fMotoristaApp" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
+      <option value="" ${!o.motoristaUsouApp?'selected':''}>— não informado —</option>
+      <option value="sim" ${o.motoristaUsouApp==='sim'?'selected':''}>✅ Sim</option>
+      <option value="nao" ${o.motoristaUsouApp==='nao'?'selected':''}>❌ Não</option>
+      <option value="falha_sistemica" ${o.motoristaUsouApp==='falha_sistemica'?'selected':''}>⚠️ Falha sistêmica — CAF não subiu pro app do motorista</option>
+    </select>
+  </div>
+</div>
 ${(()=>{
   const dS=dMin(o.planSaida,o.realSaida), dC=dMin(o.planChegFC,o.realChegFC);
   const showS=dS!==null&&dS>30, showC=dC!==null&&dC>30;
@@ -4503,6 +4514,7 @@ async function saveCard(){
     op.gerarRetornoPallets=!!document.getElementById('fGerarRetorno')?.checked;
     if(document.getElementById('fMotivoSaida'))upd('motivoAtrasoSaida',g('fMotivoSaida'));
     if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
+    if(document.getElementById('fMotoristaApp'))upd('motoristaUsouApp',g('fMotoristaApp'));
     op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=ts();op.updatedBy=who;
     if(ch.length){addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
@@ -5265,6 +5277,78 @@ function renderAnalise(){
         </div>`;
       }).join('')}
     </div>`;
+  })()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>📱 Uso do App pelo Motorista</h3>
+  ${(()=>{
+    const cSim=data.filter(o=>o.motoristaUsouApp==='sim').length;
+    const cNao=data.filter(o=>o.motoristaUsouApp==='nao').length;
+    const cFalha=data.filter(o=>o.motoristaUsouApp==='falha_sistemica').length;
+    const cSemInfo=data.filter(o=>!o.motoristaUsouApp).length;
+    const kpis=[
+      {v:cSim,l:'✅ Usou o App',cl:'c-gr'},
+      {v:cNao,l:'❌ Não Usou',cl:'c-red'},
+      {v:cFalha,l:'⚠️ Falha Sistêmica (FORA)',cl:'c-or'},
+      {v:cSemInfo,l:'— Sem Informação',cl:'c-gy'}
+    ];
+    let html=`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      ${kpis.map(k=>`<div class="kpi ${k.cl}" style="min-width:130px;cursor:default"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('')}
+    </div>`;
+
+    // Ranking por transportadora
+    const byTApp={};
+    data.forEach(o=>{
+      if(!o.transp||!o.motoristaUsouApp)return;
+      if(!byTApp[o.transp])byTApp[o.transp]={sim:0,nao:0,falha:0};
+      byTApp[o.transp][o.motoristaUsouApp==='falha_sistemica'?'falha':o.motoristaUsouApp]++;
+    });
+    const tAppArr=Object.entries(byTApp).sort((a,b)=>(b[1].nao+b[1].falha)-(a[1].nao+a[1].falha));
+
+    html+=`<div style="font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:6px">🚛 Ranking por Transportadora (Sim x Não)</div>`;
+    html+=`<div style="overflow-x:auto"><table style="width:100%;min-width:600px;border-collapse:collapse;font-size:.72rem;margin-bottom:16px">
+      <thead><tr style="border-bottom:2px solid var(--red3)">
+        <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Transportadora</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">✅ Sim</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">❌ Não</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">⚠️ Falha Sist.</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">% Sim</th>
+      </tr></thead>
+      <tbody>
+      ${tAppArr.length?tAppArr.map(([n,d])=>{
+        const totalInf=d.sim+d.nao+d.falha;
+        const pctSim=totalInf?Math.round((d.sim/totalInf)*100):0;
+        const cor=pctSim>=80?'var(--green)':pctSim>=50?'var(--yellow)':'var(--red)';
+        return `<tr style="border-bottom:1px solid var(--bg4)">
+          <td style="padding:5px 6px;font-weight:700;color:var(--red)">${esc(n)}</td>
+          <td style="padding:5px 6px;text-align:center;color:var(--green)">${d.sim}</td>
+          <td style="padding:5px 6px;text-align:center;color:var(--red)">${d.nao}</td>
+          <td style="padding:5px 6px;text-align:center;color:#f59e0b">${d.falha}</td>
+          <td style="padding:5px 6px;text-align:center;font-weight:700;color:${cor}">${pctSim}%</td>
+        </tr>`;
+      }).join(''):'<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--t3)">Sem dados</td></tr>'}
+      </tbody>
+    </table></div>`;
+
+    // Ranking por motorista — só quem tem pelo menos 1 "não"
+    const byMot={};
+    data.forEach(o=>{
+      if(!o.mot||!o.motoristaUsouApp)return;
+      if(!byMot[o.mot])byMot[o.mot]={sim:0,nao:0,falha:0,placa:o.placa,transp:o.transp};
+      byMot[o.mot][o.motoristaUsouApp==='falha_sistemica'?'falha':o.motoristaUsouApp]++;
+      byMot[o.mot].placa=o.placa||byMot[o.mot].placa;
+      byMot[o.mot].transp=o.transp||byMot[o.mot].transp;
+    });
+    const motArr=Object.entries(byMot).filter(([,d])=>d.nao>0).sort((a,b)=>b[1].nao-a[1].nao);
+
+    html+=`<div style="font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:6px">👤 Motoristas que Não Usaram o App</div>`;
+    html+=motArr.length?`<div style="display:flex;flex-direction:column;gap:5px">
+      ${motArr.map(([mot,d])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:.72rem">
+        <span><b style="color:var(--text)">${esc(mot)}</b> <span style="color:var(--t2)">· ${esc(d.placa||'—')} · ${esc(d.transp||'—')}</span></span>
+        <span style="color:var(--red);font-weight:700">${d.nao}x não usou</span>
+      </div>`).join('')}
+    </div>`:'<p style="color:var(--t3);text-align:center;padding:12px">Nenhum registro de "não usou" no período ✅</p>';
+    return html;
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
@@ -10056,12 +10140,27 @@ async function _fetchUltimoPing(proj){
   }catch(e){return{ok:false};}
 }
 
+async function _fetchTamanhoBanco(proj){
+  try{
+    const r=await fetch(`${proj.url}/rest/v1/rpc/tamanho_banco_aprox`,{
+      method:'POST',
+      headers:{'apikey':proj.key,'Authorization':`Bearer ${proj.key}`,'Content-Type':'application/json'}
+    });
+    if(!r.ok)return{ok:false};
+    const d=await r.json();
+    return{ok:true,mb:d.bytes?(d.bytes/1024/1024):null};
+  }catch(e){return{ok:false};}
+}
+
 async function verificarSaudeBancos(){
   const el=document.getElementById('dbMonitorBody');
   if(!el)return;
   if(currentUser?.user!=='hellys')return; // painel restrito ao login da Hellys
   el.textContent='Verificando...';
-  const [a,b]=await Promise.all([_fetchUltimoPing(PROJETOS_SUPABASE.A),_fetchUltimoPing(PROJETOS_SUPABASE.B)]);
+  const [a,b,tamA,tamB]=await Promise.all([
+    _fetchUltimoPing(PROJETOS_SUPABASE.A),_fetchUltimoPing(PROJETOS_SUPABASE.B),
+    _fetchTamanhoBanco(PROJETOS_SUPABASE.A),_fetchTamanhoBanco(PROJETOS_SUPABASE.B)
+  ]);
   const agora=Date.now();
   const segA=a.ok&&a.ultimo?Math.round((agora-a.ultimo.getTime())/1000):null;
   const segB=b.ok&&b.ultimo?Math.round((agora-b.ultimo.getTime())/1000):null;
@@ -10069,17 +10168,19 @@ async function verificarSaudeBancos(){
   // Split-brain: os dois bancos com ping há menos de 90s ao mesmo tempo
   const splitBrain=segA!==null&&segB!==null&&segA<90&&segB<90;
 
-  const linha=(nome,ok,seg)=>{
+  const linha=(nome,ok,seg,tam)=>{
+    const tamTxt=tam.ok&&tam.mb!==null?` · ${tam.mb.toFixed(1)} MB (aprox.)`:'';
     if(!ok)return `<div>${nome}: <span style="color:var(--red)">offline / sem resposta</span></div>`;
-    if(seg===null)return `<div>${nome}: <span style="color:var(--t2)">sem atividade registrada</span></div>`;
+    if(seg===null)return `<div>${nome}: <span style="color:var(--t2)">sem atividade registrada</span>${tamTxt}</div>`;
     const cor=seg<90?'var(--green,#16a34a)':(seg<600?'#d97706':'var(--t2)');
     const txt=seg<60?`${seg}s atrás`:seg<3600?`${Math.round(seg/60)}min atrás`:`${Math.round(seg/3600)}h atrás`;
-    return `<div>${nome}: <span style="color:${cor}">${txt}</span></div>`;
+    return `<div>${nome}: <span style="color:${cor}">${txt}</span>${tamTxt}</div>`;
   };
 
   let html=`<div style="margin-bottom:6px">Projeto ativo (config remota): <b>${ativoAgora}</b></div>`;
-  html+=linha('Projeto A',a.ok,segA);
-  html+=linha('Projeto B',b.ok,segB);
+  html+=linha('Projeto A',a.ok,segA,tamA);
+  html+=linha('Projeto B',b.ok,segB,tamB);
+  html+=`<div style="margin-top:6px;font-size:.65rem;color:var(--t3,#6b7280)">* Tamanho do banco é aproximado (pg_database_size) — pode não bater 100% com o valor oficial do painel Supabase.</div>`;
 
   if(splitBrain){
     html=`<div style="background:var(--red);color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;font-weight:600">
