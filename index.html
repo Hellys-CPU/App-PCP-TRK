@@ -2563,6 +2563,23 @@ async function bootApp(){
     // Adaptativo: Ably conectado entrega realtime — sync é só rede de segurança (180s). Ably caído → 45s.
     window._syncTickCount=(window._syncTickCount||0)+1;
     if(_ablyOK && window._syncTickCount%4!==0)return;
+    // Rede de segurança contra troca de projeto perdida: se essa aba não recebeu o evento
+    // Ably 'db_switch' (conexão instável, aba em background, etc), ela ficaria presa no
+    // projeto Supabase antigo pra sempre, sem perceber — gravando dados que nunca chegam
+    // no banco ativo. Esse check roda no mesmo ciclo do sync (sem custo extra de rede) e
+    // força reload assim que detecta que o projeto configurado remotamente mudou.
+    try{
+      const rCfg=await fetch('/api/config',{cache:'no-store'});
+      if(rCfg.ok){
+        const dCfg=await rCfg.json();
+        const alvoCfg=(dCfg&&dCfg.projeto==='B')?'B':'A';
+        if(alvoCfg!==PROJETO_ATIVO){
+          showToast(`⚠️ Projeto Supabase mudou pra ${alvoCfg} — recarregando...`,'info');
+          setTimeout(()=>location.reload(),1500);
+          return;
+        }
+      }
+    }catch(e){/* falha na checagem não deve travar o sync normal */}
     try{
       const hadChanges=await loadFromSupabase();
       if(hadChanges){render();renderFUP();if(curPage==='analise')renderAnalise();}
