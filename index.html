@@ -5352,6 +5352,57 @@ function renderAnalise(){
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
+  <h3>📦 CAFs Expedidas por Viagem — Pareto por FC</h3>
+  <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF.</div>
+  ${(()=>{
+    // Só rotas de ida: TZX_FC. Retornos (FC_TZX) não têm CAF e ficam de fora.
+    const dataIda=data.filter(o=>o.rota&&o.rota.split('_')[0]==='TZX'&&o.rota.split('_')[1]);
+    const idsIda=new Set(dataIda.map(o=>o.id));
+
+    // Agrupa CAFs por viagem (só das viagens de ida presentes no período filtrado)
+    const porViagem={};
+    cafsDB.forEach(c=>{
+      if(!c.opId||!idsIda.has(c.opId))return;
+      const op=dataIda.find(o=>o.id===c.opId);
+      const fc=op.rota.split('_')[1];
+      if(!porViagem[c.opId])porViagem[c.opId]={fc,total:0,baixadas:0,codigoCurto:op.codigoCurto};
+      porViagem[c.opId].total++;
+      if(c.status==='Entrega Realizada')porViagem[c.opId].baixadas++;
+    });
+
+    // Agrupa por FC
+    const porFC={};
+    Object.values(porViagem).forEach(v=>{
+      if(!porFC[v.fc])porFC[v.fc]={viagens:[],totalCAFs:0,totalBaixadas:0};
+      porFC[v.fc].viagens.push(v);
+      porFC[v.fc].totalCAFs+=v.total;
+      porFC[v.fc].totalBaixadas+=v.baixadas;
+    });
+    const fcArr=Object.entries(porFC).sort((a,b)=>b[1].totalCAFs-a[1].totalCAFs);
+
+    if(!fcArr.length)return'<p style="color:var(--t3);text-align:center;padding:24px">Sem dados de CAFs em rotas de ida no período.</p>';
+
+    return fcArr.map(([fc,d])=>{
+      const buckets={'1 CAF':0,'2 CAFs':0,'3 CAFs':0,'4+ CAFs':0};
+      d.viagens.forEach(v=>{
+        if(v.total===1)buckets['1 CAF']++;
+        else if(v.total===2)buckets['2 CAFs']++;
+        else if(v.total===3)buckets['3 CAFs']++;
+        else buckets['4+ CAFs']++;
+      });
+      const pctBaixa=d.totalCAFs?Math.round((d.totalBaixadas/d.totalCAFs)*100):0;
+      const corBaixa=pctBaixa>=90?'var(--green)':pctBaixa>=70?'var(--yellow)':'var(--red)';
+      return `<div style="margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bg4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <span style="font-size:.85rem;font-weight:800;color:var(--red)">📍 FC ${esc(fc)}</span>
+          <span style="font-size:.68rem;color:var(--t2)">${d.viagens.length} viagem(ns) · ${d.totalCAFs} CAFs expedidas · <b style="color:${corBaixa}">${d.totalBaixadas} baixadas (${pctBaixa}%)</b></span>
+        </div>
+        ${_paretoSVG(Object.entries(buckets),{corBarra:'#dc2626'})}
+      </div>`;
+    }).join('');
+  })()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
   <h3>🎯 OT (On Time) — Saída / Chegada / Total</h3>
   ${(()=>{
     const ot=_calcOT(data);
