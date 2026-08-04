@@ -5352,8 +5352,8 @@ function renderAnalise(){
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
-  <h3>📦 CAFs Expedidas por Viagem — Pareto por FC</h3>
-  <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF.</div>
+  <h3>📦 CAFs Sem Baixa — Pareto por FC</h3>
+  <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF. Barras = CAFs pendentes (sem baixa) por FC — quanto maior, pior.</div>
   ${(()=>{
     // Só rotas de ida: TZX_FC. Retornos (FC_TZX) não têm CAF e ficam de fora.
     const dataIda=data.filter(o=>o.rota&&o.rota.split('_')[0]==='TZX'&&o.rota.split('_')[1]);
@@ -5365,41 +5365,73 @@ function renderAnalise(){
       if(!c.opId||!idsIda.has(c.opId))return;
       const op=dataIda.find(o=>o.id===c.opId);
       const fc=op.rota.split('_')[1];
-      if(!porViagem[c.opId])porViagem[c.opId]={fc,total:0,baixadas:0,codigoCurto:op.codigoCurto};
+      if(!porViagem[c.opId])porViagem[c.opId]={fc,total:0,baixadas:0,codigoCurto:op.codigoCurto,cafsPend:[]};
       porViagem[c.opId].total++;
       if(c.status==='Entrega Realizada')porViagem[c.opId].baixadas++;
+      else porViagem[c.opId].cafsPend.push(c.num);
     });
 
     // Agrupa por FC
     const porFC={};
     Object.values(porViagem).forEach(v=>{
-      if(!porFC[v.fc])porFC[v.fc]={viagens:[],totalCAFs:0,totalBaixadas:0};
+      if(!porFC[v.fc])porFC[v.fc]={viagens:[],totalCAFs:0,totalBaixadas:0,totalPendentes:0};
       porFC[v.fc].viagens.push(v);
       porFC[v.fc].totalCAFs+=v.total;
       porFC[v.fc].totalBaixadas+=v.baixadas;
+      porFC[v.fc].totalPendentes+=(v.total-v.baixadas);
     });
     const fcArr=Object.entries(porFC).sort((a,b)=>b[1].totalCAFs-a[1].totalCAFs);
 
     if(!fcArr.length)return'<p style="color:var(--t3);text-align:center;padding:24px">Sem dados de CAFs em rotas de ida no período.</p>';
 
-    return fcArr.map(([fc,d])=>{
-      const buckets={'1 CAF':0,'2 CAFs':0,'3 CAFs':0,'4+ CAFs':0};
-      d.viagens.forEach(v=>{
-        if(v.total===1)buckets['1 CAF']++;
-        else if(v.total===2)buckets['2 CAFs']++;
-        else if(v.total===3)buckets['3 CAFs']++;
-        else buckets['4+ CAFs']++;
-      });
-      const pctBaixa=d.totalCAFs?Math.round((d.totalBaixadas/d.totalCAFs)*100):0;
-      const corBaixa=pctBaixa>=90?'var(--green)':pctBaixa>=70?'var(--yellow)':'var(--red)';
-      return `<div style="margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bg4)">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-          <span style="font-size:.85rem;font-weight:800;color:var(--red)">📍 FC ${esc(fc)}</span>
-          <span style="font-size:.68rem;color:var(--t2)">${d.viagens.length} viagem(ns) · ${d.totalCAFs} CAFs expedidas · <b style="color:${corBaixa}">${d.totalBaixadas} baixadas (${pctBaixa}%)</b></span>
-        </div>
-        ${_paretoSVG(Object.entries(buckets),{corBarra:'#dc2626'})}
+    // Pareto clássico: FC que mais tem CAF pendente primeiro, % acumulada
+    const paretoData=fcArr.map(([fc,d])=>[fc,d.totalPendentes]);
+    const totalPend=fcArr.reduce((s,[,d])=>s+d.totalPendentes,0);
+
+    let html=`<div style="margin-bottom:8px;font-size:.72rem;color:var(--t2)">Total geral: <b style="color:var(--text)">${fcArr.reduce((s,[,d])=>s+d.totalCAFs,0)} CAFs expedidas</b> · <b style="color:var(--green)">${fcArr.reduce((s,[,d])=>s+d.totalBaixadas,0)} baixadas</b> · <b style="color:var(--red)">${totalPend} pendentes</b></div>`;
+    html+=totalPend>0?_paretoSVG(paretoData,{corBarra:'#dc2626'}):'<p style="color:var(--green);text-align:center;padding:20px">✅ Nenhuma CAF pendente no período — tudo baixado!</p>';
+
+    // Tabela detalhada por FC, abaixo do gráfico
+    html+=`<div style="overflow-x:auto;margin-top:16px"><table style="width:100%;min-width:600px;border-collapse:collapse;font-size:.72rem">
+      <thead><tr style="border-bottom:2px solid var(--red3)">
+        <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">FC</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Viagens</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">CAFs Expedidas</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Baixadas</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Pendentes</th>
+        <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">% Baixa</th>
+      </tr></thead>
+      <tbody>
+      ${fcArr.map(([fc,d])=>{
+        const pct=d.totalCAFs?Math.round((d.totalBaixadas/d.totalCAFs)*100):0;
+        const cor=pct>=90?'var(--green)':pct>=70?'var(--yellow)':'var(--red)';
+        return `<tr style="border-bottom:1px solid var(--bg4)">
+          <td style="padding:5px 6px;font-weight:700;color:var(--red)">📍 ${esc(fc)}</td>
+          <td style="padding:5px 6px;text-align:center">${d.viagens.length}</td>
+          <td style="padding:5px 6px;text-align:center">${d.totalCAFs}</td>
+          <td style="padding:5px 6px;text-align:center;color:var(--green)">${d.totalBaixadas}</td>
+          <td style="padding:5px 6px;text-align:center;color:var(--red);font-weight:700">${d.totalPendentes}</td>
+          <td style="padding:5px 6px;text-align:center;font-weight:700;color:${cor}">${pct}%</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`;
+
+    // Viagens com 2+ CAFs (o padrão que a Hellys quer acompanhar de perto)
+    const viagensMultiplas=Object.values(porViagem).filter(v=>v.total>=2).sort((a,b)=>b.total-a.total);
+    if(viagensMultiplas.length){
+      html+=`<div style="font-size:.7rem;font-weight:700;color:var(--text);margin:14px 0 6px">🔀 Viagens com 2+ CAFs — atenção especial pra baixa</div>`;
+      html+=`<div style="display:flex;flex-direction:column;gap:5px">
+        ${viagensMultiplas.map(v=>{
+          const okTudo=v.cafsPend.length===0;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:.72rem;border-left:3px solid ${okTudo?'var(--green)':'var(--red)'}">
+            <span><b style="color:var(--text)">${esc(v.codigoCurto)}</b> <span style="color:var(--t2)">· FC ${esc(v.fc)} · ${v.total} CAFs</span></span>
+            <span style="color:${okTudo?'var(--green)':'var(--red)'};font-weight:700">${okTudo?'✅ tudo baixado':`⏳ ${v.cafsPend.length} pendente(s): ${v.cafsPend.join(', ')}`}</span>
+          </div>`;
+        }).join('')}
       </div>`;
-    }).join('');
+    }
+    return html;
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
@@ -7907,6 +7939,65 @@ async function salvarEsteira(esteiraNum,colaborador){
 }
 
 // ══════════════════════════════════════════════════════════════════
+// ── Backlog Manual do Report PCP (Posições inserir em CAF, Peça a peça, etc.) ──
+// Preenchimento manual por horário (06:00, 09:00, 12:00...), salvo por dia na tabela
+// `configuracoes` (chave reportpcp_backlog_YYYY-MM-DD). Reseta naturalmente todo dia.
+const _BACKLOG_LINHAS=[
+  {id:'inserir',lb:'Posições inserir em CAF'},
+  {id:'peca',lb:'Posições peça a peça'},
+  {id:'semPlanilhar',lb:'Aguardando complemento sem planilhar'},
+  {id:'ltl',lb:'Posições LTL'}
+];
+let _backlogPCP={horarios:['06:00','09:00','12:00','14:00'],valores:{inserir:{},peca:{},semPlanilhar:{},ltl:{}}};
+let _backlogPCPDia=null;
+
+async function _loadBacklogPCP(){
+  const hoje=hojeLocal();
+  if(_backlogPCPDia===hoje)return; // já carregado hoje
+  try{
+    const rows=await sbFetch(`configuracoes?select=valor&chave=eq.reportpcp_backlog_${hoje}`);
+    if(Array.isArray(rows)&&rows[0]?.valor){
+      const v=rows[0].valor;
+      _backlogPCP={
+        horarios:Array.isArray(v.horarios)&&v.horarios.length?v.horarios:['06:00','09:00','12:00','14:00'],
+        valores:{inserir:{},peca:{},semPlanilhar:{},ltl:{},...(v.valores||{})}
+      };
+    }else{
+      _backlogPCP={horarios:['06:00','09:00','12:00','14:00'],valores:{inserir:{},peca:{},semPlanilhar:{},ltl:{}}};
+    }
+  }catch(e){console.warn('_loadBacklogPCP:',e);}
+  _backlogPCPDia=hoje;
+}
+
+let _backlogSaveTimer=null;
+function _salvarBacklogPCP(){
+  clearTimeout(_backlogSaveTimer);
+  _backlogSaveTimer=setTimeout(async()=>{
+    await _saveCfgSupabase(`reportpcp_backlog_${hojeLocal()}`,_backlogPCP);
+  },500);
+}
+function _backlogPCPInput(linhaId,horario,valor){
+  _backlogPCP.valores[linhaId][horario]=valor===''?'':Number(valor);
+  _salvarBacklogPCP();
+}
+function _backlogPCPAddHorario(){
+  const h=prompt('Novo horário (ex: 16:00):');
+  if(!h||!h.trim())return;
+  const hf=h.trim();
+  if(_backlogPCP.horarios.includes(hf))return;
+  _backlogPCP.horarios.push(hf);
+  _salvarBacklogPCP();
+  renderReportPCP();
+}
+function _backlogPCPRemHorario(h){
+  if(!confirm(`Remover a coluna "${h}"? Os valores preenchidos nela serão perdidos.`))return;
+  _backlogPCP.horarios=_backlogPCP.horarios.filter(x=>x!==h);
+  _BACKLOG_LINHAS.forEach(l=>delete _backlogPCP.valores[l.id][h]);
+  _salvarBacklogPCP();
+  renderReportPCP();
+}
+
+// ══════════════════════════════════════════════════════════════════
 // REPORT PCP — visão de produção: CAFs Prontas, CAF Produzindo (com esteira/
 // colaborador) e Expedição por FC (contando só quem entrou em "Processo de
 // Entrega" HOJE, via histórico real — não o acumulado de sempre).
@@ -7915,6 +8006,7 @@ function renderReportPCP(){
   const el=document.getElementById('reportPCPBody');if(!el)return;
   const horaEl=document.getElementById('reportPCPHora');if(horaEl)horaEl.textContent='Gerado '+new Date().toLocaleString('pt-BR');
   const hoje=hojeLocal();
+  if(_backlogPCPDia!==hoje){_loadBacklogPCP().then(renderReportPCP);}
 
   const prontas=cafsDB.filter(c=>['Produzida','Vinculada a Veículo'].includes(c.status)).sort((a,b)=>(a.venc||'').localeCompare(b.venc||''));
   const produzindo=cafsDB.filter(c=>['Em Produção','Em Auditoria GRIS'].includes(c.status)).sort((a,b)=>(a.esteiraNum||99)-(b.esteiraNum||99));
@@ -7943,26 +8035,58 @@ function renderReportPCP(){
     return `<span style="color:var(--green);font-weight:700">🔗 ${esc(op.codigoCurto||op.id)}</span> <span style="color:var(--t2)">· ${esc(op.placa)||'—'} · ${esc(op.mot)||'—'}</span>`;
   };
 
+  // Rua vinculada — evidencia bem quando não tem rua atribuída
+  const _ruaHTML=c=>{
+    const rn=ruaNumeroDe(c.ruaId);
+    if(rn==null)return '<span style="color:var(--red);font-weight:700;background:#dc262622;border:1px solid #dc262655;border-radius:4px;padding:1px 6px;font-size:.68rem">⚠️ sem rua atribuída</span>';
+    return `<span style="color:var(--text);font-weight:700">Rua ${esc(rn)}</span>`;
+  };
+
   const rowCAF=(c,mostrarEsteira,mostrarVinculo)=>`<tr style="border-bottom:1px solid var(--bd)">
     ${mostrarEsteira?`<td style="padding:5px 8px;text-align:center;font-weight:700">${c.esteiraNum??'—'}</td>`:''}
     <td style="padding:5px 8px;font-weight:700">${esc(c.num)}${c.status==='Em Auditoria GRIS'?' <span style="background:#7c3aed22;color:#7c3aed;border:1px solid #7c3aed55;border-radius:4px;padding:1px 5px;font-size:.6rem;font-weight:700" title="Em Auditoria GRIS">🔍 GRIS</span>':''}</td>
     <td style="text-align:center">${c.pallets||0}</td>
     <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
     <td>${c.venc?fmtD(c.venc):'—'}</td>
+    <td>${_ruaHTML(c)}</td>
     ${mostrarEsteira?`<td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>`:''}
     ${mostrarVinculo?`<td>${_vinculoHTML(c)}</td>`:''}
   </tr>`;
 
   el.innerHTML=`
     <div class="an-card">
+      <h3>📝 Backlog do Turno — Preenchimento Manual</h3>
+      <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Preenchido manualmente por horário de checagem. Salva automaticamente ao digitar.</p>
+      <div style="overflow-x:auto">
+        <table style="width:100%;font-size:.76rem;border-collapse:collapse">
+          <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
+            <th style="padding:5px 8px;min-width:220px">Etapa do Processo</th>
+            ${_backlogPCP.horarios.map(h=>`<th style="text-align:center;min-width:80px">${esc(h)} <span onclick="_backlogPCPRemHorario('${esc(h)}')" style="cursor:pointer;color:var(--red);font-weight:400" title="Remover horário">✕</span></th>`).join('')}
+            <th style="text-align:center;min-width:60px"><button class="btn btn-s" style="font-size:.62rem;padding:3px 8px" onclick="_backlogPCPAddHorario()">+ Horário</button></th>
+          </tr></thead>
+          <tbody>
+            ${_BACKLOG_LINHAS.map(l=>`<tr style="border-bottom:1px solid var(--bd)">
+              <td style="padding:5px 8px;font-weight:600">${esc(l.lb)}</td>
+              ${_backlogPCP.horarios.map(h=>`<td style="text-align:center;padding:3px">
+                <input type="number" value="${_backlogPCP.valores[l.id]?.[h]??''}" placeholder="—"
+                  style="width:60px;text-align:center;background:var(--bg2);border:1px solid var(--bd);border-radius:5px;color:var(--text);padding:4px;font-size:.74rem"
+                  onchange="_backlogPCPInput('${l.id}','${esc(h)}',this.value)">
+              </td>`).join('')}
+              <td></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="an-card" style="margin-top:14px">
       <h3>✅ CAFs Prontas (${prontas.length})</h3>
       <p style="font-size:.68rem;color:var(--t2);margin-bottom:8px">Inclui "Produzida" e "Vinculada a Veículo" — quando já vinculada, mostra a viagem (VG), placa e motorista.</p>
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;font-size:.76rem">
           <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-            <th style="padding:5px 8px">Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Vínculo (Viagem)</th>
+            <th style="padding:5px 8px">Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Rua</th><th>Vínculo (Viagem)</th>
           </tr></thead>
-          <tbody>${prontas.length?prontas.map(c=>rowCAF(c,false,true)).join(''):'<tr><td colspan="5" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF pronta no momento.</td></tr>'}</tbody>
+          <tbody>${prontas.length?prontas.map(c=>rowCAF(c,false,true)).join(''):'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF pronta no momento.</td></tr>'}</tbody>
         </table>
       </div>
     </div>
@@ -7972,9 +8096,9 @@ function renderReportPCP(){
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table style="width:100%;font-size:.76rem">
           <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-            <th style="padding:5px 8px;text-align:center">Esteira</th><th>Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th>
+            <th style="padding:5px 8px;text-align:center">Esteira</th><th>Nº CAF</th><th style="text-align:center">Pallets</th><th>Destino</th><th>Vencimento</th><th>Rua</th><th>Colaborador</th>
           </tr></thead>
-          <tbody>${produzindo.length?produzindo.map(c=>rowCAF(c,true,false)).join(''):'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF em produção no momento.</td></tr>'}</tbody>
+          <tbody>${produzindo.length?produzindo.map(c=>rowCAF(c,true,false)).join(''):'<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma CAF em produção no momento.</td></tr>'}</tbody>
         </table>
       </div>
     </div>
@@ -8034,6 +8158,11 @@ function imprimirReportPCP(){
   <h1>📋 Report P.C.P</h1>
   <h2>${fmtD(hoje)} · Gerado ${new Date().toLocaleString('pt-BR')} por ${esc(currentUser?.nome||'—')}</h2>
 
+  <div class="sec">📝 Backlog do Turno</div>
+  <table><tr><th>Etapa do Processo</th>${_backlogPCP.horarios.map(h=>`<th class="ctr">${esc(h)}</th>`).join('')}</tr>
+  ${_BACKLOG_LINHAS.map(l=>`<tr><td><b>${esc(l.lb)}</b></td>${_backlogPCP.horarios.map(h=>`<td class="ctr">${_backlogPCP.valores[l.id]?.[h]??'—'}</td>`).join('')}</tr>`).join('')}
+  </table>
+
   <div class="sec">🚚 Expedição — Hoje</div>
   <table><tr><th>FC</th><th class="ctr">Grades do Dia</th><th class="ctr">Expedidas</th><th class="ctr">Faltantes</th><th class="ctr">Canceladas</th></tr>
   ${fcsOrd.length?fcsOrd.map(fc=>{const d=porFC[fc];return `<tr>
@@ -8044,25 +8173,31 @@ function imprimirReportPCP(){
   </table>
 
   <div class="sec">🏭 CAF Produzindo (${produzindo.length})</div>
-  <table><tr><th class="ctr">Esteira</th><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Vencimento</th><th>Colaborador</th></tr>
-  ${produzindo.length?produzindo.map(c=>`<tr>
+  <table><tr><th class="ctr">Esteira</th><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Vencimento</th><th>Rua</th><th>Colaborador</th></tr>
+  ${produzindo.length?produzindo.map(c=>{
+    const rn=ruaNumeroDe(c.ruaId);
+    return `<tr>
     <td class="ctr">${c.esteiraNum??'—'}</td>
     <td><b>${esc(c.num)}</b>${c.status==='Em Auditoria GRIS'?'<span class="gris">🔍 GRIS</span>':''}</td>
     <td class="ctr">${c.pallets||0}</td><td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td>
-    <td>${c.venc?fmtD(c.venc):'—'}</td><td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>
-  </tr>`).join(''):'<tr><td colspan="6">Nenhuma CAF em produção.</td></tr>'}
+    <td>${c.venc?fmtD(c.venc):'—'}</td>
+    <td>${rn==null?'<span class="r">⚠️ sem rua</span>':'Rua '+esc(rn)}</td>
+    <td>${esc(_colaboradorDaEsteira(c.esteiraNum))||'—'}</td>
+  </tr>`;}).join(''):'<tr><td colspan="7">Nenhuma CAF em produção.</td></tr>'}
   </table>
 
   <div class="sec">✅ CAFs Prontas (${prontas.length})</div>
-  <table><tr><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Vínculo</th></tr>
+  <table><tr><th>Nº CAF</th><th class="ctr">Pallets</th><th>Destino</th><th>Data Promessa</th><th>Rua</th><th>Vínculo</th></tr>
   ${prontas.length?prontas.map(c=>{
     const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    const rn=ruaNumeroDe(c.ruaId);
     return `<tr>
       <td><b>${esc(c.num)}</b></td><td class="ctr">${c.pallets||0}</td>
       <td>${esc(_fcFromRota(c.rota)||c.rota||'—')}</td><td>${c.venc?fmtD(c.venc):'—'}</td>
+      <td>${rn==null?'<span class="r">⚠️ sem rua</span>':'Rua '+esc(rn)}</td>
       <td>${op?esc(op.codigoCurto||op.id)+' · '+esc(op.placa||'—'):'—'}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="5">Nenhuma CAF pronta.</td></tr>'}
+  }).join(''):'<tr><td colspan="6">Nenhuma CAF pronta.</td></tr>'}
   </table>
 
   <div style="font-size:9px;color:#999;margin-top:16px">TRK PCP 2026 · Total Express · Gerado automaticamente</div>
