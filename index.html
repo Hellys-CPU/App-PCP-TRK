@@ -5006,7 +5006,7 @@ function _paretoSVG(dados,opts){
   let acc=0;
   const pontos=arr.map(([lb,v])=>{acc+=v;return{lb,v,pctAcc:acc/total*100};});
 
-  const larguraBarra=64,gap=14,margemEsq=42,margemDir=42,margemTopo=16,alturaGrafico=200,margemBaixo=64;
+  const larguraBarra=64,gap=14,margemEsq=42,margemDir=42,margemTopo=26,alturaGrafico=200,margemBaixo=64;
   const w=margemEsq+margemDir+pontos.length*(larguraBarra+gap);
   const h=margemTopo+alturaGrafico+margemBaixo;
   const maxV=pontos[0].v;
@@ -5022,8 +5022,16 @@ function _paretoSVG(dados,opts){
   }).join('');
 
   const linhaPts=pontos.map((p,i)=>`${xBar(i)+larguraBarra/2},${yPct(p.pctAcc)}`).join(' ');
-  const bolinhas=pontos.map((p,i)=>`<circle cx="${xBar(i)+larguraBarra/2}" cy="${yPct(p.pctAcc)}" r="3.5" fill="#f59e0b"/>
-    <text x="${xBar(i)+larguraBarra/2}" y="${yPct(p.pctAcc)-9}" text-anchor="middle" font-size="10" font-weight="700" fill="#f59e0b">${p.pctAcc.toFixed(0)}%</text>`).join('');
+  const bolinhas=pontos.map((p,i)=>{
+    const cy=yPct(p.pctAcc);
+    // Se a bolinha está muito perto do topo do gráfico, o rótulo "%" colidiria com o
+    // rótulo do valor da barra (que também fica perto do topo quando a barra é a maior) —
+    // nesse caso o rótulo desce pra baixo da bolinha em vez de subir.
+    const pertoDoTopo=cy<margemTopo+16;
+    const ly=pertoDoTopo?cy+15:cy-9;
+    return `<circle cx="${xBar(i)+larguraBarra/2}" cy="${cy}" r="3.5" fill="#f59e0b"/>
+    <text x="${xBar(i)+larguraBarra/2}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="#f59e0b">${p.pctAcc.toFixed(0)}%</text>`;
+  }).join('');
 
   const y80=yPct(80);
 
