@@ -1807,11 +1807,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v287';
+const APP_VERSION='v288';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v288:['📱 Seletor de Tablet no início de turno (login compartilhado operador CAF/doca): escolhe qual dos 3 tablets está usando, com disponibilidade em tempo real e opção de marcar quebrado pelo painel de Insumos.','📋 Report PCP: coluna "Rua" nas CAFs (destaca quando não tem rua atribuída) + Backlog do Turno editável (Posições inserir em CAF, Peça a peça, etc.) — tudo isso já entra no PDF.','📊 Análise: KPIs de "Uso do App pelo Motorista" (Sim/Não/Falha Sistêmica) + Pareto de CAFs sem baixa por FC.','🗄️ Admin: painel de Monitoramento dos Bancos (detecta split-brain) e Histórico de Turnos (quem usou qual tablet, quando).'],
   v287:['📸 Report PCP: botão "Extrair (Print/PDF)" — gera uma versão limpa e compacta das 3 seções (Expedição, CAF Produzindo, CAFs Prontas) numa janela de impressão, pronta pra tirar print e mandar no grupo ou salvar em PDF.'],
   v286:['📋 Report PCP: Expedição reescrita — agora 100% baseada em viagens do dia (não em CAF, que já aparece nas seções de cima), com colunas Grades do Dia/Expedidas/Faltantes/Canceladas por FC.'],
   v285:['📋 Report PCP: Expedição agora conta por VIAGEM, não por CAF individual — uma viagem com várias CAFs conta só 1 vez como grade do dia.'],
