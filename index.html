@@ -5064,6 +5064,50 @@ async function exportPPTX(){
 
 // Gráfico de Pareto: barras (maior→menor) + linha de % acumulado + referência dos 80%
 // Uso genérico: recebe [[rótulo, valor], ...] já ordenado ou não — a função ordena sozinha.
+// Barra (valor absoluto, ex: CAFs expedidas) + linha (% direta, não acumulada, ex: % baixa)
+// por categoria em ORDEM CRONOLÓGICA (não ordena por valor como o Pareto).
+// dados: [{lb, v, pct}] — pct já vem calculado (0-100), não é acumulado.
+function _barLinhaDiaSVG(dados,opts){
+  opts=opts||{};
+  const cor=opts.corBarra||'#dc2626';
+  const arr=dados.filter(d=>d.v>0);
+  if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem CAFs expedidas no período.</div>';
+
+  const larguraBarra=54,gap=14,margemEsq=42,margemDir=42,margemTopo=26,alturaGrafico=200,margemBaixo=54;
+  const w=margemEsq+margemDir+arr.length*(larguraBarra+gap);
+  const h=margemTopo+alturaGrafico+margemBaixo;
+  const maxV=Math.max(...arr.map(d=>d.v));
+  const xBar=i=>margemEsq+i*(larguraBarra+gap);
+  const yBar=v=>margemTopo+alturaGrafico-(v/maxV*alturaGrafico);
+  const yPct=p=>margemTopo+alturaGrafico-(p/100*alturaGrafico);
+
+  const barras=arr.map((p,i)=>{
+    const x=xBar(i),yTop=yBar(p.v),altura=alturaGrafico-(yTop-margemTopo);
+    return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${altura}" fill="${cor}" rx="3"/>
+      <text x="${x+larguraBarra/2}" y="${yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text)">${p.v}</text>
+      <text x="${x+larguraBarra/2}" y="${margemTopo+alturaGrafico+16}" text-anchor="middle" font-size="10" fill="var(--t2)">${esc(p.lb)}</text>`;
+  }).join('');
+
+  const linhaPts=arr.map((p,i)=>`${xBar(i)+larguraBarra/2},${yPct(p.pct)}`).join(' ');
+  const bolinhas=arr.map((p,i)=>{
+    const cy=yPct(p.pct);
+    const pertoDoTopo=cy<margemTopo+16;
+    const ly=pertoDoTopo?cy+15:cy-9;
+    const corPct=p.pct>=90?'var(--green,#22c55e)':p.pct>=70?'#f59e0b':'var(--red,#ef4444)';
+    return `<circle cx="${xBar(i)+larguraBarra/2}" cy="${cy}" r="3.5" fill="${corPct}"/>
+    <text x="${xBar(i)+larguraBarra/2}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="${corPct}">${p.pct.toFixed(0)}%</text>`;
+  }).join('');
+
+  return `<div style="overflow-x:auto">
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.9}px">
+      ${barras}
+      <polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3"/>
+      ${bolinhas}
+    </svg>
+  </div>
+  <div style="font-size:.6rem;color:var(--t3);margin-top:2px">Barra = CAFs expedidas no dia · Linha tracejada = % baixa daquele dia</div>`;
+}
+
 function _paretoSVG(dados,opts){
   opts=opts||{};
   const cor=opts.corBarra||'#dc2626';
@@ -5427,8 +5471,8 @@ function renderAnalise(){
   })()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
-  <h3>📦 CAFs Sem Baixa — Pareto por FC</h3>
-  <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF. Barras = CAFs pendentes (sem baixa) por FC — quanto maior, pior.</div>
+  <h3>📦 CAFs Expedidas por Dia — % Baixa por FC</h3>
+  <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF. Barra = CAFs expedidas naquele dia. Linha tracejada = % dessas CAFs já baixadas (hoje).</div>
   ${(()=>{
     // Só rotas de ida: TZX_FC. Retornos (FC_TZX) não têm CAF e ficam de fora.
     const dataIda=data.filter(o=>o.rota&&o.rota.split('_')[0]==='TZX'&&o.rota.split('_')[1]);
@@ -5440,34 +5484,51 @@ function renderAnalise(){
       if(!c.opId||!idsIda.has(c.opId))return;
       const op=dataIda.find(o=>o.id===c.opId);
       const fc=op.rota.split('_')[1];
-      if(!porViagem[c.opId])porViagem[c.opId]={fc,total:0,baixadas:0,codigoCurto:op.codigoCurto,cafsPend:[]};
+      const dia=op.dataOp||op.dataProg||'';
+      if(!porViagem[c.opId])porViagem[c.opId]={fc,dia,total:0,baixadas:0,codigoCurto:op.codigoCurto,cafsPend:[]};
       porViagem[c.opId].total++;
       if(c.status==='Entrega Realizada')porViagem[c.opId].baixadas++;
       else porViagem[c.opId].cafsPend.push(c.num);
     });
 
-    // Agrupa por FC
+    // Agrupa por FC, e dentro de cada FC, por dia
     const porFC={};
     Object.values(porViagem).forEach(v=>{
-      if(!porFC[v.fc])porFC[v.fc]={viagens:[],totalCAFs:0,totalBaixadas:0,totalPendentes:0};
+      if(!porFC[v.fc])porFC[v.fc]={viagens:[],totalCAFs:0,totalBaixadas:0,totalPendentes:0,porDia:{}};
       porFC[v.fc].viagens.push(v);
       porFC[v.fc].totalCAFs+=v.total;
       porFC[v.fc].totalBaixadas+=v.baixadas;
       porFC[v.fc].totalPendentes+=(v.total-v.baixadas);
+      if(!porFC[v.fc].porDia[v.dia])porFC[v.fc].porDia[v.dia]={total:0,baixadas:0};
+      porFC[v.fc].porDia[v.dia].total+=v.total;
+      porFC[v.fc].porDia[v.dia].baixadas+=v.baixadas;
     });
     const fcArr=Object.entries(porFC).sort((a,b)=>b[1].totalCAFs-a[1].totalCAFs);
 
     if(!fcArr.length)return'<p style="color:var(--t3);text-align:center;padding:24px">Sem dados de CAFs em rotas de ida no período.</p>';
 
-    // Pareto clássico: FC que mais tem CAF pendente primeiro, % acumulada
-    const paretoData=fcArr.map(([fc,d])=>[fc,d.totalPendentes]);
-    const totalPend=fcArr.reduce((s,[,d])=>s+d.totalPendentes,0);
+    let html=`<div style="margin-bottom:8px;font-size:.72rem;color:var(--t2)">Total geral: <b style="color:var(--text)">${fcArr.reduce((s,[,d])=>s+d.totalCAFs,0)} CAFs expedidas</b> · <b style="color:var(--green)">${fcArr.reduce((s,[,d])=>s+d.totalBaixadas,0)} baixadas</b> · <b style="color:var(--red)">${fcArr.reduce((s,[,d])=>s+d.totalPendentes,0)} pendentes</b></div>`;
 
-    let html=`<div style="margin-bottom:8px;font-size:.72rem;color:var(--t2)">Total geral: <b style="color:var(--text)">${fcArr.reduce((s,[,d])=>s+d.totalCAFs,0)} CAFs expedidas</b> · <b style="color:var(--green)">${fcArr.reduce((s,[,d])=>s+d.totalBaixadas,0)} baixadas</b> · <b style="color:var(--red)">${totalPend} pendentes</b></div>`;
-    html+=totalPend>0?_paretoSVG(paretoData,{corBarra:'#dc2626'}):'<p style="color:var(--green);text-align:center;padding:20px">✅ Nenhuma CAF pendente no período — tudo baixado!</p>';
+    // Um gráfico de barra+linha por FC, com os dias em ordem cronológica no eixo X
+    html+=fcArr.map(([fc,d])=>{
+      const dias=Object.keys(d.porDia).sort(); // datas YYYY-MM-DD ordenam certo como string
+      const chartData=dias.map(dia=>{
+        const dd=d.porDia[dia];
+        return{lb:dia?fmtD(dia):'Sem data',v:dd.total,pct:dd.total?(dd.baixadas/dd.total*100):0};
+      });
+      const pctFC=d.totalCAFs?Math.round((d.totalBaixadas/d.totalCAFs)*100):0;
+      const corFC=pctFC>=90?'var(--green)':pctFC>=70?'var(--yellow)':'var(--red)';
+      return `<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--bg4)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+          <span style="font-size:.85rem;font-weight:800;color:var(--red)">📍 FC ${esc(fc)}</span>
+          <span style="font-size:.68rem;color:var(--t2)">${d.viagens.length} viagem(ns) · ${d.totalCAFs} CAFs · <b style="color:${corFC}">${pctFC}% baixa geral</b></span>
+        </div>
+        ${_barLinhaDiaSVG(chartData,{corBarra:'#dc2626'})}
+      </div>`;
+    }).join('');
 
-    // Tabela detalhada por FC, abaixo do gráfico
-    html+=`<div style="overflow-x:auto;margin-top:16px"><table style="width:100%;min-width:600px;border-collapse:collapse;font-size:.72rem">
+    // Tabela resumo por FC
+    html+=`<div style="overflow-x:auto;margin-top:6px"><table style="width:100%;min-width:600px;border-collapse:collapse;font-size:.72rem">
       <thead><tr style="border-bottom:2px solid var(--red3)">
         <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">FC</th>
         <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Viagens</th>
