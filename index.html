@@ -414,6 +414,8 @@ body.dark .fup-sep td{color:#e6edf3;}
 .analise-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;}
 @media(max-width:768px){.analise-grid{grid-template-columns:1fr;}}
 .an-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh);}
+.an-card summary::-webkit-details-marker{display:none}
+.an-card details[open] summary span:first-child{display:inline-block;transform:rotate(90deg)}
 .an-card h3{font-size:.8rem;font-weight:700;color:var(--gray3);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--red3);display:flex;align-items:center;gap:6px;}
 body.dark .an-card h3{color:var(--gray2);}
 .met-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
@@ -5067,13 +5069,17 @@ async function exportPPTX(){
 // Barra (valor absoluto, ex: CAFs expedidas) + linha (% direta, não acumulada, ex: % baixa)
 // por categoria em ORDEM CRONOLÓGICA (não ordena por valor como o Pareto).
 // dados: [{lb, v, pct}] — pct já vem calculado (0-100), não é acumulado.
+// Os rótulos de % ficam numa faixa fixa no topo (nunca colide com o valor da barra nem
+// entre si, mesmo quando vários dias empatam em 100%).
 function _barLinhaDiaSVG(dados,opts){
   opts=opts||{};
   const cor=opts.corBarra||'#dc2626';
   const arr=dados.filter(d=>d.v>0);
   if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem CAFs expedidas no período.</div>';
 
-  const larguraBarra=54,gap=14,margemEsq=42,margemDir=42,margemTopo=26,alturaGrafico=200,margemBaixo=54;
+  const larguraBarra=56,gap=16,margemEsq=8,margemDir=8;
+  const faixaPct=26,gapFaixaBarra=10,alturaGrafico=180,margemBaixo=30;
+  const margemTopo=faixaPct+gapFaixaBarra; // onde a área do gráfico (barras) começa de fato
   const w=margemEsq+margemDir+arr.length*(larguraBarra+gap);
   const h=margemTopo+alturaGrafico+margemBaixo;
   const maxV=Math.max(...arr.map(d=>d.v));
@@ -5083,29 +5089,32 @@ function _barLinhaDiaSVG(dados,opts){
 
   const barras=arr.map((p,i)=>{
     const x=xBar(i),yTop=yBar(p.v),altura=alturaGrafico-(yTop-margemTopo);
-    return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${altura}" fill="${cor}" rx="3"/>
-      <text x="${x+larguraBarra/2}" y="${yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text)">${p.v}</text>
+    return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${Math.max(altura,2)}" fill="${cor}" rx="3"/>
+      <text x="${x+larguraBarra/2}" y="${yTop-6<margemTopo-4?yTop+16:yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${p.v}</text>
       <text x="${x+larguraBarra/2}" y="${margemTopo+alturaGrafico+16}" text-anchor="middle" font-size="10" fill="var(--t2)">${esc(p.lb)}</text>`;
+  }).join('');
+
+  // Faixa fixa de %, sempre na mesma altura (y=14), nunca colide com nada
+  const faixaPctHtml=arr.map((p,i)=>{
+    const corPct=p.pct>=90?'#22c55e':p.pct>=70?'#f59e0b':'#ef4444';
+    return `<text x="${xBar(i)+larguraBarra/2}" y="14" text-anchor="middle" font-size="11" font-weight="800" fill="${corPct}">${p.pct.toFixed(0)}%</text>`;
   }).join('');
 
   const linhaPts=arr.map((p,i)=>`${xBar(i)+larguraBarra/2},${yPct(p.pct)}`).join(' ');
   const bolinhas=arr.map((p,i)=>{
-    const cy=yPct(p.pct);
-    const pertoDoTopo=cy<margemTopo+16;
-    const ly=pertoDoTopo?cy+15:cy-9;
-    const corPct=p.pct>=90?'var(--green,#22c55e)':p.pct>=70?'#f59e0b':'var(--red,#ef4444)';
-    return `<circle cx="${xBar(i)+larguraBarra/2}" cy="${cy}" r="3.5" fill="${corPct}"/>
-    <text x="${xBar(i)+larguraBarra/2}" y="${ly}" text-anchor="middle" font-size="10" font-weight="700" fill="${corPct}">${p.pct.toFixed(0)}%</text>`;
+    const corPct=p.pct>=90?'#22c55e':p.pct>=70?'#f59e0b':'#ef4444';
+    return `<circle cx="${xBar(i)+larguraBarra/2}" cy="${yPct(p.pct)}" r="4" fill="${corPct}" stroke="#0a0a0f" stroke-width="1.5"/>`;
   }).join('');
 
   return `<div style="overflow-x:auto">
-    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.9}px">
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*1.05}px">
+      ${faixaPctHtml}
       ${barras}
-      <polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3"/>
+      <polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,4"/>
       ${bolinhas}
     </svg>
   </div>
-  <div style="font-size:.6rem;color:var(--t3);margin-top:2px">Barra = CAFs expedidas no dia · Linha tracejada = % baixa daquele dia</div>`;
+  <div style="font-size:.6rem;color:var(--t3);margin-top:2px">Barra = CAFs expedidas no dia · % no topo (e linha) = % dessas CAFs já baixadas</div>`;
 }
 
 function _paretoSVG(dados,opts){
@@ -5554,18 +5563,24 @@ function renderAnalise(){
     </table></div>`;
 
     // Viagens com 2+ CAFs (o padrão que a Hellys quer acompanhar de perto)
-    const viagensMultiplas=Object.values(porViagem).filter(v=>v.total>=2).sort((a,b)=>b.total-a.total);
+    const viagensMultiplas=Object.values(porViagem).filter(v=>v.total>=2).sort((a,b)=>(b.cafsPend.length>0)-(a.cafsPend.length>0)||b.total-a.total);
     if(viagensMultiplas.length){
-      html+=`<div style="font-size:.7rem;font-weight:700;color:var(--text);margin:14px 0 6px">🔀 Viagens com 2+ CAFs — atenção especial pra baixa</div>`;
-      html+=`<div style="display:flex;flex-direction:column;gap:5px">
-        ${viagensMultiplas.map(v=>{
-          const okTudo=v.cafsPend.length===0;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:.72rem;border-left:3px solid ${okTudo?'var(--green)':'var(--red)'}">
-            <span><b style="color:var(--text)">${esc(v.codigoCurto)}</b> <span style="color:var(--t2)">· FC ${esc(v.fc)} · ${v.total} CAFs</span></span>
-            <span style="color:${okTudo?'var(--green)':'var(--red)'};font-weight:700">${okTudo?'✅ tudo baixado':`⏳ ${v.cafsPend.length} pendente(s): ${v.cafsPend.join(', ')}`}</span>
-          </div>`;
-        }).join('')}
-      </div>`;
+      const nPend=viagensMultiplas.filter(v=>v.cafsPend.length>0).length;
+      html+=`<details style="margin:14px 0 6px">
+        <summary style="cursor:pointer;font-size:.7rem;font-weight:700;color:var(--text);list-style:none;display:flex;align-items:center;gap:6px;padding:6px 0">
+          <span>▶</span> 🔀 Viagens com 2+ CAFs — atenção especial pra baixa (${viagensMultiplas.length})
+          ${nPend>0?`<span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 8px;font-size:.65rem">${nPend} com pendência</span>`:`<span style="background:var(--green);color:#fff;border-radius:10px;padding:1px 8px;font-size:.65rem">✅ tudo baixado</span>`}
+        </summary>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-top:6px;max-height:400px;overflow-y:auto">
+          ${viagensMultiplas.map(v=>{
+            const okTudo=v.cafsPend.length===0;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:.72rem;border-left:3px solid ${okTudo?'var(--green)':'var(--red)'}">
+              <span><b style="color:var(--text)">${esc(v.codigoCurto)}</b> <span style="color:var(--t2)">· FC ${esc(v.fc)} · ${v.total} CAFs</span></span>
+              <span style="color:${okTudo?'var(--green)':'var(--red)'};font-weight:700">${okTudo?'✅ tudo baixado':`⏳ ${v.cafsPend.length} pendente(s): ${v.cafsPend.join(', ')}`}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </details>`;
     }
     return html;
   })()}
