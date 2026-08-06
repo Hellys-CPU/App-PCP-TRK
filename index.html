@@ -875,6 +875,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <input type="checkbox" class="cafFStatusChk" value="Vinculada a Veículo" onchange="renderCAFs()"> Vinculada a Veículo
       </label>
       <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" class="cafFStatusChk" value="Em Auditoria GRIS" onchange="renderCAFs()"> 🔍 Em Auditoria GRIS
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
         <input type="checkbox" class="cafFStatusChk" value="Processo de Entrega" onchange="renderCAFs()"> Proc. Entrega
       </label>
       <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;font-weight:400;padding:3px 2px;cursor:pointer;white-space:nowrap">
@@ -1809,11 +1812,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v288';
+const APP_VERSION='v289';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v289:['🐛 Corrigido: desvincular uma CAF de dentro do modal da viagem agora reflete de verdade no banco na hora (liberava rua e status ficavam "fantasma" antes) — mesma lógica do painel de CAF.','📦 CAFs vinculadas aparecem como card compacto dentro da viagem (número, pallets, status, botão de desvincular) — CAFs manuais continuam com o formulário de texto livre de sempre.','🔧 A lista de CAFs do modal agora sempre reflete o vínculo real (cafsDB), corrigindo casos antigos que ficaram desalinhados.'],
   v288:['📱 Seletor de Tablet no início de turno (login compartilhado operador CAF/doca): escolhe qual dos 3 tablets está usando, com disponibilidade em tempo real e opção de marcar quebrado pelo painel de Insumos.','📋 Report PCP: coluna "Rua" nas CAFs (destaca quando não tem rua atribuída) + Backlog do Turno editável (Posições inserir em CAF, Peça a peça, etc.) — tudo isso já entra no PDF.','📊 Análise: KPIs de "Uso do App pelo Motorista" (Sim/Não/Falha Sistêmica) + Pareto de CAFs sem baixa por FC.','🗄️ Admin: painel de Monitoramento dos Bancos (detecta split-brain) e Histórico de Turnos (quem usou qual tablet, quando).'],
   v287:['📸 Report PCP: botão "Extrair (Print/PDF)" — gera uma versão limpa e compacta das 3 seções (Expedição, CAF Produzindo, CAFs Prontas) numa janela de impressão, pronta pra tirar print e mandar no grupo ou salvar em PDF.'],
   v286:['📋 Report PCP: Expedição reescrita — agora 100% baseada em viagens do dia (não em CAF, que já aparece nas seções de cima), com colunas Grades do Dia/Expedidas/Faltantes/Canceladas por FC.'],
@@ -4437,7 +4441,7 @@ function buildForm(op){
   </div></div>
 </div>
 <div class="sec">📦 CAFs Vinculadas</div>
-<div id="cafList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:9px">${o.cafs.map((c,i)=>cafR(c,i)).join('')}</div>
+<div id="cafList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:9px">${_listaCAFsDoModal(o).map((c,i)=>cafR(c,i)).join('')}</div>
 <div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:10px;margin-bottom:6px">
   <div style="font-size:.7rem;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">
     📦 Vincular CAF do Banco — Rota <strong style="color:var(--red)">${o.rota||'(selecione a rota)'}</strong>
@@ -4515,17 +4519,40 @@ function calcD(){
   if(el){if(dDoc!==null){el.style.display='inline-block';el.textContent='⏱ Doca: '+fDiff(dDoc);}else el.style.display='none';}
 }
 let cafIdx=0;
+// Monta a lista de CAFs a ser exibida no modal da viagem combinando a FONTE DE VERDADE
+// (cafsDB, pelo opId real) com as entradas manuais (que não têm CAF real por trás, então só
+// existem no array o.cafs mesmo). Resolve casos onde o.cafs ficou desatualizado/desalinhado
+// em relação ao vínculo real da CAF (ex: remoções antigas que não refletiram no banco).
+function _listaCAFsDoModal(o){
+  const reais=editId?cafsDB.filter(c=>c.opId===editId).map(c=>({num:c.num,tipo:c.tipo,qtd:c.pallets})):[];
+  const numsReais=new Set(reais.map(c=>c.num));
+  const manuais=(o.cafs||[]).filter(c=>c.num&&!numsReais.has(c.num)&&!cafsDB.find(x=>x.num===c.num));
+  return[...reais,...manuais];
+}
 function cafR(c,i){
   const real=c.num?cafsDB.find(x=>x.num===c.num):null;
-  let info='';
+  // ── CAF real do banco: card compacto (número, pallets, status, botão de desvincular de verdade) ──
+  // Mantém a classe .caf-row e um input .cn oculto com o número, pra continuar sendo coletado
+  // normalmente pelo saveCard() (mesma lógica de sempre pro array op.cafs / autoVincularCAFs).
+  // Diferente das manuais, aqui desvincular chama a mesma rotina do painel de CAF na hora —
+  // não espera o "Salvar" da viagem inteira pra refletir no banco.
   if(real){
     const podeStatus=_cafStatusPermitido(currentUser?.perfil);
-    const selHtml=podeStatus.length?`<select onchange="alterarStatusCAFInline('${esc(real.id)}',this.value)" style="background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);font-size:.62rem;padding:1px 4px;margin-left:4px">
+    const selHtml=podeStatus.length?`<select onchange="alterarStatusCAFInline('${esc(real.id)}',this.value)" style="background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);font-size:.62rem;padding:1px 4px">
         ${['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo','Processo de Entrega','Entrega Realizada','cancelada'].map(s=>`<option value="${s}" ${s===real.status?'selected':''} ${podeStatus.includes(s)?'':'disabled'}>${s}</option>`).join('')}
       </select>`:`<span style="color:${real.status==='Entrega Realizada'?'var(--green)':'var(--t2)'}">${esc(real.status)}</span>`;
-    info=`<div style="font-size:.62rem;color:var(--t2);padding:2px 0 0 2px;display:flex;align-items:center">📦 ${real.pallets||0} pallet(s) · vence ${real.venc?fmtD(real.venc):'—'} · ${selHtml}</div>`;
+    return `<div id="cr-${i}"><div class="caf-row" style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:7px 10px">
+      <input class="cn" type="hidden" value="${esc(real.num)}">
+      <span style="font-size:1.1rem">📦</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:.78rem;color:var(--text)">${esc(real.num)} <span style="font-weight:400;color:var(--t2);font-size:.68rem">· ${real.pallets||0} pallet(s)</span></div>
+        <div style="font-size:.62rem;margin-top:1px">${selHtml}</div>
+      </div>
+      <button type="button" class="btn btn-g" style="font-size:.62rem;padding:4px 8px;flex-shrink:0" onclick="_desvincularCAFDaViagemInline('${esc(real.id)}','cr-${i}')" title="Desvincular esta CAF da viagem">✕ Desvincular</button>
+    </div></div>`;
   }
-  return `<div id="cr-${i}"><div class="caf-row"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234" onblur="_validarCafManualInline(this,${i})"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('#cr-${i}').remove()">✕</button></div>${info}</div>`;
+  // ── CAF manual (não existe no banco) — mantém o formulário de texto livre de sempre ──
+  return `<div id="cr-${i}"><div class="caf-row"><div class="fg"><label>Nº CAF</label><input class="cn" value="${c.num||''}" placeholder="23081234" onblur="_validarCafManualInline(this,${i})"></div><div class="fg"><label>Tipo</label><select class="ct2">${sl(TIPOS,c.tipo)}</select></div><div class="fg"><label>Qtd.</label><input class="cq" value="${c.qtd||''}" placeholder="0"></div><button class="crm" type="button" onclick="this.closest('#cr-${i}').remove()">✕</button></div></div>`;
 }
 // Confere na hora (sem esperar salvar a viagem inteira) se o CAF digitado manualmente existe e
 // pode ser vinculado — antes disso a linha só sumia silenciosamente no salvamento se não desse certo.
@@ -8422,6 +8449,34 @@ async function desvincularCAF(){
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();closeCAFModal();
   showToast('✅ CAF desvinculada — status voltou para Produzida','ok');
+}
+
+// Mesma lógica de desvincularCAF(), só que chamada de dentro do modal da VIAGEM (não do modal
+// da CAF) — resolve o desalinhamento onde tirar a CAF da lista da viagem não refletia no banco
+// (a CAF continuava com opId setado, ocupando rua, "fantasma"). Efeito é imediato — não espera
+// o "Salvar" da viagem inteira, exatamente como já funciona no painel de CAF.
+async function _desvincularCAFDaViagemInline(cafId,linhaDomId){
+  const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  const avancada=c.status!=='Vinculada a Veículo';
+  const msg=avancada
+    ? `Essa CAF já está em "${c.status}" — desvincular aqui vai voltar o status dela pra "Produzida". Confirma?`
+    : `Desvincular a CAF ${c.num} desta viagem?`;
+  if(!confirm(msg))return;
+  const who=_nomeOperadorAtual?_nomeOperadorAtual():(currentUser?.nome||'Sistema');
+  const opIdAnterior=c.opId;
+  if(c.opId){
+    const op=ops.find(o=>o.id===c.opId);
+    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
+  }
+  c.opId='';
+  c.status='Produzida';
+  if(!Array.isArray(c.hist))c.hist=[];
+  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Desvinculada da operação ${opIdAnterior||''} (via edição da viagem, status voltou pra Produzida)`});
+  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+  await saveCAFToDB(c);await loadCAFs();
+  _publishAbly('cafs_update',{action:'update'});
+  const row=document.getElementById(linhaDomId);if(row)row.remove();
+  showToast(`✅ CAF ${c.num} desvinculada da viagem`,'ok');
 }
 
 // Vincular CAF a uma operação
