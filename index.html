@@ -1812,11 +1812,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v289';
+const APP_VERSION='v290';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v290:['🐛 CRÍTICO: corrigido o ID de viagens novas (podia colidir entre dispositivos diferentes criando ao mesmo tempo, causando uma viagem sobrescrever a outra silenciosamente) — agora usa o mesmo padrão seguro já usado em CAF, insumos, pallets, etc.','🐛 Adicionada trava contra duplo clique/toque no botão Salvar de viagem e em Programação em Massa (CAF já tinha essa trava, viagem não tinha) — evita criar viagem duplicada.'],
   v289:['🐛 Corrigido: desvincular uma CAF de dentro do modal da viagem agora reflete de verdade no banco na hora (liberava rua e status ficavam "fantasma" antes) — mesma lógica do painel de CAF.','📦 CAFs vinculadas aparecem como card compacto dentro da viagem (número, pallets, status, botão de desvincular) — CAFs manuais continuam com o formulário de texto livre de sempre.','🔧 A lista de CAFs do modal agora sempre reflete o vínculo real (cafsDB), corrigindo casos antigos que ficaram desalinhados.'],
   v288:['📱 Seletor de Tablet no início de turno (login compartilhado operador CAF/doca): escolhe qual dos 3 tablets está usando, com disponibilidade em tempo real e opção de marcar quebrado pelo painel de Insumos.','📋 Report PCP: coluna "Rua" nas CAFs (destaca quando não tem rua atribuída) + Backlog do Turno editável (Posições inserir em CAF, Peça a peça, etc.) — tudo isso já entra no PDF.','📊 Análise: KPIs de "Uso do App pelo Motorista" (Sim/Não/Falha Sistêmica) + Pareto de CAFs sem baixa por FC.','🗄️ Admin: painel de Monitoramento dos Bancos (detecta split-brain) e Histórico de Turnos (quem usou qual tablet, quando).'],
   v287:['📸 Report PCP: botão "Extrair (Print/PDF)" — gera uma versão limpa e compacta das 3 seções (Expedição, CAF Produzindo, CAFs Prontas) numa janela de impressão, pronta pra tirar print e mandar no grupo ou salvar em PDF.'],
@@ -2932,7 +2933,14 @@ let estoqueTZX={disponivel:0,capacidade:null,atualizadoPor:'',atualizadoEm:''};
 // ══════════════════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════════════════
-const genId=()=>'OP-'+(++seq);
+// ANTES: genId() usava só um contador local (`seq`), calculado a partir do maior ID já
+// carregado NESTE dispositivo. Como cada tablet/navegador carrega seus dados de forma
+// independente (às vezes com filtros de data diferentes), dois dispositivos criando uma
+// viagem por perto do mesmo momento podiam gerar o MESMO ID — e como saveOp() usa upsert,
+// o segundo salvamento SOBRESCREVIA silenciosamente os dados do primeiro (uma viagem "sumia"
+// e virava outra). Agora o ID combina timestamp em milissegundos + um sufixo aleatório —
+// praticamente impossível colidir entre dispositivos, sem precisar de nenhuma coordenação.
+const genId=()=>'OP-'+Date.now()+Math.floor(Math.random()*1000);
 const ts=()=>new Date().toLocaleString('pt-BR');
 const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('pt-BR'):'';
 const stObj=id=>STS.find(s=>s.id===id)||STS[0];
@@ -4587,7 +4595,18 @@ async function alterarStatusCAFInline(cafId,novoStatus){
 }
 function addCaf(){const d=document.createElement('div');d.innerHTML=cafR({num:'',tipo:'LTL',qtd:''},++cafIdx);document.getElementById('cafList').appendChild(d.firstChild);}
 
+// ── Trava contra duplo envio (duplo clique / duplo toque) ──
+// Sem isso, um clique duplo num botão de salvar (comum em tablet, rede lenta) dispara a função
+// duas vezes: como cada chamada gera seu próprio ID via genId(), o resultado são DOIS registros
+// separados quase idênticos — "viagem duplicada". Mesma lógica se aplica a CAF e Prog. em Massa.
+const _travasSalvando=new Set();
+function _iniciarTrava(chave){if(_travasSalvando.has(chave))return false;_travasSalvando.add(chave);return true;}
+function _liberarTrava(chave){_travasSalvando.delete(chave);}
+
 async function saveCard(){
+  if(!_iniciarTrava('saveCard'))return; // já está salvando — ignora o clique repetido
+  const btn=document.getElementById('btnSalvarCard');if(btn)btn.disabled=true;
+  try{
   if(isReadOnly()){showToast('⛔ Sem permissão para salvar operações','err');return;}
   if(!validarDoca())return;
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
@@ -4623,6 +4642,7 @@ async function saveCard(){
     var _precisaOfertarSubstituta=(op.status==='DECLINIO'&&statusAntes!=='DECLINIO')?op:null;
   }else{
     const id=g('fId')||genId();
+    document.getElementById('fId')?.setAttribute('value',id); // trava o ID gerado no próprio form, caso a trava acima falhe por algum motivo
     const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
@@ -4631,6 +4651,7 @@ async function saveCard(){
   }
   loading(false);closeModal();
   if(typeof _precisaOfertarSubstituta!=='undefined'&&_precisaOfertarSubstituta)_ofertarViagemSubstituta(_precisaOfertarSubstituta);
+  }finally{_liberarTrava('saveCard');if(btn)btn.disabled=false;}
 }
 
 // Quando uma viagem é marcada como "Declínio", oferece gerar automaticamente uma nova
@@ -4802,6 +4823,9 @@ function aplicarHorariosMassa(){
   showToast(`✅ Horários aplicados em ${mRows.length} viagem(s)`,'ok');
 }
 async function confirmarMassa(){
+  if(!_iniciarTrava('confirmarMassa'))return;
+  const btnMassa=document.querySelector('button[onclick="confirmarMassa()"]');if(btnMassa)btnMassa.disabled=true;
+  try{
   if(!mRows.length){showToast('Nenhuma viagem para gerar','err');return;}
   const dataOp=document.getElementById('mData')?.value||hojeLocal();
   const dataProg=hojeLocal();
@@ -4816,6 +4840,7 @@ async function confirmarMassa(){
   document.getElementById('massaStep2').style.display='none';
   addActivityLog(`${n} operações criadas em massa por ${who}`);
   loading(false);render();setView('painel');showToast(`✅ ${n} operação(ões) criada(s)!`,'ok');
+  }finally{_liberarTrava('confirmarMassa');if(btnMassa)btnMassa.disabled=false;}
 }
 
 // ══════════════════════════════════════════════════════════════════
