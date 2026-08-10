@@ -1015,7 +1015,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-s" id="insModoInv" onclick="setInsumosModo('inventario')" style="font-size:.72rem">📦 Inventário</button>
     <button class="btn btn-g" id="insModoChk" onclick="setInsumosModo('checklist')" style="font-size:.72rem">📋 Checklist de Turno</button>
     <button class="btn btn-g" id="insModoEst" onclick="setInsumosModo('esteiras')" style="font-size:.72rem">🏭 Esteiras</button>
-    <button class="btn btn-g" id="insModoTab" onclick="setInsumosModo('tablets')" style="font-size:.72rem">📱 Tablets CAF</button>
+    <button class="btn btn-g" id="insModoTab" onclick="setInsumosModo('tablets')" style="font-size:.72rem">📱 Tablets</button>
     <div class="sp"></div>
     <span id="insKpiResumo" style="font-size:.68rem;color:var(--t2)"></span>
   </div>
@@ -1062,7 +1062,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div id="esteirasGrid" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(110px,1fr))"></div>
   </div>
   <div id="insTabWrap" style="display:none;padding:12px 16px 20px">
-    <div class="sec" style="margin-top:0">📱 Tablets do Pegador CAF</div>
+    <div class="sec" style="margin-top:0">📱 Tablets (CAF / Doca / Fiscal)</div>
     <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Marque um tablet como quebrado pra ele ficar indisponível na tela de escolha do operador. Desmarque quando for consertado/substituído.</p>
     <div id="tabletsGridInsumos" style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">Carregando...</div>
   </div>
@@ -1303,9 +1303,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
         <table style="width:100%;font-size:.74rem">
           <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
-            <th style="padding:5px 8px">Login (Tablet)</th><th>Pessoa</th><th>Tablet</th><th>Turno</th><th>Início</th><th>Fim</th><th>Duração</th>
+            <th style="padding:5px 8px">Login (Tablet)</th><th>Pessoa</th><th>Papel</th><th>Tablet</th><th>Turno</th><th>Início</th><th>Fim</th><th>Duração</th>
           </tr></thead>
-          <tbody id="turnosHistBody"><tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr></tbody>
+          <tbody id="turnosHistBody"><tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1450,7 +1450,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div class="fg"><label>Turno atual</label><input id="turnoAtual" disabled></div>
       <div class="fg" style="margin-top:10px">
         <label>Qual tablet você está usando?</label>
-        <div id="tabletPicker" style="display:flex;gap:8px;margin-top:6px">Carregando...</div>
+        <div id="tabletPicker" style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">Carregando...</div>
       </div>
       <div class="fg" style="margin-top:10px"><label>Seu nome completo</label><input id="turnoNome" placeholder="Ex: João Silva" style="font-size:16px"/></div>
     </div>
@@ -1491,6 +1491,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Perfil</label>
           <select id="uPerfil">
             <option value="operador_caf">Operador CAF — login compartilhado, gerencia CAFs</option>
+            <option value="fiscal_patio">Fiscal de Pátio — login compartilhado, atrela carro na doca</option>
             <option value="doca">Doca — gestão de doca/pátio</option>
             <option value="torre_controle">Torre de Controle — opera viagens e CAFs</option>
             <option value="visualizador">Visualizador — somente leitura</option>
@@ -1549,7 +1550,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
         <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
         <div class="fg"><label>Perfil</label><select id="euPerfil">
-          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option><option value="tv_publica">tv_publica</option>
+          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="fiscal_patio">fiscal_patio</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option><option value="tv_publica">tv_publica</option>
         </select></div>
         <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
@@ -1705,6 +1706,7 @@ const PERMS_BASE = {
   visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
   lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0,esteira_gerir:1},
   tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  fiscal_patio:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
 };
 
 const ABAS_BASE = {
@@ -1716,6 +1718,7 @@ const ABAS_BASE = {
   visualizador:['painel','lista','fup','amazon','caf','analise','tv','tv-yard'],
   lideranca:['painel','insumos','reportpcp','tv','tv-yard'],
   tv_publica:['tv','tv-yard'],
+  fiscal_patio:['painel','lista','prog'],
 };
 
 const TODAS_PERMS = [
@@ -1812,11 +1815,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v290';
+const APP_VERSION='v291';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v291:['👮 Novo perfil "Fiscal de Pátio" — login compartilhado com escolha de tablet (igual operador CAF), acesso a Painel/Lista/Gestão de Doca e permissão de atrelar carro na doca.','📱 Pool de tablets aumentado de 3 pra 4, agora compartilhado entre Operador CAF, Doca e Fiscal de Pátio — o seletor e o painel de Insumos mostram o papel (CAF/Doca/Fiscal) junto do nome de quem está ocupando cada um.'],
   v290:['🐛 CRÍTICO: corrigido o ID de viagens novas (podia colidir entre dispositivos diferentes criando ao mesmo tempo, causando uma viagem sobrescrever a outra silenciosamente) — agora usa o mesmo padrão seguro já usado em CAF, insumos, pallets, etc.','🐛 Adicionada trava contra duplo clique/toque no botão Salvar de viagem e em Programação em Massa (CAF já tinha essa trava, viagem não tinha) — evita criar viagem duplicada.'],
   v289:['🐛 Corrigido: desvincular uma CAF de dentro do modal da viagem agora reflete de verdade no banco na hora (liberava rua e status ficavam "fantasma" antes) — mesma lógica do painel de CAF.','📦 CAFs vinculadas aparecem como card compacto dentro da viagem (número, pallets, status, botão de desvincular) — CAFs manuais continuam com o formulário de texto livre de sempre.','🔧 A lista de CAFs do modal agora sempre reflete o vínculo real (cafsDB), corrigindo casos antigos que ficaram desalinhados.'],
   v288:['📱 Seletor de Tablet no início de turno (login compartilhado operador CAF/doca): escolhe qual dos 3 tablets está usando, com disponibilidade em tempo real e opção de marcar quebrado pelo painel de Insumos.','📋 Report PCP: coluna "Rua" nas CAFs (destaca quando não tem rua atribuída) + Backlog do Turno editável (Posições inserir em CAF, Peça a peça, etc.) — tudo isso já entra no PDF.','📊 Análise: KPIs de "Uso do App pelo Motorista" (Sim/Não/Falha Sistêmica) + Pareto de CAFs sem baixa por FC.','🗄️ Admin: painel de Monitoramento dos Bancos (detecta split-brain) e Histórico de Turnos (quem usou qual tablet, quando).'],
@@ -2012,7 +2016,12 @@ function aplicarPermissoesUI(perfilRaw){
   document.querySelectorAll('.btn-exportar-pptx').forEach(el=>el.style.display=(p==='admin')?'':'none');
 }
 
-// ── Seletor de Tablet (login compartilhado operador_caf/doca) ──
+// ── Seletor de Tablet (login compartilhado operador_caf/doca/fiscal_patio) ──
+// Pool único de 4 tablets, dividido entre os perfis — por isso mostra o papel (CAF/Fiscal)
+// junto do nome de quem está ocupando, pra não confundir quem é quem no mesmo aparelho.
+function _perfilLabelCurto(p){
+  return{operador_caf:'CAF',doca:'Doca',fiscal_patio:'Fiscal'}[p]||p||'';
+}
 let _tabletSelecionado=null;
 async function _carregarTabletPicker(){
   const el=document.getElementById('tabletPicker');
@@ -2024,19 +2033,19 @@ async function _carregarTabletPicker(){
     if(!r||!r.ok){el.innerHTML='<span style="color:var(--red);font-size:.72rem">Erro ao carregar tablets.</span>';return;}
     const quebrados=r.quebrados||{};
     const ocupados=r.ocupados||{};
-    el.innerHTML=[1,2,3].map(n=>{
+    el.innerHTML=[1,2,3,4].map(n=>{
       const q=quebrados[n]?.quebrado;
       const ocupante=ocupados[n];
       const disabled=q||ocupante;
       let cor='var(--green)',sub='Disponível';
       if(q){cor='var(--red)';sub='Quebrado';}
-      else if(ocupante){cor='var(--t3)';sub='Em uso: '+ocupante;}
+      else if(ocupante){cor='var(--t3)';sub=`Em uso: ${ocupante.nome} (${_perfilLabelCurto(ocupante.perfil)})`;}
       return `<button type="button" data-tablet="${n}" ${disabled?'disabled':''} onclick="_selecionarTablet(${n})"
-        style="flex:1;padding:10px 6px;border-radius:8px;border:2px solid ${cor};background:${disabled?'var(--bg2)':'transparent'};
-        color:${cor};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'.6':'1'};text-align:center">
+        style="flex:1 1 calc(50% - 6px);padding:10px 4px;border-radius:8px;border:2px solid ${cor};background:${disabled?'var(--bg2)':'transparent'};
+        color:${cor};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'.6':'1'};text-align:center;min-width:0">
         <div style="font-size:1.3rem">📱</div>
         <div style="font-weight:800;font-size:.85rem">Tablet ${n}</div>
-        <div style="font-size:.6rem;margin-top:2px">${esc(sub)}</div>
+        <div style="font-size:.58rem;margin-top:2px;line-height:1.2">${esc(sub)}</div>
       </button>`;
     }).join('');
   }catch(e){el.innerHTML='<span style="color:var(--red);font-size:.72rem">Erro de conexão.</span>';}
@@ -2063,7 +2072,7 @@ async function exigirTurnoOperador(perfilRaw){
   const elStatus=document.getElementById('statusOperador');
   const btnTrocar=document.getElementById('btnTrocarOperador');
   if(!elOv||!elStatus||!btnTrocar)return;
-  if(!['operador_caf','doca'].includes(p)){
+  if(!['operador_caf','doca','fiscal_patio'].includes(p)){
     elOv.classList.remove('open');elStatus.style.display='none';btnTrocar.style.display='none';
     return;
   }
@@ -7475,12 +7484,12 @@ async function renderTabletsInsumos(){
     if(!r||!r.ok){el.innerHTML='<span style="color:var(--red)">Erro ao carregar.</span>';return;}
     const quebrados=r.quebrados||{};
     const ocupados=r.ocupados||{};
-    el.innerHTML=[1,2,3].map(n=>{
+    el.innerHTML=[1,2,3,4].map(n=>{
       const q=quebrados[n]?.quebrado;
       const obs=quebrados[n]?.obs||'';
       const ocupante=ocupados[n];
       const cor=q?'var(--red)':(ocupante?'#f59e0b':'var(--green)');
-      const statusTxt=q?'⚠️ Quebrado':(ocupante?'Em uso: '+esc(ocupante):'✅ Disponível');
+      const statusTxt=q?'⚠️ Quebrado':(ocupante?`Em uso: ${esc(ocupante.nome)} (${_perfilLabelCurto(ocupante.perfil)})`:'✅ Disponível');
       return `<div style="border:2px solid ${cor};border-radius:10px;padding:12px;text-align:center">
         <div style="font-size:1.6rem">📱</div>
         <div style="font-weight:800;font-size:.9rem;margin:4px 0">Tablet ${n}</div>
@@ -10618,10 +10627,10 @@ async function renderHistoricoTurnos(){
   const body=document.getElementById('turnosHistBody');
   const sel=document.getElementById('filtroTurnoLogin');
   if(!body)return;
-  body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr>';
+  body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr>';
   try{
     const rows=await _rpc('listar_turnos',{p_token:currentUser?._token});
-    if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--red)">Erro ao carregar.</td></tr>';return;}
+    if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--red)">Erro ao carregar.</td></tr>';return;}
 
     // Popula o filtro de login com os valores únicos encontrados, preservando a seleção atual
     if(sel){
@@ -10633,16 +10642,18 @@ async function renderHistoricoTurnos(){
     const filtro=sel?.value||'';
     const filtrado=filtro?rows.filter(r=>r.login_tecnico===filtro):rows;
 
-    if(!filtrado.length){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Nenhum registro encontrado.</td></tr>';return;}
+    if(!filtrado.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Nenhum registro encontrado.</td></tr>';return;}
 
     body.innerHTML=filtrado.map(r=>{
       const ini=new Date(r.inicio);
       const fim=r.fim?new Date(r.fim):null;
       const durMin=Math.round(((fim||new Date())-ini)/60000);
       const durTxt=durMin<60?`${durMin}min`:`${Math.floor(durMin/60)}h${String(durMin%60).padStart(2,'0')}`;
+      const perfilLogin=USERS.find(u=>u.user===r.login_tecnico)?.perfil;
       return `<tr style="border-bottom:1px solid var(--bd)">
         <td style="padding:5px 8px;font-weight:700;color:var(--red)">${esc(r.login_tecnico)}</td>
         <td>${esc(r.nome_operador)}</td>
+        <td>${perfilLogin?`<span style="background:var(--bg3);border-radius:4px;padding:1px 6px;font-size:.62rem">${_perfilLabelCurto(perfilLogin)}</span>`:'—'}</td>
         <td>${r.tablet_num?`📱 ${r.tablet_num}`:'<span style="color:var(--t3)">—</span>'}</td>
         <td><span style="background:var(--bg3);border-radius:4px;padding:1px 6px;font-size:.66rem">${esc(r.turno)}</span></td>
         <td>${ini.toLocaleString('pt-BR')}</td>
@@ -11378,7 +11389,7 @@ async function exportAmazonPDF(){
 
 // ── TURNO: login compartilhado ──
 async function _checkTurno(){
-  if(!currentUser||!['operador_caf','doca'].includes(currentUser.perfil))return;
+  if(!currentUser||!['operador_caf','doca','fiscal_patio'].includes(currentUser.perfil))return;
   // Verifica se já tem turno ativo
   try{
     const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/gerenciar_turno`,{
