@@ -1303,9 +1303,9 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
         <table style="width:100%;font-size:.74rem">
           <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
-            <th style="padding:5px 8px">Login (Tablet)</th><th>Pessoa</th><th>Papel</th><th>Tablet</th><th>Turno</th><th>Início</th><th>Fim</th><th>Duração</th>
+            <th style="padding:5px 8px">Login (Tablet)</th><th>Pessoa</th><th>Papel</th><th>Tablet</th><th>Turno</th><th>Início</th><th>Fim</th><th>Duração</th><th>Ação</th>
           </tr></thead>
-          <tbody id="turnosHistBody"><tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr></tbody>
+          <tbody id="turnosHistBody"><tr><td colspan="9" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1815,11 +1815,13 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v292';
+const APP_VERSION='v294';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v294:['🐛 CRÍTICO: corrigido regressão da v292 — a tela restrita de "só atrelar doca" só aparecia pro perfil literal doca/fiscal_patio, mas o bloqueio de salvar (correto) valia pra QUALQUER usuário com doca_atrelar sem viagem_editar (ex: supervisor com permissão customizada) — essas pessoas ficavam travadas sem nenhuma tela pra fazer a ação que tinham direito. Agora a tela restrita aparece baseada na permissão de verdade, não no nome do perfil.'],
+  v293:['🔌 Admin → Histórico de Turnos: botão "Desconectar" pra encerrar manualmente um turno que ficou preso "Em andamento" (ex: login esquecido aberto, teste que não foi encerrado direito) — libera o tablet na hora.'],
   v292:['🔒 CRÍTICO: corrigida trava de permissão de viagem — a matriz de permissões já dizia que doca/fiscal_patio não podiam editar viagens, mas nada checava isso de verdade no salvamento; qualquer edição passava. Agora saveCard() bloqueia de fato quem não tem viagem_editar/viagem_status.','🔒 Modal de edição de viagem agora fica restrito (só o campo de doca liberado, resto desabilitado, botão Salvar padrão escondido) também pro Fiscal de Pátio — antes esse modo restrito só existia pro perfil doca.'],
   v291:['👮 Novo perfil "Fiscal de Pátio" — login compartilhado com escolha de tablet (igual operador CAF), acesso a Painel/Lista/Gestão de Doca e permissão de atrelar carro na doca.','📱 Pool de tablets aumentado de 3 pra 4, agora compartilhado entre Operador CAF, Doca e Fiscal de Pátio — o seletor e o painel de Insumos mostram o papel (CAF/Doca/Fiscal) junto do nome de quem está ocupando cada um.'],
   v290:['🐛 CRÍTICO: corrigido o ID de viagens novas (podia colidir entre dispositivos diferentes criando ao mesmo tempo, causando uma viagem sobrescrever a outra silenciosamente) — agora usa o mesmo padrão seguro já usado em CAF, insumos, pallets, etc.','🐛 Adicionada trava contra duplo clique/toque no botão Salvar de viagem e em Programação em Massa (CAF já tinha essa trava, viagem não tinha) — evita criar viagem duplicada.'],
@@ -4305,7 +4307,7 @@ function openNew(){
 editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
 function openEdit(id){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')&&!hasPerm('doca_atrelar')){showToast('Sem permissão','err');return;}
-editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=['doca','fiscal_patio'].includes(_perfil());document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
+editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=hasPerm('doca_atrelar')&&!hasPerm('viagem_editar')&&!hasPerm('viagem_status');document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
@@ -10631,14 +10633,22 @@ async function _fetchTamanhoBanco(proj){
   }catch(e){return{ok:false};}
 }
 
+async function _adminEncerrarTurno(turnoId,nome,login){
+  if(!confirm(`Desconectar ${nome} do login "${login}"?\n\nO tablet/turno dela fica livre imediatamente — se ela ainda estiver com o app aberto, vai precisar fazer login/escolher tablet de novo pra continuar.`))return;
+  try{
+    const r=await _rpc('admin_encerrar_turno',{p_token:currentUser?._token,p_turno_id:turnoId});
+    if(r&&r.ok){showToast(`✅ ${nome} desconectada`,'ok');renderHistoricoTurnos();}
+    else showToast('❌ '+(r?.erro||'erro desconhecido'),'err');
+  }catch(e){showToast('Erro de conexão','err');}
+}
 async function renderHistoricoTurnos(){
   const body=document.getElementById('turnosHistBody');
   const sel=document.getElementById('filtroTurnoLogin');
   if(!body)return;
-  body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr>';
+  body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr>';
   try{
     const rows=await _rpc('listar_turnos',{p_token:currentUser?._token});
-    if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--red)">Erro ao carregar.</td></tr>';return;}
+    if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:14px;color:var(--red)">Erro ao carregar.</td></tr>';return;}
 
     // Popula o filtro de login com os valores únicos encontrados, preservando a seleção atual
     if(sel){
@@ -10650,7 +10660,7 @@ async function renderHistoricoTurnos(){
     const filtro=sel?.value||'';
     const filtrado=filtro?rows.filter(r=>r.login_tecnico===filtro):rows;
 
-    if(!filtrado.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:14px;color:var(--t3)">Nenhum registro encontrado.</td></tr>';return;}
+    if(!filtrado.length){body.innerHTML='<tr><td colspan="9" style="text-align:center;padding:14px;color:var(--t3)">Nenhum registro encontrado.</td></tr>';return;}
 
     body.innerHTML=filtrado.map(r=>{
       const ini=new Date(r.inicio);
@@ -10667,6 +10677,7 @@ async function renderHistoricoTurnos(){
         <td>${ini.toLocaleString('pt-BR')}</td>
         <td>${fim?fim.toLocaleString('pt-BR'):'<span style="color:var(--green);font-weight:700">Em andamento</span>'}</td>
         <td>${durTxt}</td>
+        <td>${!fim?`<button class="btn btn-del" style="font-size:.62rem;padding:3px 8px" onclick="_adminEncerrarTurno(${r.id},'${esc(r.nome_operador)}','${esc(r.login_tecnico)}')">🔌 Desconectar</button>`:''}</td>
       </tr>`;
     }).join('');
   }catch(e){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--red)">Erro: '+esc(e.message||'')+'</td></tr>';}
