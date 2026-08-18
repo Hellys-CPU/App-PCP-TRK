@@ -1815,11 +1815,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v295';
+const APP_VERSION='v296';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v296:['🐛 PROVÁVEL CAUSA RAIZ do "viagens somem da tela": a checagem de deleção (roda a cada 5 min) buscava até 5.000 viagens SEM ordenação e apagava da tela qualquer uma que não estivesse nessa lista — arriscado mesmo abaixo de 5.000, já que qualquer instabilidade de rede na hora exata dessa consulta podia trazer a lista incompleta e derrubar viagem válida. Reescrita pra consultar diretamente os IDs que já temos localmente, sem limite e sem corte possível — deleção só é aplicada quando confirmada 1 a 1.'],
   v295:['🛡️ Blindagem contra "viagens somem da tela": render() agora isola cada sub-tela em try/catch — uma falha no Painel não trava mais Lista/Doca/Análise junto. Cada card do Painel e cada linha da Lista também são montados isoladamente, então UMA viagem com dado malformado não apaga mais as outras da mesma coluna/tabela. Ainda investigando a causa raiz — se acontecer de novo, abrir F12 (console) no momento e reportar o erro em vermelho.'],
   v294:['🐛 CRÍTICO: corrigido regressão da v292 — a tela restrita de "só atrelar doca" só aparecia pro perfil literal doca/fiscal_patio, mas o bloqueio de salvar (correto) valia pra QUALQUER usuário com doca_atrelar sem viagem_editar (ex: supervisor com permissão customizada) — essas pessoas ficavam travadas sem nenhuma tela pra fazer a ação que tinham direito. Agora a tela restrita aparece baseada na permissão de verdade, não no nome do perfil.'],
   v293:['🔌 Admin → Histórico de Turnos: botão "Desconectar" pra encerrar manualmente um turno que ficou preso "Em andamento" (ex: login esquecido aberto, teste que não foi encerrado direito) — libera o tablet na hora.'],
@@ -2229,18 +2230,29 @@ async function loadFromSupabase(forceFullLoad=false){
 }
 
 let _lastFullCheck=null;
-// Verifica deleções: compara IDs locais com banco (chamado a cada 5 min)
+// Verifica deleções: NÃO busca "tudo" pra comparar (isso tinha um limit=5000 sem
+// ordenação — se o volume de viagens passasse disso, ou se a consulta viesse incompleta
+// por qualquer instabilidade de rede, viagens válidas eram apagadas da tela por engano).
+// Agora pergunta ao banco especificamente pelos IDs que já temos localmente — sem limite,
+// sem corte possível, sem risco de falso positivo de "deletado".
 async function _checkDeletions(){
   try{
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
-    const since=dateLocal(cutoff);
-    const remote=await sbFetch(`${TABELA}?data_op=gte.${since}&select=id&limit=5000`);
-    if(!Array.isArray(remote))return;
-    const remoteIds=new Set(remote.map(r=>r.id));
+    if(!ops.length)return false;
+    const ids=[...new Set(ops.map(o=>o.id))];
+    const CHUNK=300;
+    const existentes=new Set();
+    for(let i=0;i<ids.length;i+=CHUNK){
+      const slice=ids.slice(i,i+CHUNK).map(id=>`"${id}"`).join(',');
+      const remote=await sbFetch(`${TABELA}?id=in.(${slice})&select=id`);
+      if(!Array.isArray(remote))return false; // qualquer falha na consulta: aborta sem mexer em nada
+      remote.forEach(r=>existentes.add(r.id));
+    }
     const before=ops.length;
-    ops=ops.filter(o=>remoteIds.has(o.id));
+    const removidas=ops.filter(o=>!existentes.has(o.id)).map(o=>o.id);
+    ops=ops.filter(o=>existentes.has(o.id));
     _lastFullCheck=Date.now();
-    if(ops.length!==before)return true; // houve deleção
+    if(removidas.length)console.warn('_checkDeletions: removeu da tela (confirmado que não existe mais no banco):',removidas);
+    if(ops.length!==before)return true; // houve deleção de verdade, confirmada 1 a 1
   }catch(e){}
   return false;
 }
