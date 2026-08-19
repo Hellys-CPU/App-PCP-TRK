@@ -1815,11 +1815,19 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v296';
+const APP_VERSION='v304';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v304:['🧮 Tabela Dinâmica: 3 métricas novas "— Ao Vivo" (Carregamento, Viagem, Descarga/Doca) — contam também as etapas de HOJE que ainda estão em andamento, usando o horário atual como fim provisório. Antes, uma viagem parada 2h esperando descarga só entrava na média depois de finalizada; agora já pesa no cálculo em tempo real (só pra viagens de hoje, pra não distorcer com registro antigo esquecido).'],
+  v303:['🐛 Corrigido: no gráfico "Barra + Linha (2 métricas)" da Tabela Dinâmica, a cor escolhida no seletor não estava sendo aplicada (ficava travada em vermelho) — corrigido. 🐛 Rótulos de categoria (ex: nomes de status longos) inclinados em 40° em todos os gráficos de barra/linha do sistema, pra parar de sobrepor uns nos outros quando o nome é grande.'],
+  v302:['🧮 Tabela Dinâmica reformulada — agora é montada por blocos arrastáveis (igual Excel): 🔍 Filtros, ➡️ Colunas, ⬇️ Linhas, Σ Valores (aceita várias métricas ao mesmo tempo). Em telas touch, tocar no campo cicla entre os blocos (fallback pro arrasto, que pode falhar em tablet). Filtro por valor dentro de cada campo (desmarca pra ocultar, igual filtro de coluna do Excel). Seletor de cor pro gráfico. 3 métricas novas: Rotas Únicas, Docas Únicas, Média de CAFs por Viagem.'],
+  v301:['🧮 Tabela Dinâmica: novas métricas de contagem ÚNICA — Qtd. Motoristas Únicos, Transportadoras Únicas, Placas Únicas e Média de Viagens por Motorista. Resolve a inconsistência de usar "Qtd. Viagens" (conta viagem, não pessoa) pra saber quantos motoristas diferentes usaram/não usaram o app, por exemplo.'],
+  v300:['🐛 Corrigido: "Barra + Linha" da Tabela Dinâmica não é mais um Pareto acumulado (que só faz sentido matemático pra métrica de soma/contagem — somar % e calcular "% acumulada de %" não representa nada real). Agora escolhe 2 MÉTRICAS INDEPENDENTES: uma pra barra, outra pra linha, cada uma na própria escala — ex: barra = Qtd. Viagens, linha = % SLA OK.'],
+  v299:['🧮 Tabela Dinâmica: catálogo completo de métricas (agora com Volume, % CAFs Baixadas, CAFs Pendentes, % Cancelada/Recusada, Ocorrências) + gerador de gráfico com 4 tipos (Barra, Barra+Linha/Pareto, Pizza, Linha), baseado na dimensão de Linhas e na métrica escolhidas.'],
+  v298:['🧮 Tabela Dinâmica: mais métricas de tempo — Carregamento, Viagem, Descarga/Doca e Ciclo Total (cada etapa separada, pra achar onde o atraso realmente acontece), além de Atraso Médio na Saída e na Chegada FC.'],
+  v297:['🧮 Análise: nova ferramenta "Monte sua Análise (Tabela Dinâmica)" — escolhe Linhas, Colunas (opcional) e Métrica (qtd. viagens, qtd. CAFs, soma de pallets, % SLA, % finalizadas, tempo médio de doca) e cruza os dados do período filtrado na hora, sem depender de relatório pronto.'],
   v296:['🐛 PROVÁVEL CAUSA RAIZ do "viagens somem da tela": a checagem de deleção (roda a cada 5 min) buscava até 5.000 viagens SEM ordenação e apagava da tela qualquer uma que não estivesse nessa lista — arriscado mesmo abaixo de 5.000, já que qualquer instabilidade de rede na hora exata dessa consulta podia trazer a lista incompleta e derrubar viagem válida. Reescrita pra consultar diretamente os IDs que já temos localmente, sem limite e sem corte possível — deleção só é aplicada quando confirmada 1 a 1.'],
   v295:['🛡️ Blindagem contra "viagens somem da tela": render() agora isola cada sub-tela em try/catch — uma falha no Painel não trava mais Lista/Doca/Análise junto. Cada card do Painel e cada linha da Lista também são montados isoladamente, então UMA viagem com dado malformado não apaga mais as outras da mesma coluna/tabela. Ainda investigando a causa raiz — se acontecer de novo, abrir F12 (console) no momento e reportar o erro em vermelho.'],
   v294:['🐛 CRÍTICO: corrigido regressão da v292 — a tela restrita de "só atrelar doca" só aparecia pro perfil literal doca/fiscal_patio, mas o bloqueio de salvar (correto) valia pra QUALQUER usuário com doca_atrelar sem viagem_editar (ex: supervisor com permissão customizada) — essas pessoas ficavam travadas sem nenhuma tela pra fazer a ação que tinham direito. Agora a tela restrita aparece baseada na permissão de verdade, não no nome do perfil.'],
@@ -5178,7 +5186,7 @@ function _barLinhaDiaSVG(dados,opts){
   if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem CAFs expedidas no período.</div>';
 
   const larguraBarra=56,gap=16,margemEsq=8,margemDir=8;
-  const faixaPct=26,gapFaixaBarra=10,alturaGrafico=180,margemBaixo=30;
+  const faixaPct=26,gapFaixaBarra=10,alturaGrafico=180,margemBaixo=55;
   const margemTopo=faixaPct+gapFaixaBarra; // onde a área do gráfico (barras) começa de fato
   const w=margemEsq+margemDir+arr.length*(larguraBarra+gap);
   const h=margemTopo+alturaGrafico+margemBaixo;
@@ -5189,9 +5197,10 @@ function _barLinhaDiaSVG(dados,opts){
 
   const barras=arr.map((p,i)=>{
     const x=xBar(i),yTop=yBar(p.v),altura=alturaGrafico-(yTop-margemTopo);
+    const lblX=x+larguraBarra/2,lblY=margemTopo+alturaGrafico+14;
     return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${Math.max(altura,2)}" fill="${cor}" rx="3"/>
-      <text x="${x+larguraBarra/2}" y="${yTop-6<margemTopo-4?yTop+16:yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${p.v}</text>
-      <text x="${x+larguraBarra/2}" y="${margemTopo+alturaGrafico+16}" text-anchor="middle" font-size="10" fill="var(--t2)">${esc(p.lb)}</text>`;
+      <text x="${lblX}" y="${yTop-6<margemTopo-4?yTop+16:yTop-6}" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">${p.v}</text>
+      <text x="${lblX}" y="${lblY}" text-anchor="end" font-size="10" fill="var(--t2)" transform="rotate(-40 ${lblX} ${lblY})">${esc(p.lb)}</text>`;
   }).join('');
 
   // Faixa fixa de %, sempre na mesma altura (y=14), nunca colide com nada
@@ -5207,7 +5216,7 @@ function _barLinhaDiaSVG(dados,opts){
   }).join('');
 
   return `<div style="overflow-x:auto">
-    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*1.05}px">
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*1.1}px">
       ${faixaPctHtml}
       ${barras}
       <polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,4"/>
@@ -5266,6 +5275,457 @@ function _paretoSVG(dados,opts){
   </div>`;
 }
 
+// ── Tabela Dinâmica da Análise: "monte sua própria análise" com os dados do período ──
+// Guarda a seleção em variáveis (não só no DOM) pra sobreviver ao re-render completo
+// da aba Análise quando o filtro de período muda.
+// Estado do "monte sua análise": campos podem ir pra linhas (1), colunas (1),
+// valores (várias métricas) e filtros (várias dimensões, cada uma com valores excluídos).
+let _pivotState={linha:'rota',coluna:'',valores:['qtdViagens'],filtros:{}};
+let _pivotCor='#dc2626';
+let _pivotFiltroAberto=null; // qual campo tem o popover de filtro aberto agora
+const PIVOT_DIMS={
+  rota:{lb:'Rota',fn:o=>o.rota||'—'},
+  transp:{lb:'Transportadora',fn:o=>o.transp||'—'},
+  status:{lb:'Status',fn:o=>(stObj(o.status)||{}).lb||o.status||'—'},
+  mot:{lb:'Motorista',fn:o=>o.mot||'—'},
+  fc:{lb:'FC (destino)',fn:o=>(o.rota&&o.rota.split('_')[0]==='TZX'?o.rota.split('_')[1]:null)||o.rota||'—'},
+  dia:{lb:'Dia',fn:o=>o.dataOp?fmtD(o.dataOp):'—'},
+  tipologia:{lb:'Tipologia',fn:o=>o.tipologia||'—'},
+  tipoCarga:{lb:'Tipo de Carga',fn:o=>o.tipoCarga||'—'},
+  placa:{lb:'Placa',fn:o=>o.placa||'—'},
+  doca:{lb:'Doca',fn:o=>o.doca||'—'},
+  motoristaApp:{lb:'Usou o App',fn:o=>o.motoristaUsouApp?({sim:'✅ Sim',nao:'❌ Não',falha_sistemica:'⚠️ Falha Sistêmica'}[o.motoristaUsouApp]||o.motoristaUsouApp):'— sem info —'},
+};
+const PIVOT_METRICAS={
+  qtdViagens:{lb:'Qtd. Viagens',fn:arr=>arr.length,fmt:v=>String(v)},
+  qtdCafs:{lb:'Qtd. CAFs',fn:arr=>arr.reduce((s,o)=>s+cafsDB.filter(c=>c.opId===o.id).length,0),fmt:v=>String(v)},
+  somaPallets:{lb:'Soma de Pallets (CAF)',fn:arr=>arr.reduce((s,o)=>s+cafsDB.filter(c=>c.opId===o.id).reduce((s2,c)=>s2+(c.pallets||0),0),0),fmt:v=>String(v)},
+  pctSLA:{lb:'% SLA OK',fn:arr=>{const com=arr.filter(o=>getSLA(o)!=='nd');if(!com.length)return null;return Math.round(com.filter(o=>getSLA(o)==='ok').length/com.length*100);},fmt:v=>v===null?'—':v+'%'},
+  pctFin:{lb:'% Finalizadas',fn:arr=>arr.length?Math.round(arr.filter(o=>o.status==='FIN').length/arr.length*100):null,fmt:v=>v===null?'—':v+'%'},
+  // Tempos de ciclo — cada etapa separada, pra achar onde o atraso realmente acontece
+  tempoCarregamento:{lb:'Tempo Médio Carregamento (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.realApres,o.realSaida)),fmt:_fmtMin},
+  tempoViagem:{lb:'Tempo Médio de Viagem (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.realSaida,o.realChegFC)),fmt:_fmtMin},
+  tempoDescarga:{lb:'Tempo Médio Descarga/Doca (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.realChegFC,o.realDescarga)),fmt:_fmtMin},
+  tempoCicloTotal:{lb:'Tempo Médio Ciclo Total (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.realApres,o.realDescarga)),fmt:_fmtMin},
+  atrasoSaida:{lb:'Atraso Médio na Saída (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.planSaida,o.realSaida)),fmt:_fmtMinAtraso},
+  atrasoChegada:{lb:'Atraso Médio na Chegada FC (min)',fn:arr=>_pivotMediaMin(arr,o=>dMin(o.planChegFC,o.realChegFC)),fmt:_fmtMinAtraso},
+  // "Ao Vivo": conta também as etapas de HOJE que ainda estão em andamento, usando o
+  // horário atual como se fosse o fim — assim uma viagem parada 2h esperando descarga
+  // já pesa na média AGORA, não só depois que ela finalmente for finalizada.
+  tempoCarregamentoAoVivo:{lb:'Tempo Médio Carregamento — Ao Vivo (min)',fn:arr=>_pivotMediaMin(arr,o=>_tempoAoVivo(o.realApres,o.realSaida,o.dataOp)),fmt:_fmtMin},
+  tempoViagemAoVivo:{lb:'Tempo Médio de Viagem — Ao Vivo (min)',fn:arr=>_pivotMediaMin(arr,o=>_tempoAoVivo(o.realSaida,o.realChegFC,o.dataOp)),fmt:_fmtMin},
+  tempoDescargaAoVivo:{lb:'Tempo Médio Descarga/Doca — Ao Vivo (min)',fn:arr=>_pivotMediaMin(arr,o=>_tempoAoVivo(o.realChegFC,o.realDescarga,o.dataOp)),fmt:_fmtMin},
+  // Métricas ligadas às CAFs vinculadas a essas viagens
+  somaVolume:{lb:'Soma de Volume (CAF)',fn:arr=>arr.reduce((s,o)=>s+cafsDB.filter(c=>c.opId===o.id).reduce((s2,c)=>s2+(c.vol||0),0),0),fmt:v=>String(v)},
+  pctCafsBaixadas:{lb:'% CAFs Baixadas',fn:arr=>{const cafs=arr.flatMap(o=>cafsDB.filter(c=>c.opId===o.id));if(!cafs.length)return null;return Math.round(cafs.filter(c=>c.status==='Entrega Realizada').length/cafs.length*100);},fmt:v=>v===null?'—':v+'%'},
+  qtdCafsPendentes:{lb:'Qtd. CAFs Pendentes (sem baixa)',fn:arr=>arr.flatMap(o=>cafsDB.filter(c=>c.opId===o.id)).filter(c=>c.status!=='Entrega Realizada'&&c.status!=='cancelada').length,fmt:v=>String(v)},
+  // Cancelamento e ocorrências
+  pctCancelada:{lb:'% Cancelada/Recusada',fn:arr=>arr.length?Math.round(arr.filter(o=>o.status==='CANC'||o.status==='REC').length/arr.length*100):null,fmt:v=>v===null?'—':v+'%'},
+  qtdOcorrencias:{lb:'Qtd. Ocorrências Registradas',fn:arr=>arr.reduce((s,o)=>s+(Array.isArray(o.ocorr)?o.ocorr.length:0),0),fmt:v=>String(v)},
+  pctComOcorrencia:{lb:'% Viagens com Ocorrência',fn:arr=>arr.length?Math.round(arr.filter(o=>Array.isArray(o.ocorr)&&o.ocorr.length>0).length/arr.length*100):null,fmt:v=>v===null?'—':v+'%'},
+  // Contagem ÚNICA — diferente de "Qtd. Viagens": um motorista/placa pode aparecer em
+  // várias viagens, então "Qtd. Viagens" sozinha não diz quantas PESSOAS/veículos
+  // distintos estão em cada grupo (ex: quantos motoristas diferentes usaram o app x não usaram).
+  qtdMotoristasUnicos:{lb:'Qtd. Motoristas Únicos',fn:arr=>new Set(arr.map(o=>o.mot).filter(Boolean)).size,fmt:v=>String(v)},
+  qtdTransportadorasUnicas:{lb:'Qtd. Transportadoras Únicas',fn:arr=>new Set(arr.map(o=>o.transp).filter(Boolean)).size,fmt:v=>String(v)},
+  qtdPlacasUnicas:{lb:'Qtd. Placas Únicas',fn:arr=>new Set(arr.map(o=>o.placa).filter(Boolean)).size,fmt:v=>String(v)},
+  mediaViagensPorMotorista:{lb:'Média de Viagens por Motorista',fn:arr=>{const uniq=new Set(arr.map(o=>o.mot).filter(Boolean)).size;return uniq?Math.round(arr.length/uniq*10)/10:null;},fmt:v=>v===null?'—':String(v)},
+  qtdRotasUnicas:{lb:'Qtd. Rotas Únicas',fn:arr=>new Set(arr.map(o=>o.rota).filter(Boolean)).size,fmt:v=>String(v)},
+  qtdDocasUnicas:{lb:'Qtd. Docas Únicas',fn:arr=>new Set(arr.map(o=>o.doca).filter(Boolean)).size,fmt:v=>String(v)},
+  mediaCafsPorViagem:{lb:'Média de CAFs por Viagem',fn:arr=>arr.length?Math.round(arr.reduce((s,o)=>s+cafsDB.filter(c=>c.opId===o.id).length,0)/arr.length*10)/10:null,fmt:v=>v===null?'—':String(v)},
+};
+// Helpers de tempo compartilhados pelas métricas acima — média só considerando quem
+// realmente tem os dois horários preenchidos (não conta ausência como zero).
+function _pivotMediaMin(arr,extrator){
+  const vals=arr.map(extrator).filter(v=>v!==null&&v!==undefined&&!isNaN(v));
+  return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;
+}
+function _fmtMin(v){return v===null?'—':v+'min';}
+function _fmtMinAtraso(v){return v===null?'—':(v>0?'+':'')+v+'min';}
+// Calcula duração entre início e fim — se a etapa ainda não terminou (fim vazio),
+// calcula até AGORA em vez de simplesmente ignorar, mas só pra viagens de HOJE
+// (senão uma viagem antiga esquecida sem baixa distorceria a média pra cima, tipo
+// mostrando "3000min" de descarga porque ninguém fechou o registro há dias).
+function _tempoAoVivo(inicio,fim,dataOp){
+  const v=dMin(inicio,fim);
+  if(v!==null)return v;
+  if(!inicio||dataOp!==hojeLocal())return null;
+  const agora=new Date();
+  const nowHHMM=String(agora.getHours()).padStart(2,'0')+':'+String(agora.getMinutes()).padStart(2,'0');
+  return dMin(inicio,nowHHMM);
+}
+// Escapa string pra uso seguro dentro de atributo onclick/onchange (aspas simples)
+function _pivotEscJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+function _pivotAplicaFiltros(data){
+  const chaves=Object.keys(_pivotState.filtros);
+  if(!chaves.length)return data;
+  return data.filter(o=>{
+    for(const key of chaves){
+      const excluidos=_pivotState.filtros[key];
+      if(!excluidos||!excluidos.size)continue;
+      const dim=PIVOT_DIMS[key];
+      if(dim&&excluidos.has(dim.fn(o)))return false;
+    }
+    return true;
+  });
+}
+
+function renderTabelaDinamica(){
+  const el=document.getElementById('pivotResultado');
+  if(!el)return;
+  const dim1=PIVOT_DIMS[_pivotState.linha];
+  const valoresKeys=_pivotState.valores.filter(k=>PIVOT_METRICAS[k]);
+  if(!dim1||!valoresKeys.length){
+    el.innerHTML='<p style="color:var(--t3);text-align:center;padding:16px">Arraste (ou toque) um campo pra "Linhas" e pelo menos uma métrica pra "Valores".</p>';
+    renderPivotCamposEZonas();return;
+  }
+  const dim2=_pivotState.coluna?PIVOT_DIMS[_pivotState.coluna]:null;
+  let data=getAnaliseOps();
+  data=_pivotAplicaFiltros(data);
+  if(!data.length){el.innerHTML='<p style="color:var(--t3);text-align:center;padding:16px">Sem dados no período/filtro selecionado.</p>';renderPivotCamposEZonas();return;}
+
+  const linhasMap={};
+  data.forEach(o=>{const l=dim1.fn(o);(linhasMap[l]=linhasMap[l]||[]).push(o);});
+
+  if(!dim2){
+    // Linhas × N métricas (uma coluna por métrica escolhida em Valores)
+    const primeiraMetrica=PIVOT_METRICAS[valoresKeys[0]];
+    const linhasOrd=Object.keys(linhasMap).map(l=>({l,ord:primeiraMetrica.fn(linhasMap[l])}))
+      .sort((a,b)=>typeof a.ord==='number'&&typeof b.ord==='number'?(b.ord||0)-(a.ord||0):String(a.l).localeCompare(String(b.l)));
+    let html=`<table style="width:100%;border-collapse:collapse;font-size:.76rem">
+      <thead><tr style="border-bottom:2px solid var(--red3)">
+        <th style="text-align:left;padding:5px 8px;color:var(--t2);font-size:.62rem;text-transform:uppercase">${esc(dim1.lb)}</th>
+        ${valoresKeys.map(k=>`<th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.62rem;text-transform:uppercase">${esc(PIVOT_METRICAS[k].lb)}</th>`).join('')}
+      </tr></thead><tbody>
+      ${linhasOrd.map(({l})=>`<tr style="border-bottom:1px solid var(--bg4)"><td style="padding:5px 8px;font-weight:600">${esc(l)}</td>
+        ${valoresKeys.map(k=>{const m=PIVOT_METRICAS[k];return `<td style="padding:5px 8px;text-align:center">${m.fmt(m.fn(linhasMap[l]))}</td>`;}).join('')}
+      </tr>`).join('')}
+      <tr style="border-top:2px solid var(--red3);font-weight:800"><td style="padding:6px 8px">TOTAL</td>
+      ${valoresKeys.map(k=>{const m=PIVOT_METRICAS[k];return `<td style="padding:6px 8px;text-align:center">${m.fmt(m.fn(data))}</td>`;}).join('')}
+      </tr>
+      </tbody></table>`;
+    el.innerHTML=html;
+  }else{
+    // Cross-tab: Linhas × (Colunas × métricas)
+    const linhas=Object.keys(linhasMap).sort();
+    const colunas=[...new Set(data.map(o=>dim2.fn(o)))].sort();
+    const multiMetrica=valoresKeys.length>1;
+    let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.72rem;min-width:${220+colunas.length*valoresKeys.length*100}px">
+      <thead><tr style="border-bottom:2px solid var(--red3)">
+        <th style="text-align:left;padding:5px 8px;color:var(--t2);font-size:.58rem;text-transform:uppercase">${esc(dim1.lb)} ↓ / ${esc(dim2.lb)} →</th>
+        ${colunas.map(c=>valoresKeys.map(k=>`<th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.58rem;text-transform:uppercase">${esc(c)}${multiMetrica?' · '+esc(PIVOT_METRICAS[k].lb):''}</th>`).join('')).join('')}
+        ${multiMetrica?'':`<th style="text-align:center;padding:5px 8px;color:var(--red);font-size:.58rem;text-transform:uppercase">Total</th>`}
+      </tr></thead><tbody>
+      ${linhas.map(l=>{
+        const arrLinha=linhasMap[l];
+        const cels=colunas.map(c=>valoresKeys.map(k=>{
+          const m=PIVOT_METRICAS[k];
+          const subset=arrLinha.filter(o=>dim2.fn(o)===c);
+          return `<td style="padding:5px 8px;text-align:center">${subset.length?m.fmt(m.fn(subset)):'—'}</td>`;
+        }).join('')).join('');
+        const totalCel=multiMetrica?'':`<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--red)">${PIVOT_METRICAS[valoresKeys[0]].fmt(PIVOT_METRICAS[valoresKeys[0]].fn(arrLinha))}</td>`;
+        return `<tr style="border-bottom:1px solid var(--bg4)"><td style="padding:5px 8px;font-weight:600">${esc(l)}</td>${cels}${totalCel}</tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+    el.innerHTML=html;
+  }
+  renderPivotCamposEZonas();
+  const chartWrap=document.getElementById('pivotChartWrap');
+  if(chartWrap&&chartWrap.style.display!=='none')renderPivotChart();
+}
+
+// ── Pool de campos + blocos (drag-and-drop com fallback de toque/clique) ──
+function _pivotChipHTML(key,label,tipo,noZona){
+  const cor=tipo==='dim'?'var(--red)':'#3b82f6';
+  return `<div draggable="true" data-key="${esc(key)}" data-tipo="${tipo}"
+    ondragstart="pivotDragStart(event)" onclick="pivotChipClick('${_pivotEscJs(key)}','${tipo}')"
+    style="background:${cor};color:#fff;padding:4px 10px;border-radius:14px;font-size:.68rem;cursor:grab;user-select:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px">
+    ${esc(label)}${noZona?`<span onclick="event.stopPropagation();pivotRemoveFromZone('${_pivotEscJs(key)}')" style="opacity:.75;font-weight:800">✕</span>`:''}
+  </div>`;
+}
+function renderPivotCamposEZonas(){
+  const pool=document.getElementById('pivotCamposDisponiveis');
+  const zF=document.getElementById('pivotZoneFiltros'),zC=document.getElementById('pivotZoneColunas'),zL=document.getElementById('pivotZoneLinhas'),zV=document.getElementById('pivotZoneValores');
+  if(!pool||!zF||!zC||!zL||!zV)return;
+  pool.innerHTML=[
+    ...Object.entries(PIVOT_DIMS).map(([k,d])=>({k,lb:d.lb,tipo:'dim'})),
+    ...Object.entries(PIVOT_METRICAS).map(([k,m])=>({k,lb:m.lb,tipo:'metric'})),
+  ].map(({k,lb,tipo})=>_pivotChipHTML(k,lb,tipo,false)).join('');
+
+  const chavesFiltro=Object.keys(_pivotState.filtros);
+  zF.innerHTML=chavesFiltro.length?chavesFiltro.map(k=>{
+    const d=PIVOT_DIMS[k];if(!d)return'';
+    const nExcl=_pivotState.filtros[k]?_pivotState.filtros[k].size:0;
+    return `<div onclick="pivotAbrirFiltro('${_pivotEscJs(k)}')" style="background:var(--red);color:#fff;padding:4px 10px;border-radius:14px;font-size:.68rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+      ${esc(d.lb)}${nExcl?` (${nExcl} ocultos)`:''}
+      <span onclick="event.stopPropagation();pivotRemoveFromZone('${_pivotEscJs(k)}')" style="opacity:.75;font-weight:800">✕</span>
+    </div>`;
+  }).join(''):'<span style="font-size:.65rem;color:var(--t3)">arraste um campo aqui pra filtrar valores específicos</span>';
+
+  zC.innerHTML=(_pivotState.coluna&&PIVOT_DIMS[_pivotState.coluna])?_pivotChipHTML(_pivotState.coluna,PIVOT_DIMS[_pivotState.coluna].lb,'dim',true):'<span style="font-size:.65rem;color:var(--t3)">arraste uma dimensão aqui</span>';
+  zL.innerHTML=(_pivotState.linha&&PIVOT_DIMS[_pivotState.linha])?_pivotChipHTML(_pivotState.linha,PIVOT_DIMS[_pivotState.linha].lb,'dim',true):'<span style="font-size:.65rem;color:var(--t3)">arraste uma dimensão aqui</span>';
+  zV.innerHTML=_pivotState.valores.length?_pivotState.valores.map(k=>PIVOT_METRICAS[k]?_pivotChipHTML(k,PIVOT_METRICAS[k].lb,'metric',true):'').join(''):'<span style="font-size:.65rem;color:var(--t3)">arraste uma métrica aqui</span>';
+}
+
+let _pivotDragKey=null,_pivotDragTipo=null;
+function pivotDragStart(e){
+  const alvo=e.target.closest('[data-key]');
+  _pivotDragKey=alvo?.dataset.key;_pivotDragTipo=alvo?.dataset.tipo;
+  try{e.dataTransfer.setData('text/plain',_pivotDragKey||'');}catch(err){}
+}
+function pivotDrop(e,zona){
+  e.preventDefault();
+  const key=_pivotDragKey||e.dataTransfer.getData('text/plain');
+  if(!key)return;
+  const tipo=_pivotDragTipo||(PIVOT_DIMS[key]?'dim':'metric');
+  pivotAtribuir(key,tipo,zona);
+}
+// Toque/clique num campo: cicla pelas zonas válidas — mesmo resultado do arrasto,
+// mas funciona 100% em tablet (onde o drag HTML5 às vezes falha).
+function pivotChipClick(key,tipo){
+  if(tipo==='dim'){
+    const atual=_pivotState.linha===key?'linhas':_pivotState.coluna===key?'colunas':_pivotState.filtros.hasOwnProperty(key)?'filtros':null;
+    const ordem=[null,'linhas','colunas','filtros'];
+    const prox=ordem[(ordem.indexOf(atual)+1)%ordem.length];
+    pivotAtribuir(key,tipo,prox);
+  }else{
+    const jaEsta=_pivotState.valores.includes(key);
+    pivotAtribuir(key,tipo,jaEsta?null:'valores');
+  }
+}
+function pivotAtribuir(key,tipo,zona){
+  if(_pivotState.linha===key)_pivotState.linha='';
+  if(_pivotState.coluna===key)_pivotState.coluna='';
+  _pivotState.valores=_pivotState.valores.filter(v=>v!==key);
+  delete _pivotState.filtros[key];
+  if(tipo==='dim'){
+    if(zona==='linhas')_pivotState.linha=key;
+    else if(zona==='colunas')_pivotState.coluna=key;
+    else if(zona==='filtros')_pivotState.filtros[key]=new Set();
+  }else if(zona==='valores'){
+    _pivotState.valores.push(key);
+  }
+  renderTabelaDinamica();
+}
+function pivotRemoveFromZone(key){
+  if(_pivotState.linha===key)_pivotState.linha='';
+  if(_pivotState.coluna===key)_pivotState.coluna='';
+  _pivotState.valores=_pivotState.valores.filter(v=>v!==key);
+  delete _pivotState.filtros[key];
+  if(_pivotFiltroAberto===key)_pivotFiltroAberto=null;
+  renderTabelaDinamica();
+}
+
+// ── Popover de filtro por valor (igual o filtro de campo do Excel) ──
+function pivotAbrirFiltro(key){
+  _pivotFiltroAberto=(_pivotFiltroAberto===key)?null:key;
+  renderPivotFiltroPopover();
+}
+function renderPivotFiltroPopover(){
+  const el=document.getElementById('pivotFiltroPopover');
+  if(!el)return;
+  if(!_pivotFiltroAberto||!PIVOT_DIMS[_pivotFiltroAberto]){el.innerHTML='';return;}
+  const key=_pivotFiltroAberto,dim=PIVOT_DIMS[key];
+  const data=getAnaliseOps();
+  const valores=[...new Set(data.map(o=>dim.fn(o)))].sort();
+  const excluidos=_pivotState.filtros[key]||new Set();
+  el.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--red);border-radius:8px;padding:10px;margin-bottom:12px;max-width:420px">
+    <div style="font-size:.7rem;font-weight:700;margin-bottom:8px">Filtrar "${esc(dim.lb)}" — desmarque pra ocultar</div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto">
+      ${valores.map(v=>`<label style="display:flex;align-items:center;gap:6px;font-size:.72rem;cursor:pointer">
+        <input type="checkbox" ${excluidos.has(v)?'':'checked'} onchange="pivotToggleFiltroValor('${_pivotEscJs(key)}','${_pivotEscJs(v)}',this.checked)"> ${esc(v)}
+      </label>`).join('')}
+    </div>
+    <button class="btn btn-g" style="font-size:.65rem;margin-top:8px" onclick="_pivotFiltroAberto=null;renderPivotFiltroPopover()">Fechar</button>
+  </div>`;
+}
+function pivotToggleFiltroValor(key,valor,marcado){
+  if(!_pivotState.filtros[key])_pivotState.filtros[key]=new Set();
+  if(marcado)_pivotState.filtros[key].delete(valor);else _pivotState.filtros[key].add(valor);
+  renderTabelaDinamica();
+  renderPivotFiltroPopover();
+}
+// Barra simples (sem linha) — mesmo estilo visual dos outros gráficos do sistema
+function _barSimplesSVG(dados,opts){
+  opts=opts||{};
+  const cor=opts.corBarra||'#dc2626';
+  const arr=dados.filter(d=>d.v!==null&&!isNaN(d.v));
+  if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem dados pra mostrar.</div>';
+  const larguraBarra=56,gap=16,margemEsq=8,margemDir=8,margemTopo=36,alturaGrafico=200,margemBaixo=80;
+  const w=margemEsq+margemDir+arr.length*(larguraBarra+gap);
+  const h=margemTopo+alturaGrafico+margemBaixo;
+  const maxV=Math.max(...arr.map(d=>Math.abs(d.v)),1);
+  const xBar=i=>margemEsq+i*(larguraBarra+gap);
+  const zeroY=margemTopo+alturaGrafico; // eixo zero (métricas de atraso podem ser negativas)
+  const barras=arr.map((p,i)=>{
+    const x=xBar(i),altura=Math.abs(p.v)/maxV*alturaGrafico,neg=p.v<0;
+    const y=neg?zeroY:zeroY-altura;
+    const corBarra=neg?'#f59e0b':cor;
+    const lblX=x+larguraBarra/2,lblY=zeroY+14;
+    return `<rect x="${x}" y="${y}" width="${larguraBarra}" height="${Math.max(altura,2)}" fill="${corBarra}" rx="3"/>
+      <text x="${lblX}" y="${neg?y+altura+16:y-6}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text)">${p.v}</text>
+      <text x="${lblX}" y="${lblY}" text-anchor="end" font-size="10" fill="var(--t2)" transform="rotate(-40 ${lblX} ${lblY})">${esc(p.lb)}</text>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.95}px">
+    <line x1="${margemEsq}" y1="${zeroY}" x2="${w-margemDir}" y2="${zeroY}" stroke="var(--bd)" stroke-width="1"/>
+    ${barras}
+  </svg></div>`;
+}
+
+// Pizza/donut — cores de uma paleta fixa, com legenda embaixo
+const _PIVOT_PIE_CORES=['#dc2626','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#eab308','#6366f1','#ef4444','#84cc16','#06b6d4'];
+function _pieSVG(dados){
+  const arr=dados.filter(d=>d.v!==null&&!isNaN(d.v)&&d.v>0);
+  if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem dados positivos pra mostrar em pizza (valores negativos ou zerados não entram).</div>';
+  const total=arr.reduce((s,d)=>s+d.v,0);
+  const cx=140,cy=140,r=115;
+  let anguloAcum=-90;
+  const fatias=arr.map((d,i)=>{
+    const pct=d.v/total,angulo=pct*360;
+    const a0=anguloAcum*Math.PI/180,a1=(anguloAcum+angulo)*Math.PI/180;
+    const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const largeArc=angulo>180?1:0;
+    anguloAcum+=angulo;
+    const cor=_PIVOT_PIE_CORES[i%_PIVOT_PIE_CORES.length];
+    return `<path d="M${cx},${cy} L${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${largeArc} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z" fill="${cor}" stroke="var(--bg2)" stroke-width="2"/>`;
+  }).join('');
+  const legenda=arr.map((d,i)=>{
+    const cor=_PIVOT_PIE_CORES[i%_PIVOT_PIE_CORES.length],pct=Math.round(d.v/total*100);
+    return `<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;margin-bottom:5px">
+      <span style="width:11px;height:11px;border-radius:3px;background:${cor};flex-shrink:0"></span>
+      <span style="color:var(--text)">${esc(d.lb)}</span><span style="color:var(--t2)">— ${d.v} (${pct}%)</span>
+    </div>`;
+  }).join('');
+  return `<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+    <svg viewBox="0 0 280 280" style="width:260px;height:260px;flex-shrink:0"><g>${fatias}</g></svg>
+    <div style="flex:1;min-width:200px">${legenda}</div>
+  </div>`;
+}
+
+// Linha simples (sem barra) — categorias no eixo X na ordem dada
+function _linhaSimplesSVG(dados,opts){
+  const cor=(opts&&opts.cor)||'#dc2626';
+  const arr=dados.filter(d=>d.v!==null&&!isNaN(d.v));
+  if(!arr.length)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem dados pra mostrar.</div>';
+  const gapX=90,margemEsq=50,margemDir=30,margemTopo=30,alturaGrafico=200,margemBaixo=75;
+  const w=margemEsq+margemDir+Math.max(arr.length-1,1)*gapX;
+  const h=margemTopo+alturaGrafico+margemBaixo;
+  const maxV=Math.max(...arr.map(d=>d.v),0),minV=Math.min(...arr.map(d=>d.v),0);
+  const range=(maxV-minV)||1;
+  const xAt=i=>margemEsq+i*gapX;
+  const yAt=v=>margemTopo+alturaGrafico-((v-minV)/range*alturaGrafico);
+  const pts=arr.map((d,i)=>`${xAt(i)},${yAt(d.v)}`).join(' ');
+  const lblY=margemTopo+alturaGrafico+16;
+  const pontos=arr.map((d,i)=>`<circle cx="${xAt(i)}" cy="${yAt(d.v)}" r="4" fill="${cor}"/>
+    <text x="${xAt(i)}" y="${yAt(d.v)-10}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)">${d.v}</text>
+    <text x="${xAt(i)}" y="${lblY}" text-anchor="end" font-size="10" fill="var(--t2)" transform="rotate(-40 ${xAt(i)} ${lblY})">${esc(d.lb)}</text>`).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.95}px">
+    <polyline points="${pts}" fill="none" stroke="${cor}" stroke-width="2.5"/>
+    ${pontos}
+  </svg></div>`;
+}
+
+// Barra + Linha com DUAS MÉTRICAS INDEPENDENTES — cada uma na sua própria escala.
+// (Não é Pareto acumulado: somar % e calcular "% acumulada de %" não tem significado
+// real — só faz sentido pra métricas de soma/contagem. Aqui a linha é o valor de
+// verdade da 2ª métrica, com sua própria escala 0..max — não derivado da 1ª.)
+function _comboBarraLinhaSVG(categorias,valsBarra,valsLinha,fmtBarra,fmtLinha,corBarra){
+  corBarra=corBarra||'#dc2626';
+  const n=categorias.length;
+  if(!n)return '<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Sem dados pra mostrar.</div>';
+  const larguraBarra=56,gap=16,margemEsq=8,margemDir=8;
+  const faixaTopo=26,gapFaixaBarra=10,alturaGrafico=180,margemBaixo=78;
+  const margemTopo=faixaTopo+gapFaixaBarra;
+  const w=margemEsq+margemDir+n*(larguraBarra+gap);
+  const h=margemTopo+alturaGrafico+margemBaixo;
+  const maxB=Math.max(...valsBarra.map(v=>Math.abs(v||0)),1);
+  const valsLinhaValidos=valsLinha.filter(v=>v!==null&&v!==undefined&&!isNaN(v));
+  const maxL=valsLinhaValidos.length?Math.max(...valsLinhaValidos):1;
+  const minL=valsLinhaValidos.length?Math.min(...valsLinhaValidos,0):0;
+  const rangeL=(maxL-minL)||1;
+  const xBar=i=>margemEsq+i*(larguraBarra+gap);
+  const yBar=v=>margemTopo+alturaGrafico-(Math.abs(v||0)/maxB*alturaGrafico);
+  const yLinha=v=>margemTopo+alturaGrafico-(((v??minL)-minL)/rangeL*alturaGrafico);
+
+  const barras=categorias.map((lb,i)=>{
+    const x=xBar(i),v=valsBarra[i]||0,yTop=yBar(v),altura=alturaGrafico-(yTop-margemTopo);
+    const lblY=margemTopo+alturaGrafico+14;
+    const lblX=x+larguraBarra/2;
+    return `<rect x="${x}" y="${yTop}" width="${larguraBarra}" height="${Math.max(altura,2)}" fill="${corBarra}" rx="3" opacity="0.85"/>
+      <text x="${lblX}" y="${yTop-6<margemTopo-4?yTop+16:yTop-6}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${esc(fmtBarra(v))}</text>
+      <text x="${lblX}" y="${lblY}" text-anchor="end" font-size="10" fill="var(--t2)" transform="rotate(-40 ${lblX} ${lblY})">${esc(lb)}</text>`;
+  }).join('');
+
+  // Rótulos da linha numa faixa fixa no topo — evita qualquer colisão com o valor da barra
+  const faixaLinhaHtml=categorias.map((lb,i)=>{
+    const v=valsLinha[i];
+    if(v===null||v===undefined||isNaN(v))return '';
+    return `<text x="${xBar(i)+larguraBarra/2}" y="14" text-anchor="middle" font-size="11" font-weight="800" fill="#f59e0b">${esc(fmtLinha(v))}</text>`;
+  }).join('');
+
+  const ptsValidos=categorias.map((lb,i)=>({i,v:valsLinha[i]})).filter(p=>p.v!==null&&p.v!==undefined&&!isNaN(p.v));
+  const linhaPts=ptsValidos.map(p=>`${xBar(p.i)+larguraBarra/2},${yLinha(p.v)}`).join(' ');
+  const bolinhas=ptsValidos.map(p=>`<circle cx="${xBar(p.i)+larguraBarra/2}" cy="${yLinha(p.v)}" r="4" fill="#f59e0b" stroke="#0a0a0f" stroke-width="1.5"/>`).join('');
+
+  return `<div style="overflow-x:auto">
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*1.1}px">
+      ${faixaLinhaHtml}
+      ${barras}
+      ${ptsValidos.length>1?`<polyline points="${linhaPts}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,4"/>`:''}
+      ${bolinhas}
+    </svg>
+  </div>
+  <div style="font-size:.62rem;color:var(--t2);margin-top:2px"><span style="color:${corBarra}">■</span> barra (esquerda) &nbsp; <span style="color:#f59e0b">●</span> linha (direita) — cada uma na própria escala, não é acumulado.</div>`;
+}
+
+function renderPivotChart(){
+  const el=document.getElementById('pivotChartResult');
+  const tipoSel=document.getElementById('pivotChartTipo');
+  if(!el||!tipoSel)return;
+  const tipo=tipoSel.value;
+  const dim1=PIVOT_DIMS[_pivotState.linha],metrica=PIVOT_METRICAS[_pivotState.valores[0]];
+  if(!dim1||!metrica){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3);font-size:.8rem">Escolha um campo em "Linhas" e uma métrica em "Valores" primeiro.</div>';return;}
+  let data=getAnaliseOps();
+  data=_pivotAplicaFiltros(data);
+  const linhasMap={};
+  data.forEach(o=>{const l=dim1.fn(o);(linhasMap[l]=linhasMap[l]||[]).push(o);});
+
+  if(tipo==='barraLinha'){
+    const selL=document.getElementById('pivotMetricaLinha');
+    const metricaLinha=PIVOT_METRICAS[selL?.value]||metrica;
+    let cats=Object.keys(linhasMap).map(l=>({lb:l,vb:metrica.fn(linhasMap[l])}))
+      .sort((a,b)=>(b.vb||0)-(a.vb||0)).slice(0,15);
+    const categorias=cats.map(c=>c.lb);
+    const valsBarra=cats.map(c=>c.vb||0);
+    const valsLinha=cats.map(c=>metricaLinha.fn(linhasMap[c.lb]));
+    el.innerHTML=_comboBarraLinhaSVG(categorias,valsBarra,valsLinha,metrica.fmt,metricaLinha.fmt,_pivotCor);
+    return;
+  }
+
+  let dados=Object.keys(linhasMap).map(l=>({lb:l,v:metrica.fn(linhasMap[l])}));
+  if(tipo==='barra'||tipo==='pizza')dados.sort((a,b)=>(b.v||0)-(a.v||0));
+  dados=dados.slice(0,15); // limite visual — mais que isso fica ilegível em qualquer tipo de gráfico
+  if(tipo==='barra')el.innerHTML=_barSimplesSVG(dados,{corBarra:_pivotCor});
+  else if(tipo==='pizza')el.innerHTML=_pieSVG(dados);
+  else if(tipo==='linha')el.innerHTML=_linhaSimplesSVG(dados,{cor:_pivotCor});
+}
+
+function onPivotChartTipoChange(){
+  const wrap=document.getElementById('pivotMetricaLinhaWrap');
+  const tipo=document.getElementById('pivotChartTipo')?.value;
+  if(wrap)wrap.style.display=tipo==='barraLinha'?'inline-flex':'none';
+  renderPivotChart();
+}
+function togglePivotChart(){
+  const wrap=document.getElementById('pivotChartWrap');
+  const btn=document.getElementById('pivotChartToggleBtn');
+  if(!wrap)return;
+  const showing=wrap.style.display!=='none';
+  wrap.style.display=showing?'none':'';
+  if(btn)btn.textContent=showing?'📊 Mostrar gráfico':'🔼 Esconder gráfico';
+  if(!showing)renderPivotChart();
+}
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
   if(supabaseOK&&!_veiculosLoadTried){
@@ -5322,6 +5782,53 @@ function renderAnalise(){
     <div class="met-box"><div class="mv" style="color:${avgDC===null?'var(--t2)':avgDC>0?'var(--red)':'var(--green)'}">${fAvg(avgDC)}</div><div class="ml">Δ Médio FC</div></div>
     <div class="met-box"><div class="mv" style="color:var(--purple)">${fAvg(avgDoc)}</div><div class="ml">T.Médio Doca</div></div>
   </div>
+</div>
+<div class="an-card" style="grid-column:1/-1">
+  <h3>🧮 Monte sua Análise (Tabela Dinâmica)</h3>
+  <div style="font-size:.68rem;color:var(--t2);margin-bottom:10px">Arraste os campos abaixo pros blocos — igual tabela dinâmica do Excel. Em tablet/touch, é só <b>tocar</b> no campo e escolher o bloco (arrastar pode falhar em touch).</div>
+  <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;font-weight:700;margin-bottom:5px">📋 Campos disponíveis (vermelho = dimensão, azul = métrica)</div>
+  <div id="pivotCamposDisponiveis" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:14px"></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px">
+    <div class="pivot-zone" data-zone="filtros" ondrop="pivotDrop(event,'filtros')" ondragover="event.preventDefault()" style="background:var(--bg2);border:1.5px dashed var(--bd);border-radius:8px;padding:8px;min-height:64px">
+      <div style="font-size:.6rem;text-transform:uppercase;font-weight:700;color:var(--t2);margin-bottom:6px">🔍 Filtros</div>
+      <div id="pivotZoneFiltros" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div class="pivot-zone" data-zone="colunas" ondrop="pivotDrop(event,'colunas')" ondragover="event.preventDefault()" style="background:var(--bg2);border:1.5px dashed var(--bd);border-radius:8px;padding:8px;min-height:64px">
+      <div style="font-size:.6rem;text-transform:uppercase;font-weight:700;color:var(--t2);margin-bottom:6px">➡️ Colunas</div>
+      <div id="pivotZoneColunas" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div class="pivot-zone" data-zone="linhas" ondrop="pivotDrop(event,'linhas')" ondragover="event.preventDefault()" style="background:var(--bg2);border:1.5px dashed var(--bd);border-radius:8px;padding:8px;min-height:64px">
+      <div style="font-size:.6rem;text-transform:uppercase;font-weight:700;color:var(--t2);margin-bottom:6px">⬇️ Linhas</div>
+      <div id="pivotZoneLinhas" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <div class="pivot-zone" data-zone="valores" ondrop="pivotDrop(event,'valores')" ondragover="event.preventDefault()" style="background:var(--bg2);border:1.5px dashed var(--bd);border-radius:8px;padding:8px;min-height:64px">
+      <div style="font-size:.6rem;text-transform:uppercase;font-weight:700;color:var(--t2);margin-bottom:6px">Σ Valores (aceita várias)</div>
+      <div id="pivotZoneValores" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+  </div>
+  <div id="pivotFiltroPopover"></div>
+  <div id="pivotResultado" style="overflow-x:auto"></div>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+    <button id="pivotChartToggleBtn" class="btn btn-s" style="font-size:.7rem" onclick="togglePivotChart()">📊 Mostrar gráfico</button>
+    <select id="pivotChartTipo" onchange="onPivotChartTipoChange()" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.74rem">
+      <option value="barra">Barra</option>
+      <option value="barraLinha">Barra + Linha (2 métricas)</option>
+      <option value="pizza">Pizza</option>
+      <option value="linha">Linha</option>
+    </select>
+    <span id="pivotMetricaLinhaWrap" style="display:none;align-items:center;gap:6px">
+      <label style="font-size:.62rem;color:var(--t2);text-transform:uppercase;font-weight:700">Métrica da linha</label>
+      <select id="pivotMetricaLinha" onchange="renderPivotChart()" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.74rem">
+        ${Object.entries(PIVOT_METRICAS).map(([k,m])=>{const padrao=_pivotState.valores[0]==='pctSLA'?'qtdViagens':'pctSLA';return `<option value="${k}" ${k===padrao?'selected':''}>${esc(m.lb)}</option>`;}).join('')}
+      </select>
+    </span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <label style="font-size:.62rem;color:var(--t2);text-transform:uppercase;font-weight:700">Cor</label>
+      <input type="color" id="pivotCorPicker" value="${_pivotCor}" onchange="_pivotCor=this.value;renderPivotChart()" style="width:32px;height:28px;border:1.5px solid var(--bd);border-radius:6px;background:none;cursor:pointer">
+    </span>
+    <span style="font-size:.62rem;color:var(--t3)">Gráfico usa o campo de Linhas — top 15.</span>
+  </div>
+  <div id="pivotChartWrap" style="display:none;margin-top:10px"><div id="pivotChartResult"></div></div>
 </div>
 <div class="an-card" style="grid-column:1/-1">
   <h3>📦 KPIs de CAFs</h3>
@@ -5991,6 +6498,7 @@ function renderAnalise(){
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
   ${_renderMapaDoca()}
 </div>`;
+  renderTabelaDinamica();
   }catch(e){
     console.error('renderAnalise erro:',e);
     el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">⚠️ Erro ao carregar análise: '+(e.message||e)+'<br><br><button class="btn btn-g" onclick="renderAnalise()">Tentar novamente</button></div>';
