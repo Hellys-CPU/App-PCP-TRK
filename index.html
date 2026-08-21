@@ -1824,11 +1824,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v305';
+const APP_VERSION='v306';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v306:['🔒 Reforço de segurança pro Cliente Amazon (e qualquer perfil sem permissão de viagem): busca global (🔍/Ctrl+K) e botão "+ Nova Viagem" agora ficam escondidos e bloqueados também na própria função (não só o botão) pra quem não tem viagem_criar/editar/status — evita contornar a tela restrita por fora. openEdit() já tinha trava própria bloqueando esses casos; isso é reforço.'],
   v305:['👤 Novo perfil "Cliente Amazon" — login externo, só acessa FUP Amazon, restrito aos FCs liberados por login (configurável no Admin, campo "FCs Permitidos" — vazio = vê todos). 📋 Justificativa obrigatória (não trava nada, só registra o motivo) pra viagens com mais de 12h entre chegada no FC e descarga — aparece numa lista separada, só as pendentes, sem misturar com o relatório normal. Só o Cliente Amazon preenche.'],
   v304:['🧮 Tabela Dinâmica: 3 métricas novas "— Ao Vivo" (Carregamento, Viagem, Descarga/Doca) — contam também as etapas de HOJE que ainda estão em andamento, usando o horário atual como fim provisório. Antes, uma viagem parada 2h esperando descarga só entrava na média depois de finalizada; agora já pesa no cálculo em tempo real (só pra viagens de hoje, pra não distorcer com registro antigo esquecido).'],
   v303:['🐛 Corrigido: no gráfico "Barra + Linha (2 métricas)" da Tabela Dinâmica, a cor escolhida no seletor não estava sendo aplicada (ficava travada em vermelho) — corrigido. 🐛 Rótulos de categoria (ex: nomes de status longos) inclinados em 40° em todos os gráficos de barra/linha do sistema, pra parar de sobrepor uns nos outros quando o nome é grande.'],
@@ -2643,6 +2644,16 @@ async function bootApp(){
     grp.style.display=anyVisible?'':'none';
   });
   _organizarNavMobile(_abasVisiveis);
+
+  // Busca global e "+ Nova Viagem" abrem o modal COMPLETO de edição (openEdit/openNew) —
+  // sem essa checagem, um perfil restrito (ex: Cliente Amazon, que só devia ver o FUP
+  // Amazon em modo leitura) conseguia contornar a tela dedicada e abrir o modal geral de
+  // qualquer viagem por fora, mesmo não tendo abas de Painel/Lista liberadas.
+  const _podeMexerEmViagem=hasPerm('viagem_criar')||hasPerm('viagem_editar')||hasPerm('viagem_status');
+  const _btnBusca=document.querySelector('button[onclick="openGlobalSearch()"]');
+  if(_btnBusca)_btnBusca.style.display=_podeMexerEmViagem?'':'none';
+  const _btnNovo=document.getElementById('newOpBtn');
+  if(_btnNovo)_btnNovo.style.display=_podeMexerEmViagem?'':'none';
 
   aplicarPermissoesUI(currentUser.perfil);
   loading(true);
@@ -10076,6 +10087,9 @@ function exitTV(){
 // FEATURE: BUSCA GLOBAL Ctrl+K
 // ══════════════════════════════════════════════════════════════════
 function openGlobalSearch(){
+  // Trava aqui dentro (não só escondendo o botão) — cobre também o atalho Ctrl+K,
+  // que ignoraria a visibilidade do botão se essa checagem não estivesse na própria função.
+  if(!(hasPerm('viagem_criar')||hasPerm('viagem_editar')||hasPerm('viagem_status')))return;
   const existing=document.getElementById('_globalSearch');
   if(existing){existing.remove();return;}
   const div=document.createElement('div');
