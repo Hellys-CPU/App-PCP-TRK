@@ -1824,11 +1824,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v306';
+const APP_VERSION='v307';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v307:['🐛 CRÍTICO: corrigida a lista de "Justificativas Pendentes" — ela só considerava viagens que JÁ tinham finalizado a descarga (dMin entre dois horários preenchidos), então uma viagem ainda aguardando na doca há 20h+ nunca aparecia pra exigir justificativa. Agora usa o mesmo cálculo "ao vivo" (tempoAguardandoDescarga) da coluna Descarga do relatório — pega quem já passou de 12h AGORA, mesmo sem ter finalizado ainda. Também preserva o texto sendo digitado quando a lista atualiza sozinha (evita perder rascunho).','📋 FUP Amazon: viagens Finalizadas agora aparecem com detalhe completo (transportadora, motorista, placa, horários) — só pro perfil Cliente Amazon; pro time interno continua compacto (só código), pra não poluir.'],
   v306:['🔒 Reforço de segurança pro Cliente Amazon (e qualquer perfil sem permissão de viagem): busca global (🔍/Ctrl+K) e botão "+ Nova Viagem" agora ficam escondidos e bloqueados também na própria função (não só o botão) pra quem não tem viagem_criar/editar/status — evita contornar a tela restrita por fora. openEdit() já tinha trava própria bloqueando esses casos; isso é reforço.'],
   v305:['👤 Novo perfil "Cliente Amazon" — login externo, só acessa FUP Amazon, restrito aos FCs liberados por login (configurável no Admin, campo "FCs Permitidos" — vazio = vê todos). 📋 Justificativa obrigatória (não trava nada, só registra o motivo) pra viagens com mais de 12h entre chegada no FC e descarga — aparece numa lista separada, só as pendentes, sem misturar com o relatório normal. Só o Cliente Amazon preenche.'],
   v304:['🧮 Tabela Dinâmica: 3 métricas novas "— Ao Vivo" (Carregamento, Viagem, Descarga/Doca) — contam também as etapas de HOJE que ainda estão em andamento, usando o horário atual como fim provisório. Antes, uma viagem parada 2h esperando descarga só entrava na média depois de finalizada; agora já pesa no cálculo em tempo real (só pra viagens de hoje, pra não distorcer com registro antigo esquecido).'],
@@ -11777,14 +11778,21 @@ function _viagensPendentesJustificativa(){
     const fc=_fcFromRota(o.rota);
     if(!fc)return false;
     if(Array.isArray(fcsPermitidos)&&fcsPermitidos.length&&!fcsPermitidos.includes(fc.toUpperCase()))return false;
-    const tempo=dMin(o.realChegFC,o.realDescarga);
-    if(tempo===null||tempo<LIMITE_JUSTIFICATIVA_MIN)return false;
+    // Usa tempoAguardandoDescarga (mesma função da coluna "Descarga" do relatório) em vez de
+    // comparar só realChegFC x realDescarga — assim pega também quem ainda está esperando
+    // AGORA e já passou de 12h, não só quem já finalizou a descarga com atraso.
+    const esp=tempoAguardandoDescarga(o);
+    if(!esp||esp.mins<LIMITE_JUSTIFICATIVA_MIN)return false;
     return !o.justificativaAtrasoDescarga;
   }).sort((a,b)=>(b.dataOp||'').localeCompare(a.dataOp||''));
 }
 function renderJustificativasPendentes(){
   const wrap=document.getElementById('justificativasPendentesWrap');
   if(!wrap)return;
+  // Preserva o que já foi digitado (mas ainda não salvo) antes de redesenhar — a lista
+  // atualiza sozinha a cada sincronização, e sem isso o texto em andamento se perderia.
+  const rascunhos={};
+  wrap.querySelectorAll('textarea[id^="justif-"]').forEach(ta=>{if(ta.value.trim())rascunhos[ta.id]=ta.value;});
   const pendentes=_viagensPendentesJustificativa();
   if(!pendentes.length){wrap.innerHTML='';return;}
   wrap.innerHTML=`<div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:14px">
@@ -11793,12 +11801,13 @@ function renderJustificativasPendentes(){
     <div style="display:flex;flex-direction:column;gap:10px">
       ${pendentes.map(o=>{
         const fc=_fcFromRota(o.rota);
-        const tempo=dMin(o.realChegFC,o.realDescarga);
-        const horas=Math.floor(tempo/60),min=tempo%60;
+        const esp=tempoAguardandoDescarga(o);
+        const horas=Math.floor(esp.mins/60),min=esp.mins%60;
+        const statusTxt=esp.finalizado?'na doca (finalizado)':'ainda aguardando ⏱';
         return `<div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">
             <span style="font-size:.78rem;font-weight:700;color:var(--text)">${esc(o.codigoCurto||o.id)} · ${esc(fc)} · ${esc(o.transp||'—')} · ${esc(o.placa||'—')}</span>
-            <span style="font-size:.72rem;font-weight:700;color:var(--red)">⏱ ${horas}h${String(min).padStart(2,'0')} na doca</span>
+            <span style="font-size:.72rem;font-weight:700;color:var(--red)">⏱ ${horas}h${String(min).padStart(2,'0')} ${statusTxt}</span>
           </div>
           <textarea id="justif-${esc(o.id)}" placeholder="Motivo do atraso na descarga..." style="width:100%;min-height:50px;background:var(--bg2);border:1.5px solid var(--bd);border-radius:6px;color:var(--text);padding:6px 8px;font-size:.74rem;font-family:inherit;resize:vertical"></textarea>
           <button class="btn btn-s" style="font-size:.68rem;margin-top:6px" onclick="salvarJustificativaAtraso('${esc(o.id)}')">💾 Salvar Justificativa</button>
@@ -11806,6 +11815,7 @@ function renderJustificativasPendentes(){
       }).join('')}
     </div>
   </div>`;
+  Object.entries(rascunhos).forEach(([id,val])=>{const ta=document.getElementById(id);if(ta)ta.value=val;});
 }
 async function salvarJustificativaAtraso(opId){
   if(!['cliente_amazon','admin','supervisor'].includes(_perfil())){showToast('⛔ Sem permissão pra registrar justificativa','err');return;}
@@ -11862,7 +11872,10 @@ function renderAmazon(){
   data.sort((a,b)=>(a.planSaida||'').localeCompare(b.planSaida||''));
 
   // Status a exibir com detalhes (os finalizados só contagem)
+  // "Só eles" — Cliente Amazon também vê detalhe completo das finalizadas (auditoria de
+  // entrega); pro time interno continua compacto (só código), pra não poluir a tela.
   const STATUS_DETALHE = ['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','PERN','REC'];
+  if(_perfil()==='cliente_amazon')STATUS_DETALHE.push('FIN');
   const STATUS_LABELS = {
     PROG:'🕐 PROGRAMADO', AGUCARR:'⏳ AGUARD. CARREGAMENTO',
     EMCARR:'🔄 EM CARREGAMENTO', TRAN:'🚛 EM TRÂNSITO',
@@ -11965,8 +11978,10 @@ function renderAmazon(){
       </div>`;
   });
 
-  // Bloco resumido: Finalizados e Cancelados (só contagem + listagem compacta)
-  ['FIN','CANC'].forEach(st => {
+  // Bloco resumido: Cancelados sempre compacto; Finalizados só aqui se NÃO tiver
+  // aparecido detalhado acima (evita duplicar pro Cliente Amazon).
+  const statusResumido=STATUS_DETALHE.includes('FIN')?['CANC']:['FIN','CANC'];
+  statusResumido.forEach(st => {
     const ops_st = data.filter(o=>o.status===st);
     if(!ops_st.length) return;
     html += `
