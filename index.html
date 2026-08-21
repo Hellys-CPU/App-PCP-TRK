@@ -640,6 +640,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-s" onclick="exportAmazonPDF()" style="font-size:.72rem">📄 Exportar PDF</button>
     <button class="btn" onclick="exportAmazonPDF()" style="font-size:.72rem">🖨 Imprimir</button>
   </div>
+  <div id="justificativasPendentesWrap" style="padding:12px 16px 0"></div>
   <div id="amazonWrap" style="padding:12px 16px 40px;overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
 </div>
 <!-- LISTA -->
@@ -1492,6 +1493,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
           <select id="uPerfil">
             <option value="operador_caf">Operador CAF — login compartilhado, gerencia CAFs</option>
             <option value="fiscal_patio">Fiscal de Pátio — login compartilhado, atrela carro na doca</option>
+            <option value="cliente_amazon">Cliente Amazon — login externo, só vê FUP Amazon dos FCs liberados</option>
             <option value="doca">Doca — gestão de doca/pátio</option>
             <option value="torre_controle">Torre de Controle — opera viagens e CAFs</option>
             <option value="visualizador">Visualizador — somente leitura</option>
@@ -1550,7 +1552,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Nome Completo</label><input id="euNome"></div>
         <div class="fg"><label>Usuário (login) — mudar desloga a pessoa</label><input id="euUser" style="text-transform:lowercase"></div>
         <div class="fg"><label>Perfil</label><select id="euPerfil">
-          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="fiscal_patio">fiscal_patio</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option><option value="tv_publica">tv_publica</option>
+          <option value="admin">admin</option><option value="supervisor">supervisor</option><option value="torre_controle">torre_controle</option><option value="doca">doca</option><option value="operador_caf">operador_caf</option><option value="fiscal_patio">fiscal_patio</option><option value="cliente_amazon">cliente_amazon</option><option value="visualizador">visualizador</option><option value="lideranca">lideranca</option><option value="tv_publica">tv_publica</option>
         </select></div>
         <div class="fg"><label>Nova Senha (deixe vazio para manter a atual)</label><input type="password" id="euSenha" placeholder="••••••"></div>
         <div class="fg"><label>Confirmar Nova Senha</label><input type="password" id="euSenha2" placeholder="••••••"></div>
@@ -1573,6 +1575,11 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
           <div>
             <div style="font-size:.68rem;font-weight:700;color:var(--text);margin-bottom:5px">⚡ Ações permitidas</div>
             <div id="euAcoesGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:3px;font-size:.65rem"></div>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-size:.68rem;font-weight:700;color:var(--text);margin-bottom:5px">📦 FCs Permitidos (só pra Cliente Amazon — vazio = vê todos)</div>
+            <input id="euFcsPermitidos" placeholder="Ex: GR8, XC9, GR9" style="width:100%;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.72rem">
+            <div style="font-size:.6rem;color:var(--t3);margin-top:3px">Separe por vírgula. Restringe qual FC aparece no dropdown do FUP Amazon pra esse usuário.</div>
           </div>
         </div>
       </div>
@@ -1707,6 +1714,7 @@ const PERMS_BASE = {
   lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0,esteira_gerir:1},
   tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
   fiscal_patio:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  cliente_amazon: {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
 };
 
 const ABAS_BASE = {
@@ -1719,6 +1727,7 @@ const ABAS_BASE = {
   lideranca:['painel','insumos','reportpcp','tv','tv-yard'],
   tv_publica:['tv','tv-yard'],
   fiscal_patio:['painel','lista','prog'],
+  cliente_amazon:['amazon'],
 };
 
 const TODAS_PERMS = [
@@ -1815,11 +1824,12 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v304';
+const APP_VERSION='v305';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v305:['👤 Novo perfil "Cliente Amazon" — login externo, só acessa FUP Amazon, restrito aos FCs liberados por login (configurável no Admin, campo "FCs Permitidos" — vazio = vê todos). 📋 Justificativa obrigatória (não trava nada, só registra o motivo) pra viagens com mais de 12h entre chegada no FC e descarga — aparece numa lista separada, só as pendentes, sem misturar com o relatório normal. Só o Cliente Amazon preenche.'],
   v304:['🧮 Tabela Dinâmica: 3 métricas novas "— Ao Vivo" (Carregamento, Viagem, Descarga/Doca) — contam também as etapas de HOJE que ainda estão em andamento, usando o horário atual como fim provisório. Antes, uma viagem parada 2h esperando descarga só entrava na média depois de finalizada; agora já pesa no cálculo em tempo real (só pra viagens de hoje, pra não distorcer com registro antigo esquecido).'],
   v303:['🐛 Corrigido: no gráfico "Barra + Linha (2 métricas)" da Tabela Dinâmica, a cor escolhida no seletor não estava sendo aplicada (ficava travada em vermelho) — corrigido. 🐛 Rótulos de categoria (ex: nomes de status longos) inclinados em 40° em todos os gráficos de barra/linha do sistema, pra parar de sobrepor uns nos outros quando o nome é grande.'],
   v302:['🧮 Tabela Dinâmica reformulada — agora é montada por blocos arrastáveis (igual Excel): 🔍 Filtros, ➡️ Colunas, ⬇️ Linhas, Σ Valores (aceita várias métricas ao mesmo tempo). Em telas touch, tocar no campo cicla entre os blocos (fallback pro arrasto, que pode falhar em tablet). Filtro por valor dentro de cada campo (desmarca pra ocultar, igual filtro de coluna do Excel). Seletor de cor pro gráfico. 3 métricas novas: Rotas Únicas, Docas Únicas, Média de CAFs por Viagem.'],
@@ -2196,7 +2206,7 @@ async function loadFromSupabase(forceFullLoad=false){
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
@@ -2226,7 +2236,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -2274,7 +2284,7 @@ async function saveToSupabase(op){
   // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
   // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
   const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,motorista_usou_app:op.motoristaUsouApp||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,motorista_usou_app:op.motoristaUsouApp||null,justificativa_atraso_descarga:op.justificativaAtrasoDescarga||null,justificativa_atraso_por:op.justificativaAtrasoPor||null,justificativa_atraso_em:op.justificativaAtrasoEm||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -2718,7 +2728,7 @@ async function bootApp(){
   window._presenceTick=setInterval(()=>{
     try{_renderOnlinePresence();}catch(e){}
     // Auto-refresh do FUP Amazon (usa dados em memória — custo zero)
-    try{if(curPage==='amazon')renderAmazon();}catch(e){}
+    try{if(curPage==='amazon'){renderAmazon();renderJustificativasPendentes();}}catch(e){}
     // Auto-refresh do FUP FC — mantém o cronômetro de "aguardando descarga" andando
     try{if(curPage==='fup')renderFUP();}catch(e){}
     // Alerta crítico: veículo 24h+ aguardando descarga (roda em QUALQUER tela)
@@ -2825,6 +2835,10 @@ function _popularPermsUI(username){
     return`<label style="display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:3px;background:var(--bg3)">
       <input type="checkbox" class="euAcaoChk" value="${p.key}" ${val?'checked':''}> ${p.label}
     </label>`;}).join('');
+
+  const fcsAtuais=temCustom&&Array.isArray(custom.fcsPermitidos)?custom.fcsPermitidos:[];
+  const elFcs=document.getElementById('euFcsPermitidos');
+  if(elFcs)elFcs.value=fcsAtuais.join(', ');
 }
 
 function _lerPermsUI(){
@@ -2833,7 +2847,8 @@ function _lerPermsUI(){
   const abas=Array.from(document.querySelectorAll('.euAbaChk:checked')).map(c=>c.value);
   const acoes={};
   document.querySelectorAll('.euAcaoChk').forEach(c=>{acoes[c.value]=c.checked?1:0;});
-  return{abas,acoes};
+  const fcsPermitidos=(document.getElementById('euFcsPermitidos')?.value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  return{abas,acoes,fcsPermitidos};
 }
 
 function openEditUser(username){
@@ -4960,7 +4975,7 @@ function setView(name){
     const admRuasCard=document.getElementById('adm-ruas');
     if(admRuasCard)admRuasCard.style.display=isAdmin?'':'none';
   }
-  if(name==='amazon'){_initAmazonSelects();renderAmazon();}
+  if(name==='amazon'){_initAmazonSelects();renderAmazon();renderJustificativasPendentes();}
   if(name==='caf'){loading(true);Promise.all([loadCAFs(),loadRuas(),loadEsteiras()]).then(()=>{_esteirasLoadTried=true;loading(false);buildCAFSelects();renderCAFs();});}
   if(name==='pallets'){loading(true);Promise.all([loadPallets(),loadInventarioPallets()]).then(()=>{loading(false);renderInventarioPallets();renderPallets();});}
   if(name==='insumos'){loading(true);Promise.all([loadInsumosHub(),loadInsumosMovimentacoes(),loadChecklistsTurno()]).then(()=>{_insumosLoadTried=true;loading(false);setInsumosModo('inventario');renderInsumosTable();});}
@@ -11723,22 +11738,96 @@ function _initAmazonSelects(){
   const cur = fcSel.value;
   const amData = document.getElementById('amData')?.value || hojeLocal();
   // Agrupa por FC de destino (independente de sufixo LTL/EX/etc)
-  const fcsDisponiveis = [...new Set(
+  let fcsDisponiveis = [...new Set(
     ops.filter(o=>!amData||o.dataOp===amData)
        .map(o=>_fcFromRota(o.rota))
        .filter(Boolean)
   )].sort();
+  // Cliente Amazon (ou qualquer usuário com fcsPermitidos configurado) só vê os FCs liberados
+  const fcsPermitidos=currentUser?.permissoes_custom?.fcsPermitidos;
+  if(Array.isArray(fcsPermitidos)&&fcsPermitidos.length){
+    fcsDisponiveis=fcsDisponiveis.filter(fc=>fcsPermitidos.includes(fc.toUpperCase()));
+  }
   fcSel.innerHTML = '<option value="">Selecione o FC (Destino)</option>' +
     fcsDisponiveis.map(fc=>`<option${fc===cur?' selected':''}>${fc}</option>`).join('');
   if(cur && fcsDisponiveis.includes(cur)) fcSel.value = cur;
 }
 
+// ── Justificativas de Atraso na Descarga (+12h no FC) — feature pro Cliente Amazon ──
+// Não mistura com o relatório FUP normal (que continua mostrando tudo): essa é uma lista
+// separada, só com as viagens que passaram de 12h de descarga e ainda não têm justificativa.
+const LIMITE_JUSTIFICATIVA_MIN=720; // 12h
+function _viagensPendentesJustificativa(){
+  const fcsPermitidos=currentUser?.permissoes_custom?.fcsPermitidos;
+  return ops.filter(o=>{
+    const fc=_fcFromRota(o.rota);
+    if(!fc)return false;
+    if(Array.isArray(fcsPermitidos)&&fcsPermitidos.length&&!fcsPermitidos.includes(fc.toUpperCase()))return false;
+    const tempo=dMin(o.realChegFC,o.realDescarga);
+    if(tempo===null||tempo<LIMITE_JUSTIFICATIVA_MIN)return false;
+    return !o.justificativaAtrasoDescarga;
+  }).sort((a,b)=>(b.dataOp||'').localeCompare(a.dataOp||''));
+}
+function renderJustificativasPendentes(){
+  const wrap=document.getElementById('justificativasPendentesWrap');
+  if(!wrap)return;
+  const pendentes=_viagensPendentesJustificativa();
+  if(!pendentes.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+    <div style="font-size:.9rem;font-weight:800;color:var(--red);margin-bottom:4px">⚠️ Justificativas Pendentes — Descarga acima de 12h (${pendentes.length})</div>
+    <div style="font-size:.68rem;color:var(--t2);margin-bottom:12px">Viagens que passaram de 12h entre chegada no FC e descarga, sem motivo registrado ainda.</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${pendentes.map(o=>{
+        const fc=_fcFromRota(o.rota);
+        const tempo=dMin(o.realChegFC,o.realDescarga);
+        const horas=Math.floor(tempo/60),min=tempo%60;
+        return `<div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+            <span style="font-size:.78rem;font-weight:700;color:var(--text)">${esc(o.codigoCurto||o.id)} · ${esc(fc)} · ${esc(o.transp||'—')} · ${esc(o.placa||'—')}</span>
+            <span style="font-size:.72rem;font-weight:700;color:var(--red)">⏱ ${horas}h${String(min).padStart(2,'0')} na doca</span>
+          </div>
+          <textarea id="justif-${esc(o.id)}" placeholder="Motivo do atraso na descarga..." style="width:100%;min-height:50px;background:var(--bg2);border:1.5px solid var(--bd);border-radius:6px;color:var(--text);padding:6px 8px;font-size:.74rem;font-family:inherit;resize:vertical"></textarea>
+          <button class="btn btn-s" style="font-size:.68rem;margin-top:6px" onclick="salvarJustificativaAtraso('${esc(o.id)}')">💾 Salvar Justificativa</button>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+async function salvarJustificativaAtraso(opId){
+  if(!['cliente_amazon','admin','supervisor'].includes(_perfil())){showToast('⛔ Sem permissão pra registrar justificativa','err');return;}
+  const el=document.getElementById(`justif-${opId}`);
+  const texto=el?.value?.trim();
+  if(!texto){showToast('⚠ Escreva a justificativa antes de salvar','err');return;}
+  const who=currentUser?.nome||'Usuário';
+  const agora=new Date().toISOString();
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${TABELA}?id=eq.${encodeURIComponent(opId)}`,{
+      method:'PATCH',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({justificativa_atraso_descarga:texto,justificativa_atraso_por:who,justificativa_atraso_em:agora})
+    });
+    if(!r.ok)throw new Error(await r.text());
+    const op=ops.find(o=>o.id===opId);
+    if(op){op.justificativaAtrasoDescarga=texto;op.justificativaAtrasoPor=who;op.justificativaAtrasoEm=agora;}
+    showToast('✅ Justificativa salva','ok');
+    _publishAbly('ops_update',{by:currentUser?.user,action:'update'});
+    renderJustificativasPendentes();
+  }catch(e){showToast('Erro ao salvar: '+(e.message||e),'err');}
+}
 function renderAmazon(){
   _initAmazonSelects();
   const fc = document.getElementById('amFC')?.value || '';
   const dataFiltro = document.getElementById('amData')?.value || hojeLocal();
   const wrap = document.getElementById('amazonWrap');
   if(!wrap) return;
+
+  // Segunda trava: mesmo que o FC já estivesse selecionado antes da permissão mudar,
+  // não deixa ver dado de FC fora da lista liberada pra esse usuário.
+  const fcsPermitidos=currentUser?.permissoes_custom?.fcsPermitidos;
+  if(fc&&Array.isArray(fcsPermitidos)&&fcsPermitidos.length&&!fcsPermitidos.includes(fc.toUpperCase())){
+    wrap.innerHTML=`<div style="text-align:center;padding:60px;color:var(--red)">⛔ Você não tem permissão pra ver o FC "${esc(fc)}".</div>`;
+    return;
+  }
 
   if(!fc){
     wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--t2)">
