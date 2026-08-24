@@ -1824,11 +1824,19 @@ function esc(s){
     .replace(/'/g,'&#39;')
     .replace(/`/g,'&#96;');
 }
-const APP_VERSION='v307';
+// Normaliza placa: maiúscula, sem hífen/espaço/pontuação — evita a mesma placa virar
+// "EHH8C74" / "EHH-8C74" / "ehh 8c74" em registros diferentes (visto no relatório de
+// veículos sem cadastro, 18 grupos de duplicata só por causa disso).
+function normPlaca(v){
+  if(!v)return '';
+  return String(v).toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+const APP_VERSION='v308';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v308:['🔧 Placa: agora é sempre salva padronizada (maiúscula, sem hífen/espaço/pontuação) em todos os lugares — viagem, retorno de pallets, cadastro de veículos e programação em massa. Antes a mesma placa podia virar 3-4 registros diferentes (ex: "EHH8C74" / "EHH-8C74" / "ehh 8c74"), inflando a contagem de "veículos sem cadastro" e o histórico por placa. Também normalizado os dados já existentes no banco (37 registros corrigidos).'],
   v307:['🐛 CRÍTICO: corrigida a lista de "Justificativas Pendentes" — ela só considerava viagens que JÁ tinham finalizado a descarga (dMin entre dois horários preenchidos), então uma viagem ainda aguardando na doca há 20h+ nunca aparecia pra exigir justificativa. Agora usa o mesmo cálculo "ao vivo" (tempoAguardandoDescarga) da coluna Descarga do relatório — pega quem já passou de 12h AGORA, mesmo sem ter finalizado ainda. Também preserva o texto sendo digitado quando a lista atualiza sozinha (evita perder rascunho).','📋 FUP Amazon: viagens Finalizadas agora aparecem com detalhe completo (transportadora, motorista, placa, horários) — só pro perfil Cliente Amazon; pro time interno continua compacto (só código), pra não poluir.'],
   v306:['🔒 Reforço de segurança pro Cliente Amazon (e qualquer perfil sem permissão de viagem): busca global (🔍/Ctrl+K) e botão "+ Nova Viagem" agora ficam escondidos e bloqueados também na própria função (não só o botão) pra quem não tem viagem_criar/editar/status — evita contornar a tela restrita por fora. openEdit() já tinha trava própria bloqueando esses casos; isso é reforço.'],
   v305:['👤 Novo perfil "Cliente Amazon" — login externo, só acessa FUP Amazon, restrito aos FCs liberados por login (configurável no Admin, campo "FCs Permitidos" — vazio = vê todos). 📋 Justificativa obrigatória (não trava nada, só registra o motivo) pra viagens com mais de 12h entre chegada no FC e descarga — aparece numa lista separada, só as pendentes, sem misturar com o relatório normal. Só o Cliente Amazon preenche.'],
@@ -4474,10 +4482,10 @@ function buildForm(op){
   <div class="fg"><label>Transportadora</label><select id="fTransp"><option value="">Selecione...</option>${sl(TRANSPS,o.transp)}</select></div>
   <div class="fg"><label>Tipologia</label><select id="fTipol" onchange="tgPlaca()">${sl(TIPOLS,o.tipologia)}</select></div>
   <div class="fg"><label>Motorista</label><input id="fMot" value="${o.mot}" placeholder="Nome do motorista"></div>
-  <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX-0000"></div>
+  <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX0000" style="text-transform:uppercase"></div>
 </div>
 <div id="wCarreta" style="${o.tipologia!=='CARRETA'?'display:none;':''}margin-top:10px">
-  <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="fPlacaC" value="${o.placaCarreta||''}" placeholder="XXX-0000"></div>
+  <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="fPlacaC" value="${o.placaCarreta||''}" placeholder="XXX0000" style="text-transform:uppercase"></div>
 </div>
 <div class="sec">🕐 Horários Planejados</div>
 <div class="fgrid c3">
@@ -4703,8 +4711,8 @@ async function saveCard(){
     const op=ops.find(o=>o.id===editId);if(!op){loading(false);return;}
     const ch=[],upd=(k,v)=>{if(String(op[k])!==String(v)){ch.push(`${k}: "${op[k]}"→"${v}"`);op[k]=v;}};
     upd('dataProg',g('fDP'));upd('dataOp',g('fDO'));upd('rota',g('fRota'));upd('tipoCarga',g('fTipo'));
-    upd('tipologia',g('fTipol'));upd('transp',g('fTransp'));upd('mot',g('fMot'));upd('placa',g('fPlaca'));
-    upd('placaCarreta',g('fPlacaC'));upd('sm',g('fSM'));upd('tms',g('fTMS'));upd('isa',g('fISA'));
+    upd('tipologia',g('fTipol'));upd('transp',g('fTransp'));upd('mot',g('fMot'));upd('placa',normPlaca(g('fPlaca')));
+    upd('placaCarreta',normPlaca(g('fPlacaC')));upd('sm',g('fSM'));upd('tms',g('fTMS'));upd('isa',g('fISA'));
     upd('planApres',g('fPA'));upd('planSaida',g('fPS'));upd('planChegFC',g('fPC'));
     upd('realApres',g('fRA'));upd('realSaida',g('fRS'));upd('realChegFC',g('fRC'));upd('realDescarga',g('fRD'));
     const statusAntes=op.status;
@@ -4726,7 +4734,7 @@ async function saveCard(){
   }else{
     const id=g('fId')||genId();
     document.getElementById('fId')?.setAttribute('value',id); // trava o ID gerado no próprio form, caso a trava acima falhe por algum motivo
-    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
+    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:normPlaca(g('fPlaca')),placaCarreta:normPlaca(g('fPlacaC')),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
@@ -4865,7 +4873,7 @@ function renderMassa(){
       <td style="padding:3px 4px"><strong style="color:var(--red)">${r.rota}</strong></td>
       <td style="padding:3px 4px"><select class="mi" style="width:135px" onchange="mRows[${i}].transp=this.value"><option value="">Selecione...</option>${TRANSPS.map(t=>`<option${r.transp===t?' selected':''}>${t}</option>`).join('')}</select></td>
       <td style="padding:3px 4px"><input class="mi" style="width:128px" placeholder="Motorista" value="${r.mot}" oninput="mRows[${i}].mot=this.value"></td>
-      <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="Placa trator" value="${r.placa}" oninput="mRows[${i}].placa=this.value"></td>
+      <td style="padding:3px 4px"><input class="mi" style="width:84px;text-transform:uppercase" placeholder="Placa trator" value="${r.placa}" oninput="mRows[${i}].placa=normPlaca(this.value)"></td>
       <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=this.value">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
       <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" type="number" inputmode="numeric" oninput="mRows[${i}].sm=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" type="number" inputmode="numeric" oninput="mRows[${i}].tms=this.value"></td>
@@ -7818,9 +7826,9 @@ async function savePallet(){
     id:editPalletId||genPalletId(),fc,dataOp,
     transp:podeGerir?(document.getElementById('rpTransp')?.value||''):(existente?.transp||''),
     motorista:podeGerir?(document.getElementById('rpMotorista')?.value||''):(existente?.motorista||''),
-    placa:podeGerir?(document.getElementById('rpPlaca')?.value||'').toUpperCase():(existente?.placa||''),
+    placa:podeGerir?normPlaca(document.getElementById('rpPlaca')?.value):(existente?.placa||''),
     tipologia:podeGerir?(document.getElementById('rpTipol')?.value||''):(existente?.tipologia||''),
-    placaCarreta:podeGerir?(document.getElementById('rpPlacaCarreta')?.value||'').toUpperCase():(existente?.placaCarreta||''),
+    placaCarreta:podeGerir?normPlaca(document.getElementById('rpPlacaCarreta')?.value):(existente?.placaCarreta||''),
     qtdPrevista:podeAuditoria?(parseInt(document.getElementById('rpQtdPrevista')?.value||0)||0):(existente?.qtdPrevista||0),
     qtdRecebida:qtdRecebidaVal===''||qtdRecebidaVal==null?null:(parseInt(qtdRecebidaVal)||0),
     status:statusEscolhido,doca:existente?.doca||'',opOrigemId:existente?.opOrigemId||'',
@@ -8586,8 +8594,8 @@ async function loadVeiculosCadastro(){
 
 function _buscarVeiculo(placa){
   if(!placa)return null;
-  const p=placa.trim().toUpperCase();
-  return veiculosCadastro.find(v=>v.placa===p)||null;
+  const p=normPlaca(placa);
+  return veiculosCadastro.find(v=>normPlaca(v.placa)===p)||null;
 }
 // A capacidade de carga é característica da CARRETA (o baú), não do cavalo — então prioriza
 // a placa da carreta na busca, e só cai pra placa do cavalo se não tiver carreta (TRUCK/TOCO).
@@ -8686,7 +8694,7 @@ function closeVeiculoModal(){document.getElementById('overlayVeiculo').classList
 
 async function saveVeiculo(){
   if(!hasPerm('veiculos_gerir')){showToast('⛔ Sem permissão','err');return;}
-  const placa=(document.getElementById('vecPlaca')?.value||'').trim().toUpperCase();
+  const placa=normPlaca(document.getElementById('vecPlaca')?.value);
   const comprimento=parseFloat(document.getElementById('vecComprimento')?.value);
   const largura=parseFloat(document.getElementById('vecLargura')?.value);
   if(!placa){showToast('⚠ Informe a placa','err');return;}
@@ -11806,7 +11814,7 @@ function renderJustificativasPendentes(){
         const statusTxt=esp.finalizado?'na doca (finalizado)':'ainda aguardando ⏱';
         return `<div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px">
-            <span style="font-size:.78rem;font-weight:700;color:var(--text)">${esc(o.codigoCurto||o.id)} · ${esc(fc)} · ${esc(o.transp||'—')} · ${esc(o.placa||'—')}</span>
+            <span style="font-size:.78rem;font-weight:700;color:var(--text)">${esc(o.codigoCurto||o.id)} · ${esc(fc)} · ${esc(o.transp||'—')} · ${esc(o.placa||'—')} <span style="font-weight:400;color:var(--t2)">· ${o.dataOp?fmtD(o.dataOp):'—'}</span></span>
             <span style="font-size:.72rem;font-weight:700;color:var(--red)">⏱ ${horas}h${String(min).padStart(2,'0')} ${statusTxt}</span>
           </div>
           <textarea id="justif-${esc(o.id)}" placeholder="Motivo do atraso na descarga..." style="width:100%;min-height:50px;background:var(--bg2);border:1.5px solid var(--bd);border-radius:6px;color:var(--text);padding:6px 8px;font-size:.74rem;font-family:inherit;resize:vertical"></textarea>
