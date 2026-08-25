@@ -1885,11 +1885,13 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v313';
+const APP_VERSION='v315';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v315:['⚡ Assistente IA: correção de egress — o carregamento automático de CAFs (feito ao abrir o balão, se ainda não tinha sido carregado na sessão) estava usando a versão "pesada" (com histórico de cada CAF, 82% do peso). Agora usa a mesma versão enxuta que já existia pra TV — sem hist, ~5x mais leve. Se a pessoa depois visitar a aba de CAF de verdade, ela recarrega sozinha com tudo completo, sem risco de dado incompleto ficar preso na tela.'],
+  v314:['🤖 Assistente IA agora enxerga CAFs e Veículos Cadastrados também, não só viagens de hoje — antes só respondia sobre viagem porque era só isso que mandávamos pra ele. Ao abrir o balão, ele garante sozinho que CAFs/Veículos estejam carregados (mesmo que você nunca tenha aberto aquelas abas nessa sessão), então a resposta não fica "não tenho essa informação" por falta de carregamento.'],
   v313:['🐛 Corrigido painel do Assistente IA aparecendo transparente — usava uma variável de cor (`--bg1`) que não existe no app. Achei o mesmo erro em outro lugar (tabela de Sessões Ativas) e corrigi também.'],
   v312:['🤖 Assistente IA ajustado: agora é um balãozinho flutuante no canto da tela (não mais um botão que abre uma janela grande) — clica pra abrir um painel pequeno, não cobre a tela toda. Também deixou de ser liberado automaticamente pra quem pode criar viagem — agora é uma permissão própria, desligada por padrão pra todo mundo (inclusive Admin), e só aparece pra quem for liberado manualmente na tela de edição de usuário.'],
   v311:['🤖 Novo: Assistente IA (botão 🤖 na barra superior) — responde perguntas usando só o que já está carregado na tela (não busca nada novo no banco) e cria viagens por linguagem natural (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Sempre mostra uma prévia com Saída/Apresentação já calculados (mesma regra da Prog. em Massa) antes de salvar — a IA nunca grava nada sozinha, só sugere. Requer a Cloudflare Pages Function /api/assistente.js (arquivo separado, precisa subir pro repositório) e a variável de ambiente GEMINI_API_KEY configurada no painel do Cloudflare.'],
@@ -4479,26 +4481,58 @@ function closeModal(){document.getElementById('overlay').classList.remove('open'
 // manual antes de salvar (a IA nunca grava nada sozinha).
 // ══════════════════════════════════════════════════════════════════
 let _aguardandoRespostaIA=false;
+let _assistenteCargaPendente=null;
 function toggleAssistenteIA(){
   if(!hasPerm('assistente_ia')){showToast('⛔ Sem permissão','err');return;}
   const painel=document.getElementById('assistentePanel');
   const abrindo=painel.style.display==='none'||!painel.style.display;
   painel.style.display=abrindo?'flex':'none';
-  if(abrindo)document.getElementById('assistenteInput')?.focus();
+  if(abrindo){
+    document.getElementById('assistenteInput')?.focus();
+    // Garante que CAFs e Veículos estejam carregados — essas telas só carregam quando a
+    // pessoa visita a aba, então sem isso o assistente acharia "zero CAFs" mesmo tendo,
+    // só porque ninguém abriu a aba de CAF ainda nessa sessão.
+    const promessas=[];
+    if(!cafsDB.length)promessas.push(loadCAFs(false).catch(()=>{})); // sem hist — assistente só precisa de status/contagem
+    if(!veiculosCadastro.length)promessas.push(loadVeiculosCadastro().catch(()=>{}));
+    _assistenteCargaPendente=promessas.length?Promise.all(promessas):null;
+  }
 }
 function _montarContextoAssistente(){
   const hoje=hojeLocal();
   const hojeOps=ops.filter(o=>o.dataOp===hoje);
   const porStatus={};
   hojeOps.forEach(o=>{porStatus[o.status]=(porStatus[o.status]||0)+1;});
+
+  // CAFs — resumo + amostra (não é "só o que tá na tela", é tudo que o app já carregou)
+  const cafsPorStatus={};
+  (cafsDB||[]).forEach(c=>{cafsPorStatus[c.status]=(cafsPorStatus[c.status]||0)+1;});
+
+  // Veículos cadastrados
+  const veicPorTipologia={};
+  (veiculosCadastro||[]).forEach(v=>{veicPorTipologia[v.tipologia||'—']=(veicPorTipologia[v.tipologia||'—']||0)+1;});
+
   return {
     data_hoje:hoje,
-    total_viagens_hoje:hojeOps.length,
-    viagens_por_status_hoje:porStatus,
-    viagens_atrasadas_hoje:hojeOps.filter(o=>getSLA(o)==='late').length,
+    viagens:{
+      total_hoje:hojeOps.length,
+      por_status_hoje:porStatus,
+      atrasadas_hoje:hojeOps.filter(o=>getSLA(o)==='late').length,
+      total_carregado_90dias:ops.length,
+      amostra_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,placa:o.placa,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null}))
+    },
+    cafs:{
+      total_carregado:(cafsDB||[]).length,
+      por_status:cafsPorStatus,
+      amostra:(cafsDB||[]).slice(0,40).map(c=>({num:c.num,status:c.status,tipo:c.tipo,vol:c.vol,ruaId:c.ruaId||null,opId:c.opId||null}))
+    },
+    veiculos_cadastrados:{
+      total:(veiculosCadastro||[]).length,
+      por_tipologia:veicPorTipologia,
+      amostra:(veiculosCadastro||[]).slice(0,40).map(v=>({placa:v.placa,tipologia:v.tipologia,comprimento:v.comprimento,largura:v.largura,capacidadePallets:v.capacidadePallets}))
+    },
     rotas_existentes:ROTAS,
-    transportadoras_existentes:TRANSPS,
-    amostra_viagens_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null}))
+    transportadoras_existentes:TRANSPS
   };
 }
 function _bolhaChat(texto,tipo){
@@ -4523,6 +4557,7 @@ async function enviarMensagemAssistente(){
   const bolhaCarregando=_bolhaChat('Pensando...','ia');
   chat.appendChild(bolhaCarregando);chat.scrollTop=chat.scrollHeight;
   try{
+    if(_assistenteCargaPendente)await _assistenteCargaPendente; // espera CAFs/Veículos, se ainda estiverem carregando
     const r=await fetch('/api/assistente',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mensagem:msg,contexto:_montarContextoAssistente()})
