@@ -487,6 +487,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .topbar{height:48px;padding:0 10px;}
   .tabs{display:none;}
   .mobile-nav{display:block;}
+  #assistenteBubble{bottom:76px!important;}
+  #assistentePanel{bottom:138px!important;}
   .topbar-r .clock{display:none;}
   .topbar-r .dbs span{display:none;}
   .ob-name,.ob-pg{display:none;}
@@ -1473,6 +1475,22 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
   </div>
 </div>
+<div id="assistenteBubble" onclick="toggleAssistenteIA()" title="Assistente" style="display:none;position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:400;user-select:none">🤖</div>
+<div id="assistentePanel" style="display:none;flex-direction:column;position:fixed;bottom:82px;right:20px;width:340px;max-width:calc(100vw - 24px);max-height:min(480px,calc(100vh - 110px));background:var(--bg1);border:1px solid var(--bd);border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.4);z-index:401;overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg2);border-bottom:1px solid var(--bd)">
+    <span style="font-size:.8rem;font-weight:700">🤖 Assistente</span>
+    <button class="mclose" style="position:static" onclick="toggleAssistenteIA()">✕</button>
+  </div>
+  <div style="padding:8px 12px;font-size:.65rem;color:var(--t2);border-bottom:1px solid var(--bd)">
+    Pergunte sobre o que já está na tela, ou peça pra criar viagem (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Não mexe no banco sozinho — toda criação passa por sua confirmação.
+  </div>
+  <div id="assistenteChat" style="padding:10px 12px;flex:1;min-height:120px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
+  <div id="assistentePreview" style="padding:0 12px;max-height:200px;overflow-y:auto"></div>
+  <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--bd)">
+    <input id="assistenteInput" placeholder="Pergunte algo..." style="flex:1;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.76rem" onkeydown="if(event.key==='Enter')enviarMensagemAssistente()">
+    <button class="btn btn-p" id="btnEnviarAssistente" style="font-size:.72rem" onclick="enviarMensagemAssistente()">➤</button>
+  </div>
+</div>
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="mhdr">
@@ -1718,16 +1736,16 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 // ═══ PERMISSÕES POR PERFIL ═══
 const PERMS_BASE = {
-  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:1,esteira_gerir:1},
-  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:1},
-  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:0},
-  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
-  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
-  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
-  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0,esteira_gerir:1},
-  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
-  fiscal_patio:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
-  cliente_amazon: {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0},
+  admin:          {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:1,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:1,esteira_gerir:1,assistente_ia:0},
+  supervisor:     {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:1,doca_atrelar:1,caf_criar:1,caf_editar:1,caf_status_full:1,caf_deletar:1,caf_rua:1,caf_editar_num:1,importar:1,exportar:1,admin:1,pptx:0,pallet_gerir:1,pallet_deletar:1,pallet_inventario:1,pallet_horarios:1,pallet_auditoria:1,insumo_gerir:1,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:1,assistente_ia:0},
+  torre_controle: {viagem_criar:1,viagem_editar:1,viagem_status:1,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:1,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:1,esteira_gerir:0,assistente_ia:0},
+  doca:           {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:1,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:1,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
+  operador_caf:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:1,caf_editar:1,caf_status_full:0,caf_deletar:0,caf_rua:1,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
+  visualizador:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
+  lideranca:      {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:1,insumo_credito_debito:1,veiculos_gerir:0,esteira_gerir:1,assistente_ia:0},
+  tv_publica:     {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
+  fiscal_patio:   {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:1,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
+  cliente_amazon: {viagem_criar:0,viagem_editar:0,viagem_status:0,viagem_deletar:0,doca_atrelar:0,caf_criar:0,caf_editar:0,caf_status_full:0,caf_deletar:0,caf_rua:0,caf_editar_num:0,importar:0,exportar:0,admin:0,pptx:0,pallet_gerir:0,pallet_deletar:0,pallet_inventario:0,pallet_horarios:0,pallet_auditoria:0,insumo_gerir:0,insumo_credito_debito:0,veiculos_gerir:0,esteira_gerir:0,assistente_ia:0},
 };
 
 const ABAS_BASE = {
@@ -1761,6 +1779,7 @@ const TODAS_PERMS = [
   {key:'insumo_credito_debito',label:'Insumos HUB: crédito/débito manual de saldo (liderança)'},
   {key:'veiculos_gerir',label:'Cadastro de Veículos: criar/editar/excluir'},
   {key:'esteira_gerir',label:'Esteiras: atribuir colaborador por esteira'},
+  {key:'assistente_ia',label:'🤖 Assistente IA: acesso ao balão de perguntas/criação de viagem'},
 ];
 
 const TODAS_ABAS = [
@@ -1866,11 +1885,13 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v310';
+const APP_VERSION='v312';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v312:['🤖 Assistente IA ajustado: agora é um balãozinho flutuante no canto da tela (não mais um botão que abre uma janela grande) — clica pra abrir um painel pequeno, não cobre a tela toda. Também deixou de ser liberado automaticamente pra quem pode criar viagem — agora é uma permissão própria, desligada por padrão pra todo mundo (inclusive Admin), e só aparece pra quem for liberado manualmente na tela de edição de usuário.'],
+  v311:['🤖 Novo: Assistente IA (botão 🤖 na barra superior) — responde perguntas usando só o que já está carregado na tela (não busca nada novo no banco) e cria viagens por linguagem natural (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Sempre mostra uma prévia com Saída/Apresentação já calculados (mesma regra da Prog. em Massa) antes de salvar — a IA nunca grava nada sozinha, só sugere. Requer a Cloudflare Pages Function /api/assistente.js (arquivo separado, precisa subir pro repositório) e a variável de ambiente GEMINI_API_KEY configurada no painel do Cloudflare.'],
   v310:['⚡ EGRESS: campo "hist" (histórico de alterações) tirado do carregamento automático — ele sozinho era 75% do peso da tabela de viagens (1,18MB de 1,58MB medidos), baixado em TODO carregamento mesmo sem ninguém olhar. Agora só carrega sob demanda: ao abrir o modal de uma viagem, ou ao gerar Excel/Backup/Exportar Histórico (que buscam em lote as viagens envolvidas). Sem risco de perder histórico — todo lugar que grava no hist agora garante que o anterior foi carregado primeiro.','🌐 Admin: nova tela "Sessões Ativas" — mostra TODOS os logins em andamento agora (não só tablet compartilhado), com IP e navegador de cada um. Atualiza só quando clicado (não fica em loop). Login novo a partir de agora já grava IP/navegador automaticamente.','🐛 Restaurada a função listar_turnos que tinha ficado de fora da sincronização anterior (Histórico de Turnos estava dando erro).','🐛 fiscal_patio corrigido: não estava na lista de perfis de "login compartilhado" na hora de logar — impedia login simultâneo em vários tablets e pulava a pergunta de turno.'],
   v309:['🔒 Placa: agora trava o salvamento se o formato estiver errado (precisa ter 7 caracteres, padrão antigo ou Mercosul) — em viagem, retorno de pallets, cadastro de veículos e programação em massa. Evita coisa tipo "CARRETAFUA8A06" ou placa incompleta entrando no banco. Campo vazio continua permitido.','📋 Justificativas Pendentes (FUP Amazon): agora só aparece pra quem realmente pode preencher (Cliente Amazon, Admin, Supervisor) — resto do time nem vê mais o bloco. Também virou um dropdown recolhível (clica pra abrir/fechar), começa fechado por padrão e lembra a escolha.','🚛 FUP Amazon: coluna de Placa agora mostra cavalo e carreta juntos (carreta embaixo, com ícone 🔗) — antes só aparecia a placa do cavalo.'],
   v308:['🔧 Placa: agora é sempre salva padronizada (maiúscula, sem hífen/espaço/pontuação) em todos os lugares — viagem, retorno de pallets, cadastro de veículos e programação em massa. Antes a mesma placa podia virar 3-4 registros diferentes (ex: "EHH8C74" / "EHH-8C74" / "ehh 8c74"), inflando a contagem de "veículos sem cadastro" e o histórico por placa. Também normalizado os dados já existentes no banco (37 registros corrigidos).'],
@@ -2707,6 +2728,8 @@ async function bootApp(){
   if(_btnBusca)_btnBusca.style.display=_podeMexerEmViagem?'':'none';
   const _btnNovo=document.getElementById('newOpBtn');
   if(_btnNovo)_btnNovo.style.display=_podeMexerEmViagem?'':'none';
+  const _btnAssist=document.getElementById('assistenteBubble');
+  if(_btnAssist)_btnAssist.style.display=hasPerm('assistente_ia')?'flex':'none';
 
   aplicarPermissoesUI(currentUser.perfil);
   loading(true);
@@ -4447,6 +4470,141 @@ async function openEdit(id){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')&&!hasPerm('doca_atrelar')){showToast('Sem permissão','err');return;}
 editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=hasPerm('doca_atrelar')&&!hasPerm('viagem_editar')&&!hasPerm('viagem_status');document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';await _garantirHistCarregado(op);buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
+
+// ══════════════════════════════════════════════════════════════════
+// ASSISTENTE IA — Q&A com dados já na tela + criação de viagem por
+// linguagem natural. Nunca acessa o banco além do que o app já
+// carregou; toda criação de viagem passa por prévia + confirmação
+// manual antes de salvar (a IA nunca grava nada sozinha).
+// ══════════════════════════════════════════════════════════════════
+let _aguardandoRespostaIA=false;
+function toggleAssistenteIA(){
+  if(!hasPerm('assistente_ia')){showToast('⛔ Sem permissão','err');return;}
+  const painel=document.getElementById('assistentePanel');
+  const abrindo=painel.style.display==='none'||!painel.style.display;
+  painel.style.display=abrindo?'flex':'none';
+  if(abrindo)document.getElementById('assistenteInput')?.focus();
+}
+function _montarContextoAssistente(){
+  const hoje=hojeLocal();
+  const hojeOps=ops.filter(o=>o.dataOp===hoje);
+  const porStatus={};
+  hojeOps.forEach(o=>{porStatus[o.status]=(porStatus[o.status]||0)+1;});
+  return {
+    data_hoje:hoje,
+    total_viagens_hoje:hojeOps.length,
+    viagens_por_status_hoje:porStatus,
+    viagens_atrasadas_hoje:hojeOps.filter(o=>getSLA(o)==='late').length,
+    rotas_existentes:ROTAS,
+    transportadoras_existentes:TRANSPS,
+    amostra_viagens_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null}))
+  };
+}
+function _bolhaChat(texto,tipo){
+  const div=document.createElement('div');
+  const cores={user:'var(--blue)',ia:'var(--bg3)',erro:'var(--red)'};
+  div.style.cssText=`align-self:${tipo==='user'?'flex-end':'flex-start'};max-width:85%;background:${tipo==='user'?'var(--blue)':'var(--bg3)'};color:${tipo==='user'?'#fff':'var(--text)'};border-radius:10px;padding:8px 12px;font-size:.78rem;white-space:pre-wrap${tipo==='erro'?';border:1px solid var(--red);color:var(--red)':''}`;
+  div.textContent=texto;
+  return div;
+}
+async function enviarMensagemAssistente(){
+  if(_aguardandoRespostaIA)return;
+  const input=document.getElementById('assistenteInput');
+  const msg=(input?.value||'').trim();
+  if(!msg)return;
+  const chat=document.getElementById('assistenteChat');
+  chat.appendChild(_bolhaChat(msg,'user'));
+  input.value='';
+  chat.scrollTop=chat.scrollHeight;
+  document.getElementById('assistentePreview').innerHTML='';
+  _aguardandoRespostaIA=true;
+  const btn=document.getElementById('btnEnviarAssistente');if(btn)btn.disabled=true;
+  const bolhaCarregando=_bolhaChat('Pensando...','ia');
+  chat.appendChild(bolhaCarregando);chat.scrollTop=chat.scrollHeight;
+  try{
+    const r=await fetch('/api/assistente',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mensagem:msg,contexto:_montarContextoAssistente()})
+    });
+    const data=await r.json().catch(()=>({tipo:'erro',texto:'Resposta inválida do assistente.'}));
+    bolhaCarregando.remove();
+    if(data.tipo==='resposta'){
+      chat.appendChild(_bolhaChat(data.texto||'(sem resposta)','ia'));
+    }else if(data.tipo==='criar_viagens'){
+      chat.appendChild(_bolhaChat(data.resumo||'Entendi o pedido de criação — confira a prévia abaixo.','ia'));
+      _renderPreviewViagensIA(data.viagens||[]);
+    }else{
+      chat.appendChild(_bolhaChat(data.texto||'Não entendi — pode reformular?','erro'));
+    }
+  }catch(e){
+    bolhaCarregando.remove();
+    chat.appendChild(_bolhaChat('Falha de conexão com o assistente. Tenta de novo.','erro'));
+  }finally{
+    _aguardandoRespostaIA=false;if(btn)btn.disabled=false;
+    chat.scrollTop=chat.scrollHeight;
+  }
+}
+let _previewViagensIA=[];
+function _renderPreviewViagensIA(viagens){
+  // Calcula Saída/Apresentação com a MESMA regra e MESMA função já usada na Prog. em
+  // Massa (subMin) — a IA nunca faz essa conta, só o app.
+  _previewViagensIA=viagens.map(v=>({
+    rota:v.rota||'',transp:v.transp||'',mot:v.mot||'',placa:normPlaca(v.placa||''),
+    tipoCarga:v.tipoCarga||'LTL',tipologia:v.tipologia||'CARRETA',
+    planChegFC:v.planChegFC||'',
+    planSaida:v.planChegFC?subMin(v.planChegFC,60):'',
+    planApres:v.planChegFC?subMin(v.planChegFC,180):''
+  }));
+  const wrap=document.getElementById('assistentePreview');
+  if(!_previewViagensIA.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--blue);border-radius:8px;padding:10px;margin:8px 0">
+    <div style="font-size:.7rem;font-weight:700;color:var(--blue);margin-bottom:8px">📋 Prévia — confira antes de salvar</div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto">
+      ${_previewViagensIA.map((v,i)=>{
+        const placaInvalida=v.placa&&!validaPlaca(v.placa);
+        return `<div style="background:var(--bg3);border-radius:6px;padding:6px 8px;font-size:.68rem${placaInvalida?';border:1px solid var(--red)':''}">
+          <b>${esc(v.rota)||'<span style="color:var(--red)">rota?</span>'}</b> · ${esc(v.transp)||'<span style="color:var(--red)">transp?</span>'} ${v.placa?'· '+esc(v.placa):''}
+          <br>Apres ${v.planApres||'—'} → Saída ${v.planSaida||'—'} → Chegada FC ${v.planChegFC||'<span style="color:var(--red)">?</span>'}
+          ${placaInvalida?'<br><span style="color:var(--red)">⚠ formato de placa inválido</span>':''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-p" style="flex:1;font-size:.72rem" onclick="_confirmarViagensIA()">✅ Confirmar e Criar</button>
+      <button class="btn btn-g" style="font-size:.72rem" onclick="_cancelarPreviewIA()">Cancelar</button>
+    </div>
+  </div>`;
+}
+function _cancelarPreviewIA(){
+  _previewViagensIA=[];
+  document.getElementById('assistentePreview').innerHTML='';
+}
+async function _confirmarViagensIA(){
+  if(!_previewViagensIA.length)return;
+  if(!hasPerm('viagem_criar')){showToast('⛔ Sem permissão pra criar viagem','err');return;}
+  const semRota=_previewViagensIA.filter(v=>!v.rota||!v.planChegFC);
+  if(semRota.length){showToast('⚠ Todas as viagens precisam ter rota e chegada no FC preenchidos','err');return;}
+  const placaRuim=_previewViagensIA.findIndex(v=>v.placa&&!validaPlaca(v.placa));
+  if(placaRuim>=0){showToast(`⚠ Viagem ${placaRuim+1}: placa em formato inválido`,'err');return;}
+  const btn=document.querySelector('#assistentePreview button[onclick="_confirmarViagensIA()"]');
+  if(btn)btn.disabled=true;
+  loading(true);
+  const dataOp=hojeLocal(),dataProg=hojeLocal(),who=currentUser?.nome||'Sistema';
+  let criadas=0;
+  for(const v of _previewViagensIA){
+    const op={id:genId(),dataProg,dataOp,rota:v.rota,tipoCarga:v.tipoCarga,tipologia:v.tipologia,transp:v.transp,mot:v.mot||'',placa:v.placa,placaCarreta:'',sm:'',tms:'',isa:'',planApres:v.planApres,planSaida:v.planSaida,planChegFC:v.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Assistente IA`}],updatedAt:ts(),updatedBy:who};
+    ops.push(op);
+    if(supabaseOK){await saveToSupabase(op);}else{saveLocalOps();}
+    criadas++;
+  }
+  if(supabaseOK)await loadFromSupabase();
+  loading(false);
+  addActivityLog(`${criadas} operação(ões) criada(s) via Assistente IA por ${who}`);
+  document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ ${criadas} viagem(ns) criada(s) com sucesso.`,'ia'));
+  _cancelarPreviewIA();
+  render();
+  if(btn)btn.disabled=false;
+}
 
 async function deletarCard(){
   if(isReadOnly()){showToast('⛔ Sem permissão para deletar','err');return;}
