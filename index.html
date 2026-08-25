@@ -1831,11 +1831,20 @@ function normPlaca(v){
   if(!v)return '';
   return String(v).toUpperCase().replace(/[^A-Z0-9]/g,'');
 }
-const APP_VERSION='v308';
+// Valida formato de placa brasileira (padrão antigo LLL9999 ou Mercosul LLL9L99 — os dois têm
+// 7 caracteres, diferindo só no 5º: dígito no antigo, letra ou dígito no Mercosul).
+// Campo vazio é considerado válido (opcional em alguns fluxos) — só barra formato ERRADO.
+function validaPlaca(v){
+  const p=normPlaca(v);
+  if(!p)return true;
+  return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
+}
+const APP_VERSION='v309';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v309:['🔒 Placa: agora trava o salvamento se o formato estiver errado (precisa ter 7 caracteres, padrão antigo ou Mercosul) — em viagem, retorno de pallets, cadastro de veículos e programação em massa. Evita coisa tipo "CARRETAFUA8A06" ou placa incompleta entrando no banco. Campo vazio continua permitido.','📋 Justificativas Pendentes (FUP Amazon): agora só aparece pra quem realmente pode preencher (Cliente Amazon, Admin, Supervisor) — resto do time nem vê mais o bloco. Também virou um dropdown recolhível (clica pra abrir/fechar), começa fechado por padrão e lembra a escolha.','🚛 FUP Amazon: coluna de Placa agora mostra cavalo e carreta juntos (carreta embaixo, com ícone 🔗) — antes só aparecia a placa do cavalo.'],
   v308:['🔧 Placa: agora é sempre salva padronizada (maiúscula, sem hífen/espaço/pontuação) em todos os lugares — viagem, retorno de pallets, cadastro de veículos e programação em massa. Antes a mesma placa podia virar 3-4 registros diferentes (ex: "EHH8C74" / "EHH-8C74" / "ehh 8c74"), inflando a contagem de "veículos sem cadastro" e o histórico por placa. Também normalizado os dados já existentes no banco (37 registros corrigidos).'],
   v307:['🐛 CRÍTICO: corrigida a lista de "Justificativas Pendentes" — ela só considerava viagens que JÁ tinham finalizado a descarga (dMin entre dois horários preenchidos), então uma viagem ainda aguardando na doca há 20h+ nunca aparecia pra exigir justificativa. Agora usa o mesmo cálculo "ao vivo" (tempoAguardandoDescarga) da coluna Descarga do relatório — pega quem já passou de 12h AGORA, mesmo sem ter finalizado ainda. Também preserva o texto sendo digitado quando a lista atualiza sozinha (evita perder rascunho).','📋 FUP Amazon: viagens Finalizadas agora aparecem com detalhe completo (transportadora, motorista, placa, horários) — só pro perfil Cliente Amazon; pro time interno continua compacto (só código), pra não poluir.'],
   v306:['🔒 Reforço de segurança pro Cliente Amazon (e qualquer perfil sem permissão de viagem): busca global (🔍/Ctrl+K) e botão "+ Nova Viagem" agora ficam escondidos e bloqueados também na própria função (não só o botão) pra quem não tem viagem_criar/editar/status — evita contornar a tela restrita por fora. openEdit() já tinha trava própria bloqueando esses casos; isso é reforço.'],
@@ -4701,6 +4710,8 @@ async function saveCard(){
   }
   if(!validarDoca())return;
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  if(!validaPlaca(g('fPlaca'))){showToast('⚠ Placa Principal em formato inválido (esperado: 7 caracteres, ex: ABC1D23)','err');return;}
+  if(!validaPlaca(g('fPlacaC'))){showToast('⚠ Placa Carreta em formato inválido (esperado: 7 caracteres, ex: ABC1D23)','err');return;}
   // Validação de campos obrigatórios
   if(!g('fRota')){showToast('⚠ Selecione a Rota','err');return;}
   if(!g('fDO')){showToast('⚠ Informe a Data da Operação','err');return;}
@@ -4874,7 +4885,7 @@ function renderMassa(){
       <td style="padding:3px 4px"><select class="mi" style="width:135px" onchange="mRows[${i}].transp=this.value"><option value="">Selecione...</option>${TRANSPS.map(t=>`<option${r.transp===t?' selected':''}>${t}</option>`).join('')}</select></td>
       <td style="padding:3px 4px"><input class="mi" style="width:128px" placeholder="Motorista" value="${r.mot}" oninput="mRows[${i}].mot=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px;text-transform:uppercase" placeholder="Placa trator" value="${r.placa}" oninput="mRows[${i}].placa=normPlaca(this.value)"></td>
-      <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=this.value">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
+      <td style="padding:3px 4px">${r.tipologia==='CARRETA'?`<input class="mi" style="width:84px;text-transform:uppercase" placeholder="Carreta" value="${r.placaCarreta||''}" oninput="mRows[${i}].placaCarreta=normPlaca(this.value)">`:'<span style="color:var(--t3);font-size:.65rem;padding:0 6px">—</span>'}</td>
       <td style="padding:3px 4px"><input class="mi" style="width:76px" placeholder="SM" value="${r.sm}" type="number" inputmode="numeric" oninput="mRows[${i}].sm=this.value"></td>
       <td style="padding:3px 4px"><input class="mi" style="width:84px" placeholder="TMS" value="${r.tms}" type="number" inputmode="numeric" oninput="mRows[${i}].tms=this.value"></td>
       <td style="padding:3px 4px"><input type="time" class="mi" style="width:84px" value="${r.planApres}" oninput="mRows[${i}].planApres=this.value" id="mApres_${i}"></td>
@@ -4918,6 +4929,8 @@ async function confirmarMassa(){
   const btnMassa=document.querySelector('button[onclick="confirmarMassa()"]');if(btnMassa)btnMassa.disabled=true;
   try{
   if(!mRows.length){showToast('Nenhuma viagem para gerar','err');return;}
+  const linhaInvalida=mRows.findIndex(r=>!validaPlaca(r.placa)||!validaPlaca(r.placaCarreta));
+  if(linhaInvalida>=0){showToast(`⚠ Linha ${linhaInvalida+1}: placa em formato inválido (esperado: 7 caracteres, ex: ABC1D23)`,'err');return;}
   const dataOp=document.getElementById('mData')?.value||hojeLocal();
   const dataProg=hojeLocal();
   const who=currentUser?currentUser.nome:'Sistema';
@@ -7822,13 +7835,17 @@ async function savePallet(){
   const horaDescargaInput=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraDescarga')?.value):(existente?.horaDescarga||null);
   const sm=podeHorarios?(document.getElementById('rpSM')?.value||''):(existente?.sm||'');
   const idRef=podeHorarios?(document.getElementById('rpIdRef')?.value||''):(existente?.idRef||'');
+  const placaLida=podeGerir?normPlaca(document.getElementById('rpPlaca')?.value):(existente?.placa||'');
+  const placaCarretaLida=podeGerir?normPlaca(document.getElementById('rpPlacaCarreta')?.value):(existente?.placaCarreta||'');
+  if(!validaPlaca(placaLida)){showToast('⚠ Placa em formato inválido (esperado: 7 caracteres, ex: ABC1D23)','err');if(btnSalvar)btnSalvar.disabled=false;return;}
+  if(!validaPlaca(placaCarretaLida)){showToast('⚠ Placa Carreta em formato inválido (esperado: 7 caracteres, ex: ABC1D23)','err');if(btnSalvar)btnSalvar.disabled=false;return;}
   const p={
     id:editPalletId||genPalletId(),fc,dataOp,
     transp:podeGerir?(document.getElementById('rpTransp')?.value||''):(existente?.transp||''),
     motorista:podeGerir?(document.getElementById('rpMotorista')?.value||''):(existente?.motorista||''),
-    placa:podeGerir?normPlaca(document.getElementById('rpPlaca')?.value):(existente?.placa||''),
+    placa:placaLida,
     tipologia:podeGerir?(document.getElementById('rpTipol')?.value||''):(existente?.tipologia||''),
-    placaCarreta:podeGerir?normPlaca(document.getElementById('rpPlacaCarreta')?.value):(existente?.placaCarreta||''),
+    placaCarreta:placaCarretaLida,
     qtdPrevista:podeAuditoria?(parseInt(document.getElementById('rpQtdPrevista')?.value||0)||0):(existente?.qtdPrevista||0),
     qtdRecebida:qtdRecebidaVal===''||qtdRecebidaVal==null?null:(parseInt(qtdRecebidaVal)||0),
     status:statusEscolhido,doca:existente?.doca||'',opOrigemId:existente?.opOrigemId||'',
@@ -8698,6 +8715,7 @@ async function saveVeiculo(){
   const comprimento=parseFloat(document.getElementById('vecComprimento')?.value);
   const largura=parseFloat(document.getElementById('vecLargura')?.value);
   if(!placa){showToast('⚠ Informe a placa','err');return;}
+  if(!validaPlaca(placa)){showToast('⚠ Placa em formato inválido (esperado: 7 caracteres, ex: ABC1D23)','err');return;}
   if(!comprimento||!largura||comprimento<=0||largura<=0){showToast('⚠ Informe comprimento e largura válidos (em metros)','err');return;}
   const who=_nomeOperadorAtual();
   const existente=editVeiculoPlaca?veiculosCadastro.find(x=>x.placa===editVeiculoPlaca):null;
@@ -11797,16 +11815,26 @@ function _viagensPendentesJustificativa(){
 function renderJustificativasPendentes(){
   const wrap=document.getElementById('justificativasPendentesWrap');
   if(!wrap)return;
+  // Só quem realmente pode agir aqui (preencher a justificativa) enxerga o bloco — pra
+  // torre_controle e outros perfis com acesso à aba Amazon, mas sem permissão de escrever
+  // isso, ficava só poluindo a tela sem nenhuma ação possível.
+  if(!['cliente_amazon','admin','supervisor'].includes(_perfil())){wrap.innerHTML='';return;}
   // Preserva o que já foi digitado (mas ainda não salvo) antes de redesenhar — a lista
   // atualiza sozinha a cada sincronização, e sem isso o texto em andamento se perderia.
   const rascunhos={};
   wrap.querySelectorAll('textarea[id^="justif-"]').forEach(ta=>{if(ta.value.trim())rascunhos[ta.id]=ta.value;});
   const pendentes=_viagensPendentesJustificativa();
   if(!pendentes.length){wrap.innerHTML='';return;}
+  const colapsado=localStorage.getItem('justifPendentesColapsado')!=='0'; // fechado por padrão
   wrap.innerHTML=`<div style="background:var(--bg2);border:2px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:14px">
-    <div style="font-size:.9rem;font-weight:800;color:var(--red);margin-bottom:4px">⚠️ Justificativas Pendentes — Descarga acima de 12h (${pendentes.length})</div>
-    <div style="font-size:.68rem;color:var(--t2);margin-bottom:12px">Viagens que passaram de 12h entre chegada no FC e descarga, sem motivo registrado ainda.</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
+    <div onclick="_toggleJustifPendentes()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none${colapsado?'':';margin-bottom:4px'}">
+      <div>
+        <div style="font-size:.9rem;font-weight:800;color:var(--red)">⚠️ Justificativas Pendentes — Descarga acima de 12h (${pendentes.length})</div>
+        ${colapsado?'':'<div style="font-size:.68rem;color:var(--t2);margin-top:2px">Viagens que passaram de 12h entre chegada no FC e descarga, sem motivo registrado ainda.</div>'}
+      </div>
+      <span id="justifPendentesChevron" style="font-size:1rem;color:var(--red);transition:transform .2s;transform:rotate(${colapsado?'0':'180'}deg)">▾</span>
+    </div>
+    <div id="justifPendentesBody" style="display:${colapsado?'none':'flex'};flex-direction:column;gap:10px;margin-top:12px">
       ${pendentes.map(o=>{
         const fc=_fcFromRota(o.rota);
         const esp=tempoAguardandoDescarga(o);
@@ -11824,6 +11852,14 @@ function renderJustificativasPendentes(){
     </div>
   </div>`;
   Object.entries(rascunhos).forEach(([id,val])=>{const ta=document.getElementById(id);if(ta)ta.value=val;});
+}
+function _toggleJustifPendentes(){
+  const body=document.getElementById('justifPendentesBody');
+  const chevron=document.getElementById('justifPendentesChevron');
+  if(!body)return;
+  const abrindo=body.style.display==='none';
+  localStorage.setItem('justifPendentesColapsado',abrindo?'0':'1');
+  renderJustificativasPendentes(); // redesenha já no novo estado (mostra/some o subtítulo também)
 }
 async function salvarJustificativaAtraso(opId){
   if(!['cliente_amazon','admin','supervisor'].includes(_perfil())){showToast('⛔ Sem permissão pra registrar justificativa','err');return;}
@@ -11936,7 +11972,7 @@ function renderAmazon(){
                 <th style="padding:6px 8px;text-align:left;font-weight:600">ID / SM</th>
                 <th style="padding:6px 8px;text-align:left;font-weight:600">Transportadora</th>
                 <th style="padding:6px 8px;text-align:left;font-weight:600">Motorista</th>
-                <th style="padding:6px 8px;text-align:left;font-weight:600">Placa</th>
+                <th style="padding:6px 8px;text-align:left;font-weight:600">Placa (cavalo/carreta)</th>
                 <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.Apres → Real</th>
                 <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.Saída → Real</th>
                 <th style="padding:6px 8px;text-align:center;font-weight:600">Pl.FC → Real</th>
@@ -11971,7 +12007,10 @@ function renderAmazon(){
                   </td>
                   <td style="padding:6px 8px;color:var(--text)">${esc(o.transp||'—')}</td>
                   <td style="padding:6px 8px;color:var(--text)">${esc((o.mot||'—').split(' ').slice(0,2).join(' '))}</td>
-                  <td style="padding:6px 8px;color:var(--text)">${esc(o.placa||'—')}</td>
+                  <td style="padding:6px 8px;color:var(--text)">
+                    <div>${esc(o.placa||'—')}</div>
+                    ${o.placaCarreta?`<div style="color:var(--t2);font-size:.62rem" title="Placa carreta">🔗 ${esc(o.placaCarreta)}</div>`:''}
+                  </td>
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planApres,o.realApres)}</td>
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planSaida,o.realSaida)} ${fmtDelta(dSaida)}</td>
                   <td style="padding:6px 8px;text-align:center">${fmtTime(o.planChegFC,o.realChegFC)} ${fmtDelta(dFC)}</td>
