@@ -1310,6 +1310,19 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         </table>
       </div>
     </div>
+    <div class="admin-card" id="adm-sessoes-ativas" style="grid-column:1/-1">
+      <h3>🌐 Sessões Ativas — Todos os Logins</h3>
+      <div style="font-size:.68rem;color:var(--t2);margin-bottom:10px">Quem está logado agora (qualquer perfil, não só tablet compartilhado), de qual IP e navegador. Só atualiza quando você clica — não fica consultando sozinho, pra não gastar egress à toa.</div>
+      <button class="btn btn-s" style="font-size:.68rem;margin-bottom:10px" onclick="renderSessoesAtivas()">🔄 Atualizar</button>
+      <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
+        <table style="width:100%;font-size:.74rem">
+          <thead style="position:sticky;top:0;background:var(--bg2)"><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
+            <th style="padding:5px 8px">Usuário</th><th>Nome</th><th>Perfil</th><th>IP</th><th>Navegador</th><th>Login desde</th><th>Última atividade</th>
+          </tr></thead>
+          <tbody id="sessoesAtivasBody"><tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Clique em Atualizar pra carregar</td></tr></tbody>
+        </table>
+      </div>
+    </div>
     <div class="admin-card">
       <h3>📊 Estatísticas</h3>
       <div class="stat-grid" id="statsGrid"></div>
@@ -1801,8 +1814,22 @@ function hasPerm(action){
 // que venha do usuário e seja inserido via innerHTML
 // ─────────────────────────────────────────────────────
 // ── Data local (Brasília) — resolve bug de UTC virando dia seguinte após 21h ──
-function addHist(op, txt){
-  if(!op.hist)op.hist=[];
+// hist (histórico de alterações) é ~75% do peso da tabela operacoes (medido: 1,18MB de
+// 1,58MB) e não precisa vir em TODO carregamento — só quando alguém realmente olha o
+// histórico. loadFromSupabase agora NÃO busca esse campo (economia grande e recorrente);
+// aqui garantimos que, antes de qualquer leitura/escrita de op.hist, ele seja buscado sob
+// demanda se ainda não foi (sentinela: hist===null significa "não carregado ainda", []
+// significa "carregado e realmente vazio"). Sem essa garantia, um atalho rápido (doca,
+// status, alerta 24h) que não passa pelo modal apagaria o histórico anterior sem querer.
+async function _garantirHistCarregado(op){
+  if(op.hist!==null)return; // já é array (carregado, mesmo que vazio) — nada a fazer
+  try{
+    const r=await sbFetch(`${TABELA}?id=eq.${encodeURIComponent(op.id)}&select=hist`);
+    op.hist=Array.isArray(r)&&r[0]&&Array.isArray(r[0].hist)?r[0].hist:[];
+  }catch(e){op.hist=[];} // rede falhou — segue com vazio pra não travar a ação do usuário
+}
+async function addHist(op, txt){
+  await _garantirHistCarregado(op);
   op.hist.push({t:ts(),txt});
   if(op.hist.length>50)op.hist=op.hist.slice(-50); // mantém as 50 mais recentes
 }
@@ -1839,11 +1866,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v309';
+const APP_VERSION='v310';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v310:['⚡ EGRESS: campo "hist" (histórico de alterações) tirado do carregamento automático — ele sozinho era 75% do peso da tabela de viagens (1,18MB de 1,58MB medidos), baixado em TODO carregamento mesmo sem ninguém olhar. Agora só carrega sob demanda: ao abrir o modal de uma viagem, ou ao gerar Excel/Backup/Exportar Histórico (que buscam em lote as viagens envolvidas). Sem risco de perder histórico — todo lugar que grava no hist agora garante que o anterior foi carregado primeiro.','🌐 Admin: nova tela "Sessões Ativas" — mostra TODOS os logins em andamento agora (não só tablet compartilhado), com IP e navegador de cada um. Atualiza só quando clicado (não fica em loop). Login novo a partir de agora já grava IP/navegador automaticamente.','🐛 Restaurada a função listar_turnos que tinha ficado de fora da sincronização anterior (Histórico de Turnos estava dando erro).','🐛 fiscal_patio corrigido: não estava na lista de perfis de "login compartilhado" na hora de logar — impedia login simultâneo em vários tablets e pulava a pergunta de turno.'],
   v309:['🔒 Placa: agora trava o salvamento se o formato estiver errado (precisa ter 7 caracteres, padrão antigo ou Mercosul) — em viagem, retorno de pallets, cadastro de veículos e programação em massa. Evita coisa tipo "CARRETAFUA8A06" ou placa incompleta entrando no banco. Campo vazio continua permitido.','📋 Justificativas Pendentes (FUP Amazon): agora só aparece pra quem realmente pode preencher (Cliente Amazon, Admin, Supervisor) — resto do time nem vê mais o bloco. Também virou um dropdown recolhível (clica pra abrir/fechar), começa fechado por padrão e lembra a escolha.','🚛 FUP Amazon: coluna de Placa agora mostra cavalo e carreta juntos (carreta embaixo, com ícone 🔗) — antes só aparecia a placa do cavalo.'],
   v308:['🔧 Placa: agora é sempre salva padronizada (maiúscula, sem hífen/espaço/pontuação) em todos os lugares — viagem, retorno de pallets, cadastro de veículos e programação em massa. Antes a mesma placa podia virar 3-4 registros diferentes (ex: "EHH8C74" / "EHH-8C74" / "ehh 8c74"), inflando a contagem de "veículos sem cadastro" e o histórico por placa. Também normalizado os dados já existentes no banco (37 registros corrigidos).'],
   v307:['🐛 CRÍTICO: corrigida a lista de "Justificativas Pendentes" — ela só considerava viagens que JÁ tinham finalizado a descarga (dMin entre dois horários preenchidos), então uma viagem ainda aguardando na doca há 20h+ nunca aparecia pra exigir justificativa. Agora usa o mesmo cálculo "ao vivo" (tempoAguardandoDescarga) da coluna Descarga do relatório — pega quem já passou de 12h AGORA, mesmo sem ter finalizado ainda. Também preserva o texto sendo digitado quando a lista atualiza sozinha (evita perder rascunho).','📋 FUP Amazon: viagens Finalizadas agora aparecem com detalhe completo (transportadora, motorista, placa, horários) — só pro perfil Cliente Amazon; pro time interno continua compacto (só código), pra não poluir.'],
@@ -2214,23 +2242,30 @@ let _hasOcorrCol=true;
 
 async function loadFromSupabase(forceFullLoad=false){
   if(!supabaseOK)return false;
+  // Lista de colunas de operacoes SEM 'hist' — esse campo sozinho é ~75% do peso da
+  // tabela (medido: 1,18MB de 1,58MB) e só é usado no modal de edição (sob demanda) e
+  // nas exportações (que fazem seu próprio fetch específico). Ficava sendo baixado em
+  // TODO carregamento (inicial e a cada sync), mesmo sem ninguém olhar pra ele.
+  const COLS_OP_SEM_HIST='id,codigo_curto,data_prog,data_op,rota,tipo_carga,tipologia,transportadora,motorista,placa,placa_carreta,sm,tms,isa,plan_apres,plan_saida,plan_cheg_fc,real_apres,real_saida,real_cheg_fc,real_descarga,status,doca,obs,ocorr,cafs,updated_at,updated_by,motivo_atraso_saida,motivo_atraso_chegada,motorista_usou_app,justificativa_atraso_descarga,justificativa_atraso_por,justificativa_atraso_em,gerar_retorno_pallets,retorno_pallets_id';
   try{
     if(!forceFullLoad&&_lastSyncAt&&ops.length>0){
       // ── SYNC DELTA: busca só o que mudou desde o último sync ──
       // Payload mínimo: ~1-5 KB vs ~1 MB do full load
       const since=new Date(_lastSyncAt-30000).toISOString(); // -30s de margem (tolera clock drift entre PCs)
-      const changed=await sbFetch(`${TABELA}?updated_at=gte.${encodeURIComponent(since)}&order=updated_at.asc&limit=500`);
+      const changed=await sbFetch(`${TABELA}?updated_at=gte.${encodeURIComponent(since)}&order=updated_at.asc&limit=500&select=${COLS_OP_SEM_HIST}`);
       if(!Array.isArray(changed)||changed.length===0){
         _lastSyncAt=Date.now();
         return false; // nada mudou
       }
       // Aplica só as alterações no array local
-      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
+      const mapOp=r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:null,updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''});
       let changed_count=0;
       changed.forEach(r=>{
         const idx=ops.findIndex(o=>o.id===r.id);
         const mapped=mapOp(r);
-        if(idx>=0){ops[idx]=mapped;}else{ops.push(mapped);} // update ou insert
+        // Preserva o hist já carregado em memória (se essa viagem já teve o modal aberto
+        // nesta sessão) — senão o sync delta reverteria pro sentinela "não carregado".
+        if(idx>=0){if(ops[idx].hist!==null)mapped.hist=ops[idx].hist;ops[idx]=mapped;}else{ops.push(mapped);}
         changed_count++;
       });
       // Verifica deleções (registros que sumiram) — só a cada 5 min
@@ -2247,7 +2282,7 @@ async function loadFromSupabase(forceFullLoad=false){
     const since=dateLocal(cutoff);
     let allData=[], offset=0, pageSize=1000;
     while(true){
-      const page=await sbFetch(`${TABELA}?data_op=gte.${since}&order=data_op.asc,id.asc&limit=${pageSize}&offset=${offset}`);
+      const page=await sbFetch(`${TABELA}?data_op=gte.${since}&order=data_op.asc,id.asc&limit=${pageSize}&offset=${offset}&select=${COLS_OP_SEM_HIST}`);
       if(!Array.isArray(page)||page.length===0)break;
       allData=[...allData,...page];
       if(page.length<pageSize)break; // última página
@@ -2255,7 +2290,7 @@ async function loadFromSupabase(forceFullLoad=false){
     }
     const data=allData;
     if(Array.isArray(data)){
-      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:r.hist||[],updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
+      ops=data.map(r=>({id:r.id,codigoCurto:r.codigo_curto||r.id,dataProg:r.data_prog||'',dataOp:r.data_op||'',rota:r.rota||'',tipoCarga:r.tipo_carga||'',tipologia:r.tipologia||'',transp:r.transportadora||'',mot:r.motorista||'',placa:r.placa||'',placaCarreta:r.placa_carreta||'',sm:r.sm||'',tms:r.tms||'',isa:r.isa||'',planApres:r.plan_apres||'',planSaida:r.plan_saida||'',planChegFC:r.plan_cheg_fc||'',realApres:r.real_apres||'',realSaida:r.real_saida||'',realChegFC:r.real_cheg_fc||'',realDescarga:r.real_descarga||'',status:r.status||'PROG',doca:r.doca||'',obs:r.obs||'',ocorr:r.ocorr||[],cafs:r.cafs||[],hist:null,updatedAt:r.updated_at||'',updatedBy:r.updated_by||'',codigoCurto:r.codigo_curto||'',motivoAtrasoSaida:r.motivo_atraso_saida||'',motivoAtrasoChegada:r.motivo_atraso_chegada||'',motoristaUsouApp:r.motorista_usou_app||'',justificativaAtrasoDescarga:r.justificativa_atraso_descarga||'',justificativaAtrasoPor:r.justificativa_atraso_por||'',justificativaAtrasoEm:r.justificativa_atraso_em||'',gerarRetornoPallets:!!r.gerar_retorno_pallets,retornoPalletsId:r.retorno_pallets_id||''}));
       const mx=ops.reduce((m,o)=>{const n=parseInt((o.id||'').replace('OP-',''));return isNaN(n)?m:Math.max(m,n);},seq);
       if(mx>seq)seq=mx;
       _lastSyncAt=Date.now();
@@ -3474,7 +3509,27 @@ function _realDataHora(v,dataOpFallback){
   return dataOpFallback?`${fmtD(dataOpFallback)} ${v.substring(0,5)}`:v.substring(0,5);
 }
 
-function _gerarExtracaoCompleta(){
+// Carrega hist em lote pra uma lista de viagens (usado pelas exportações, que precisam
+// do histórico de várias viagens de uma vez — diferente do modal, que só precisa de uma).
+// Só busca quem realmente está com hist ainda não carregado (sentinela null); pula quem
+// já tem em memória. Em blocos de 300 IDs por chamada (limite prático de URL).
+async function _garantirHistCarregadoBulk(lista){
+  const pendentes=lista.filter(o=>o.hist===null);
+  if(!pendentes.length)return;
+  const CHUNK=300;
+  for(let i=0;i<pendentes.length;i+=CHUNK){
+    const bloco=pendentes.slice(i,i+CHUNK);
+    const ids=bloco.map(o=>encodeURIComponent(o.id)).join(',');
+    try{
+      const r=await sbFetch(`${TABELA}?id=in.(${ids})&select=id,hist`);
+      if(Array.isArray(r)){
+        const byId=Object.fromEntries(r.map(x=>[x.id,Array.isArray(x.hist)?x.hist:[]]));
+        bloco.forEach(o=>{o.hist=byId[o.id]||[];});
+      }
+    }catch(e){bloco.forEach(o=>{if(o.hist===null)o.hist=[];});} // rede falhou — segue sem travar a exportação
+  }
+}
+async function _gerarExtracaoCompleta(){
   if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
   const dataDe=document.getElementById('_extracaoDataDe')?.value;
   const dataAte=document.getElementById('_extracaoDataAte')?.value;
@@ -3483,6 +3538,8 @@ function _gerarExtracaoCompleta(){
 
   const opsDia=ops.filter(o=>o.dataOp>=dataDe&&o.dataOp<=dataAte);
   if(!opsDia.length){showToast(`Nenhuma viagem encontrada entre ${fmtD(dataDe)} e ${fmtD(dataAte)}`,'err');return;}
+  showToast('Carregando histórico das viagens...','ok');
+  await _garantirHistCarregadoBulk(opsDia);
 
   const stLb=Object.fromEntries(STS.map(s=>[s.id,s.lb]));
 
@@ -4185,11 +4242,11 @@ function _verificarAlerta24h(){
   else{document.body.insertAdjacentHTML('afterbegin',html);}
 }
 
-function _dispensarAlerta24h(opId){
+async function _dispensarAlerta24h(opId){
   window._alerta24hDispensados.add(opId);
   localStorage.setItem('trk_24h_dispensados',JSON.stringify([...window._alerta24hDispensados]));
   const op=ops.find(o=>o.id===opId);
-  if(op){addHist(op,`[${currentUser?.nome||'Sistema'}] Alerta de 24h reconhecido — decisão tomada sobre o veículo`);saveOp(op).catch(()=>{});}
+  if(op){await addHist(op,`[${currentUser?.nome||'Sistema'}] Alerta de 24h reconhecido — decisão tomada sobre o veículo`);saveOp(op).catch(()=>{});}
   _verificarAlerta24h();
   showToast(`✅ Alerta de ${opId} reconhecido`,'ok');
 }
@@ -4327,7 +4384,7 @@ async function onDrop(e,sid){
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
     op.status=sid;op.updatedAt=ts();op.updatedBy=who;
-    addHist(op,`[${who}] ${p} → ${stObj(sid).lb}`);
+    await addHist(op,`[${who}] ${p} → ${stObj(sid).lb}`);
     addActivityLog(`${esc(op.id)}: ${p} → ${stObj(sid).lb}`);
     render();renderFUP();
     try{
@@ -4386,9 +4443,9 @@ async function _autoGerarRetornoPallets(op){
 function openNew(){
   if(!hasPerm('viagem_criar')){showToast('Sem permissão','err');return;}
 editId=null;_ocorrBuf=[];document.getElementById('mTitle').textContent='Nova Operação';document.getElementById('btnDeletar').style.display='none';document.getElementById('btnDuplicar').style.display='none';document.getElementById('btnImprimir').style.display='none';buildForm(null);document.getElementById('overlay').classList.add('open');}
-function openEdit(id){
+async function openEdit(id){
   if(!hasPerm('viagem_editar')&&!hasPerm('viagem_status')&&!hasPerm('doca_atrelar')){showToast('Sem permissão','err');return;}
-editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=hasPerm('doca_atrelar')&&!hasPerm('viagem_editar')&&!hasPerm('viagem_status');document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
+editId=id;const op=ops.find(o=>o.id===id);if(!op)return;_initOcorrBuf(op);document.getElementById('mTitle').textContent='Editar — '+(op.codigoCurto||id)+'  ('+id+')';const isViz=isReadOnly();const isDoca=hasPerm('doca_atrelar')&&!hasPerm('viagem_editar')&&!hasPerm('viagem_status');document.getElementById('btnDeletar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnDuplicar').style.display=(isViz||isDoca)?'none':'';document.getElementById('btnImprimir').style.display='';await _garantirHistCarregado(op);buildForm(op);if(isDoca)_aplicarRestricaoDocaModal(op);document.getElementById('overlay').classList.add('open');}
 function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null;}
 
 async function deletarCard(){
@@ -4733,7 +4790,7 @@ async function saveCard(){
     if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
     if(document.getElementById('fMotoristaApp'))upd('motoristaUsouApp',g('fMotoristaApp'));
     op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=ts();op.updatedBy=who;
-    if(ch.length){addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
+    if(ch.length){await addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
     await autoVincularCAFs(op);
@@ -4796,14 +4853,18 @@ function exportFUP(){
   data.forEach(o=>rows.push([o.id,o.sm||'',o.rota,o.transp,o.mot,o.placa,o.planApres,o.realApres||'',o.planSaida,o.realSaida||'',o.planChegFC,o.realChegFC||'',dMin(o.planChegFC,o.realChegFC)??'',o.realDescarga||'',stObj(o.status).lb,getSLA(o)==='ok'?'No Prazo':getSLA(o)==='late'?'Atrasado':'—']));
   dlCSV(rows,'FUP_FC');
 }
-function exportHistorico(){
+async function exportHistorico(){
+  showToast('Carregando histórico das viagens...','ok');
+  await _garantirHistCarregadoBulk(ops);
   const rows=[['Data/Hora','Operação','Rota','Status','Alteração','Responsável']];
   ops.forEach(op=>{
     (op.hist||[]).forEach(h=>rows.push([h.t,op.id,op.rota,stObj(op.status).lb,h.txt,op.updatedBy||'—']));
   });
   dlCSV(rows,'HISTORICO_TRK');showToast('📋 Histórico exportado!','ok');
 }
-function exportBackup(){
+async function exportBackup(){
+  showToast('Carregando histórico das viagens...','ok');
+  await _garantirHistCarregadoBulk(ops);
   const backup={version:'2.0',exportedAt:ts(),exportedBy:currentUser?.nome||'Admin',ops,users:USERS.map(u=>({...u,pw:undefined})),rotas:ROTAS,transps:TRANSPS};
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
@@ -6696,7 +6757,7 @@ async function _docaMoverParaCarregamento(opId){
   const who=currentUser?.nome||'Sistema';
   const prevStatus=op.status;
   op.doca=doca;op.status='EMCARR';op.updatedAt=new Date().toISOString();op.updatedBy=who;
-  addHist(op,`[${who}] Doca ${doca} atribuída — ${stObj(prevStatus).lb} → Em Carregamento`);
+  await addHist(op,`[${who}] Doca ${doca} atribuída — ${stObj(prevStatus).lb} → Em Carregamento`);
   loading(true);
   await saveOp(op);
   await syncCAFsStatus(op,'EMCARR',prevStatus);
@@ -6714,7 +6775,7 @@ async function _docaAtualizarDoca(opId){
   const who=currentUser?.nome||'Sistema';
   const prev=op.doca||'';
   op.doca=doca;op.updatedAt=new Date().toISOString();op.updatedBy=who;
-  addHist(op,`[${who}] ${doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`}`);
+  await addHist(op,`[${who}] ${doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`}`);
   loading(true);
   await saveOp(op);
   loading(false);
@@ -9071,7 +9132,7 @@ async function desvincularCAF(){
   // Remove da operação também
   if(c.opId){
     const op=ops.find(o=>o.id===c.opId);
-    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
+    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await addHist(op,`[${who}] CAF ${c.num} desvinculada`);await saveOp(op);}
   }
   c.opId='';
   c.status='Produzida'; // volta para disponível p/ embarque (Vinculada a Veículo → Produzida)
@@ -9100,7 +9161,7 @@ async function _desvincularCAFDaViagemInline(cafId,linhaDomId){
   const opIdAnterior=c.opId;
   if(c.opId){
     const op=ops.find(o=>o.id===c.opId);
-    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await saveOp(op);}
+    if(op){op.cafs=op.cafs.filter(x=>x.num!==c.num);await addHist(op,`[${who}] CAF ${c.num} desvinculada (via edição da viagem)`);await saveOp(op);}
   }
   c.opId='';
   c.status='Produzida';
@@ -9154,6 +9215,7 @@ async function _vincularCAF(cafId,op){
   // Adiciona à op se ainda não está
   if(!op.cafs.find(x=>x.num===c.num)){
     op.cafs.push({num:c.num,tipo:c.tipo,qtd:c.vol});
+    await addHist(op,`[${who}] CAF ${c.num} vinculada`);
     await saveOp(op);
   }
   // A rua NÃO é liberada aqui — permanece ocupada até a CAF chegar em "Processo de Entrega"
@@ -9571,6 +9633,7 @@ async function autoVincularCAFs(op){
     changed=true;
   }
   if(bloqueadas.length){
+    await addHist(op,`[${who}] CAF(s) removida(s) da viagem — já vinculada(s) a outra: ${bloqueadas.join(', ')}`);
     await saveOp(op); // persiste a remoção das CAFs bloqueadas da lista da viagem
     showToast(`⛔ CAF(s) ${bloqueadas.join(', ')} já vinculada(s) a outra viagem — removida(s) desta`,'err');
   }
@@ -10391,7 +10454,7 @@ function saveSLAMetas(){
 // ══════════════════════════════════════════════════════════════════
 // FEATURE: ATALHO RÁPIDO DE STATUS NO CARD (hover)
 // ══════════════════════════════════════════════════════════════════
-function quickStatus(opId, newStatus, event){
+async function quickStatus(opId, newStatus, event){
   event.stopPropagation();
   if(isReadOnly()){showToast('⛔ Sem permissão','err');return;}
   const op=ops.find(o=>o.id===opId);if(!op)return;
@@ -10402,7 +10465,7 @@ function quickStatus(opId, newStatus, event){
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
   op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
-  addHist(op,`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`);
+  await addHist(op,`[${who}] ${stObj(prev).lb} → ${stObj(newStatus).lb} (atalho rápido)`);
   if(newStatus==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
   render();renderFUP();
   saveOp(op).then(async()=>{
@@ -11276,6 +11339,38 @@ async function renderHistoricoTurnos(){
   }catch(e){body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--red)">Erro: '+esc(e.message||'')+'</td></tr>';}
 }
 
+// Sessões ativas de TODOS os perfis (não só login compartilhado de tablet) — mostra IP e
+// navegador de cada login vigente agora. Só busca quando a pessoa clica em "Atualizar";
+// não fica em loop/polling, pra não gastar egress à toa (o mesmo cuidado que já tomamos
+// nos outros pontos do app).
+function _navegadorCurto(ua){
+  if(!ua)return '—';
+  if(/edg/i.test(ua))return 'Edge';
+  if(/chrome/i.test(ua)&&!/edg/i.test(ua))return 'Chrome';
+  if(/firefox/i.test(ua))return 'Firefox';
+  if(/safari/i.test(ua)&&!/chrome/i.test(ua))return 'Safari';
+  return ua.length>28?ua.slice(0,28)+'…':ua;
+}
+async function renderSessoesAtivas(){
+  const body=document.getElementById('sessoesAtivasBody');
+  if(!body)return;
+  body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Carregando...</td></tr>';
+  try{
+    const rows=await _rpc('listar_sessoes_ativas',{p_token:currentUser?._token});
+    if(!Array.isArray(rows)){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--red)">Erro ao carregar.</td></tr>';return;}
+    if(!rows.length){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--t3)">Nenhuma sessão ativa.</td></tr>';return;}
+    body.innerHTML=rows.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
+      <td style="padding:5px 8px;font-weight:700;color:var(--red)">${esc(r.usuario)}</td>
+      <td>${esc(r.nome)}</td>
+      <td><span style="background:var(--bg3);border-radius:4px;padding:1px 6px;font-size:.62rem">${_perfilLabelCurto(r.perfil)||esc(r.perfil)}</span></td>
+      <td style="font-family:monospace">${esc(r.ip_origem)||'<span style="color:var(--t3)">—</span>'}</td>
+      <td title="${esc(r.user_agent)||''}">${_navegadorCurto(r.user_agent)}</td>
+      <td>${r.criado_em?new Date(r.criado_em).toLocaleString('pt-BR'):'—'}</td>
+      <td>${r.ultimo_uso?new Date(r.ultimo_uso).toLocaleString('pt-BR'):'—'}</td>
+    </tr>`).join('');
+  }catch(e){body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--red)">Erro: '+esc(e.message||'')+'</td></tr>';}
+}
+
 async function verificarSaudeBancos(){
   const el=document.getElementById('dbMonitorBody');
   if(!el)return;
@@ -11407,7 +11502,7 @@ async function atribuirDocaRapido(opId, doca){
   op.updatedAt=new Date().toISOString();
   op.updatedBy=currentUser?.nome||'Sistema';
   const acao=doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`;
-  addHist(op,`[${currentUser?.nome||'Sistema'}] ${acao}`);
+  await addHist(op,`[${currentUser?.nome||'Sistema'}] ${acao}`);
   const idx=ops.findIndex(o=>o.id===opId);
   if(idx>=0)ops[idx]=op;
   renderProg();
