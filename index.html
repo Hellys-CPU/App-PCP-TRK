@@ -1889,11 +1889,14 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v320';
+const APP_VERSION='v323';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v323:['🤖 Aurora agora responde "quantas viagens sem SM/TMS/placa/motorista" (hoje e nos últimos 90 dias) — contagem já pronta pelo app, ela não precisa (e não é confiável) contar isso sozinha. Também sabe quantas CAFs estão sem rua atribuída. Amostra de viagens agora inclui SM e TMS, então ela consegue até citar quais viagens específicas estão com o campo vazio.'],
+  v322:['🤖 Aurora agora enxerga também Retorno de Pallets e Insumos (com alerta de itens abaixo do mínimo já calculado), viagens dos últimos 90 dias (não só hoje), e a contagem de CAFs vinculadas a veículo agora vs total de veículos cadastrados. Ao abrir o balão, carrega Pallets/Insumos sozinha se ainda não tiver (tabelas pequenas, sem impacto real de egress).'],
+  v321:['🐛 Aurora não tinha o dado de vencimento de CAF pra responder perguntas tipo "quantas CAFs vencem hoje" — adicionado ao contexto, com a contagem de "vencendo hoje" e "vencidas" já calculada pelo app (não pela IA, que não é confiável pra fazer conta de data).'],
   v320:['🤖 Aurora agora lembra da conversa (dentro da mesma sessão aberta) — dá pra perguntar "quantas viagens tem hoje?" e depois "e quantas dessas estão atrasadas?" que ela entende que "dessas" é sobre a pergunta anterior. Some ao recarregar a página (não é permanente, é só da conversa atual).'],
   v319:['🤖 Aurora agora também: (1) muda status de viagem por conversa (ex: "marca a VG-123 como em trânsito", "finaliza a VG-45") — reaproveita as mesmas regras do atalho manual, inclusive a trava de não deixar ir pra Em Trânsito sem CAF vinculada; (2) enxerga as ocorrências registradas em cada viagem, então já dá pra perguntar "quais viagens tiveram ocorrência hoje" ou pedir um resumo.'],
   v318:['🤖 Aurora agora edita viagem existente também (ex: "muda a transportadora da VG-123 pra Fulano", "atrasa a chegada da VG-45 pra 16h") — não só criar. Sempre mostra antes → depois numa prévia antes de salvar, igual à criação. Aurora agora sabe quais permissões você tem (criar/editar/status de viagem) e já avisa na conversa se você não pode fazer algo, mas a trava de segurança de verdade continua sendo conferida pelo app na hora de confirmar, não só pela IA.'],
@@ -4505,6 +4508,8 @@ function toggleAssistenteIA(){
     const promessas=[];
     if(!cafsDB.length)promessas.push(loadCAFs(false).catch(()=>{})); // sem hist — assistente só precisa de status/contagem
     if(!veiculosCadastro.length)promessas.push(loadVeiculosCadastro().catch(()=>{}));
+    if(!pallets.length)promessas.push(loadPallets().catch(()=>{})); // tabela pequena (~106 linhas), sem necessidade de versão enxuta
+    if(!insumosHub.length)promessas.push(loadInsumosHub().catch(()=>{})); // tabela minúscula (~13 linhas)
     _assistenteCargaPendente=promessas.length?Promise.all(promessas):null;
     // Microfone só aparece se o navegador suportar (Chrome/Edge sim; Safari/Firefox geralmente não)
     const btnMic=document.getElementById('btnMicAssistente');
@@ -4559,14 +4564,24 @@ function _montarContextoAssistente(){
   const hojeOps=ops.filter(o=>o.dataOp===hoje);
   const porStatus={};
   hojeOps.forEach(o=>{porStatus[o.status]=(porStatus[o.status]||0)+1;});
+  const porStatusGeral={};
+  ops.forEach(o=>{porStatusGeral[o.status]=(porStatusGeral[o.status]||0)+1;});
 
   // CAFs — resumo + amostra (não é "só o que tá na tela", é tudo que o app já carregou)
   const cafsPorStatus={};
   (cafsDB||[]).forEach(c=>{cafsPorStatus[c.status]=(cafsPorStatus[c.status]||0)+1;});
+  const cafsVinculadasVeiculo=(cafsDB||[]).filter(c=>c.status==='Vinculada a Veículo').length;
 
   // Veículos cadastrados
   const veicPorTipologia={};
   (veiculosCadastro||[]).forEach(v=>{veicPorTipologia[v.tipologia||'—']=(veicPorTipologia[v.tipologia||'—']||0)+1;});
+
+  // Retorno de Pallets
+  const palletsPorStatus={};
+  (pallets||[]).forEach(p=>{palletsPorStatus[p.status]=(palletsPorStatus[p.status]||0)+1;});
+
+  // Insumos
+  const insumosAbaixoDoMinimo=(insumosHub||[]).filter(i=>i.limiteMinimo!=null&&i.qtdFisica<i.limiteMinimo);
 
   return {
     data_hoje:hoje,
@@ -4584,18 +4599,45 @@ function _montarContextoAssistente(){
       por_status_hoje:porStatus,
       atrasadas_hoje:hojeOps.filter(o=>getSLA(o)==='late').length,
       total_carregado_90dias:ops.length,
-      amostra_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,placa:o.placa,mot:o.mot,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null,ocorrencias:(o.ocorr||[]).map(oc=>`${oc.tipo}: ${oc.desc||''}`)})),
+      por_status_ultimos_90dias:porStatusGeral,
+      // Contagens de "campo faltante" já prontas — pra perguntas tipo "quantas viagens
+      // sem SM" sem depender da amostra (que só tem até 40) e sem a IA ter que contar
+      // manualmente, o que ela erra fácil.
+      sem_sm_hoje:hojeOps.filter(o=>!o.sm).length,
+      sem_tms_hoje:hojeOps.filter(o=>!o.tms).length,
+      sem_placa_hoje:hojeOps.filter(o=>!o.placa).length,
+      sem_motorista_hoje:hojeOps.filter(o=>!o.mot).length,
+      sem_sm_90dias:ops.filter(o=>!o.sm).length,
+      sem_tms_90dias:ops.filter(o=>!o.tms).length,
+      sem_placa_90dias:ops.filter(o=>!o.placa).length,
+      sem_motorista_90dias:ops.filter(o=>!o.mot).length,
+      amostra_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,placa:o.placa,mot:o.mot,sm:o.sm||null,tms:o.tms||null,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null,ocorrencias:(o.ocorr||[]).map(oc=>`${oc.tipo}: ${oc.desc||''}`)})),
       status_validos:STS.map(s=>({id:s.id,label:s.lb}))
     },
     cafs:{
       total_carregado:(cafsDB||[]).length,
       por_status:cafsPorStatus,
-      amostra:(cafsDB||[]).slice(0,40).map(c=>({num:c.num,status:c.status,tipo:c.tipo,vol:c.vol,ruaId:c.ruaId||null,opId:c.opId||null}))
+      vencendo_hoje:(cafsDB||[]).filter(c=>c.venc===hoje).length,
+      vencidas:(cafsDB||[]).filter(c=>c.venc&&c.venc<hoje).length,
+      vinculadas_a_veiculo_agora:cafsVinculadasVeiculo, // status "Vinculada a Veículo" agora, não é histórico de hoje
+      sem_rua_atribuida:(cafsDB||[]).filter(c=>!c.ruaId&&c.status!=='Entrega Realizada'&&c.status!=='cancelada').length,
+      amostra:(cafsDB||[]).slice(0,40).map(c=>({num:c.num,status:c.status,tipo:c.tipo,vol:c.vol,venc:c.venc||null,ruaId:c.ruaId||null,opId:c.opId||null}))
     },
     veiculos_cadastrados:{
       total:(veiculosCadastro||[]).length,
       por_tipologia:veicPorTipologia,
       amostra:(veiculosCadastro||[]).slice(0,40).map(v=>({placa:v.placa,tipologia:v.tipologia,comprimento:v.comprimento,largura:v.largura,capacidadePallets:v.capacidadePallets}))
+    },
+    retorno_pallets:{
+      total_carregado:(pallets||[]).length,
+      por_status:palletsPorStatus,
+      hoje:(pallets||[]).filter(p=>p.dataOp===hoje).length,
+      amostra:(pallets||[]).slice(0,30).map(p=>({id:p.id,fc:p.fc,dataOp:p.dataOp,status:p.status,qtdPrevista:p.qtdPrevista,qtdRecebida:p.qtdRecebida}))
+    },
+    insumos:{
+      total_itens:(insumosHub||[]).length,
+      abaixo_do_minimo:insumosAbaixoDoMinimo.map(i=>({item:i.item,categoria:i.categoria,qtdFisica:i.qtdFisica,limiteMinimo:i.limiteMinimo})),
+      amostra:(insumosHub||[]).slice(0,30).map(i=>({categoria:i.categoria,tipo:i.tipo,item:i.item,qtdFisica:i.qtdFisica,qtdIndisponivel:i.qtdIndisponivel,qtdQuebrada:i.qtdQuebrada,limiteMinimo:i.limiteMinimo}))
     },
     rotas_existentes:ROTAS,
     transportadoras_existentes:TRANSPS
