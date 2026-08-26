@@ -1889,11 +1889,14 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v325';
+const APP_VERSION='v328';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v328:['🐛 Extração Completa (Excel): colunas de data/hora real (Data, Rl. Apresentação/Saída/Chegada FC, Descarga Real, Justificativa Em) vinham como texto, não como data de verdade — Excel não conseguia ordenar/filtrar por elas. Corrigido, agora são datas nativas de verdade. Também corrigido: "Δ Saída (min)" e "Δ FC (min)" vinham como número cru de minutos (tipo -250) — agora mostram formato legível tipo "-4h10min".'],
+  v327:['🐛 CRÍTICO: descoberto que a justificativa de atraso da Amazon era gravada mas nunca aparecia em lugar nenhum depois de preenchida — sumia da lista de "Pendentes" e não existia em nenhuma outra tela. Corrigido: (1) modal de edição da viagem agora mostra a justificativa (texto, quem escreveu, quando) quando ela existe; (2) Extração Completa (Excel) agora inclui 3 colunas novas com esse dado.'],
+  v326:['🤖 Aurora: "quantas CAFs venceram" agora ignora CAF que já foi entregue (status Entrega Realizada/cancelada) por padrão — antes contava tudo junto (976 vencidas, a maioria já entregue há tempos e sem ser problema real nenhum). Agora responde só as que ainda estão pendentes de verdade, e sabe quebrar isso por status (Em Produção, Produzida, Vinculada a Veículo) quando perguntado.'],
   v325:['🐛 Popup de "Novidades" nunca aparecia sozinho — só existia via clique manual no numerozinho de versão (canto superior esquerdo). Agora dispara automaticamente no login quando detecta versão nova desde a última vez que a pessoa usou o app, mostrando tudo que mudou entre as duas.'],
   v324:['🎤 Voz da Aurora ajustada pra soar mais feminina — escolhe automaticamente, entre as vozes em português instaladas no seu computador, a que tiver nome de voz feminina (varia por sistema operacional/navegador, nem sempre tem uma disponível) e ajusta o tom pra ficar mais agudo mesmo quando a voz é neutra.'],
   v323:['🤖 Aurora agora responde "quantas viagens sem SM/TMS/placa/motorista" (hoje e nos últimos 90 dias) — contagem já pronta pelo app, ela não precisa (e não é confiável) contar isso sozinha. Também sabe quantas CAFs estão sem rua atribuída. Amostra de viagens agora inclui SM e TMS, então ela consegue até citar quais viagens específicas estão com o campo vazio.'],
@@ -3581,6 +3584,25 @@ async function _garantirHistCarregadoBulk(lista){
     }catch(e){bloco.forEach(o=>{if(o.hist===null)o.hist=[];});} // rede falhou — segue sem travar a exportação
   }
 }
+// Versão de _realDataHora que devolve um objeto Date de verdade (não texto formatado) —
+// necessário pra Excel reconhecer como data/hora de verdade (ordenável, filtrável), em vez
+// de texto que só PARECE data.
+function _realDataHoraObj(v,dataOpFallback){
+  if(!v)return null;
+  if(v.includes('T'))return new Date(v);
+  const dataBase=dataOpFallback||hojeLocal();
+  const d=new Date(`${dataBase}T${v.substring(0,5)}:00`);
+  return isNaN(d.getTime())?null:d;
+}
+// Converte minutos (podendo ser negativo) pra um texto tipo "+1h05min"/"-4h10min" — os
+// deltas de SLA vinham como número cru de minutos (ex: -250), difícil de ler rápido.
+function _minParaHoras(m){
+  if(m==null||isNaN(m))return '';
+  const sinal=m<0?'-':(m>0?'+':'');
+  const abs=Math.abs(m);
+  const h=Math.floor(abs/60),mm=abs%60;
+  return `${sinal}${h}h${String(mm).padStart(2,'0')}min`;
+}
 async function _gerarExtracaoCompleta(){
   if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
   const dataDe=document.getElementById('_extracaoDataDe')?.value;
@@ -3627,7 +3649,7 @@ async function _gerarExtracaoCompleta(){
     return{
       'ID':op.id,
       'Código Curto (VG)':op.codigoCurto||'',
-      'Data':fmtD(op.dataOp),
+      'Data':op.dataOp?new Date(op.dataOp+'T12:00:00'):null,
       'Rota':op.rota||'',
       'Tipo Carga':op.tipoCarga||'',
       'Tipologia Veículo':op.tipologia||'',
@@ -3639,14 +3661,14 @@ async function _gerarExtracaoCompleta(){
       'TMS':op.tms||'',
       'Status':stLb[op.status]||op.status,
       'Pl. Apresentação':op.planApres||'',
-      'Rl. Apresentação':op.realApres?_realDataHora(op.realApres,op.dataOp):'',
+      'Rl. Apresentação':_realDataHoraObj(op.realApres,op.dataOp),
       'Pl. Saída':op.planSaida||'',
-      'Rl. Saída':op.realSaida?_realDataHora(op.realSaida,op.dataOp):'',
-      'Δ Saída (min)':dS??'',
+      'Rl. Saída':_realDataHoraObj(op.realSaida,op.dataOp),
+      'Δ Saída':_minParaHoras(dS),
       'Pl. Chegada FC':op.planChegFC||'',
-      'Rl. Chegada FC':op.realChegFC?_realDataHora(op.realChegFC,op.dataOp):'',
-      'Δ FC (min)':dC??'',
-      'Descarga Real':op.realDescarga?_realDataHora(op.realDescarga,op.dataOp):'',
+      'Rl. Chegada FC':_realDataHoraObj(op.realChegFC,op.dataOp),
+      'Δ Chegada FC':_minParaHoras(dC),
+      'Descarga Real':_realDataHoraObj(op.realDescarga,op.dataOp),
       'Qtd. CAFs':(op.cafs||[]).length,
       'CAF(s) — Número':cafsNumeros,
       'CAF(s) — Status':cafsStatusTxt,
@@ -3657,19 +3679,34 @@ async function _gerarExtracaoCompleta(){
       'Total Volume':totalVolume,
       'Ocorrências':ocorrTxt||'—',
       'Observações':op.obs||'',
+      'Justificativa Atraso Descarga (Amazon)':op.justificativaAtrasoDescarga||'',
+      'Justificativa — Por':op.justificativaAtrasoPor||'',
+      'Justificativa — Em':op.justificativaAtrasoEm?new Date(op.justificativaAtrasoEm):null,
       'Histórico Completo':histTxt||'—',
       'Última Atualização Por':op.updatedBy||'',
     };
   });
 
-  const ws=XLSX.utils.json_to_sheet(linhas);
+  const ws=XLSX.utils.json_to_sheet(linhas,{cellDates:true});
+  // Formata de verdade as colunas de data/data+hora (senão o Excel escreve a data como
+  // serial numérico cru, sem formatação — cellDates:true só faz reconhecer como data, o
+  // formato de exibição precisa ser setado à parte)
+  const COL_DATA=2,COLS_DATAHORA=[14,16,19,21,34];
+  for(let r=1;r<=linhas.length;r++){
+    const refData=XLSX.utils.encode_cell({r,c:COL_DATA});
+    if(ws[refData])ws[refData].z='dd/mm/yyyy';
+    COLS_DATAHORA.forEach(c=>{
+      const ref=XLSX.utils.encode_cell({r,c});
+      if(ws[ref])ws[ref].z='dd/mm/yyyy hh:mm';
+    });
+  }
   // Largura de colunas — dá espaço extra pras colunas de texto longo
   ws['!cols']=[
     {wch:12},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
     {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:12},{wch:16},{wch:12},{wch:16},
     {wch:9},{wch:12},{wch:16},{wch:9},{wch:16},{wch:8},
     {wch:22},{wch:22},{wch:16},{wch:16},{wch:16},{wch:10},{wch:10},
-    {wch:35},{wch:30},{wch:50},{wch:18}
+    {wch:35},{wch:30},{wch:35},{wch:18},{wch:16},{wch:50},{wch:18}
   ];
   const wb=XLSX.utils.book_new();
   const nomeArquivo=dataDe===dataAte?dataDe:`${dataDe}_a_${dataAte}`;
@@ -4649,7 +4686,9 @@ function _montarContextoAssistente(){
       total_carregado:(cafsDB||[]).length,
       por_status:cafsPorStatus,
       vencendo_hoje:(cafsDB||[]).filter(c=>c.venc===hoje).length,
-      vencidas:(cafsDB||[]).filter(c=>c.venc&&c.venc<hoje).length,
+      vencidas_pendentes:(cafsDB||[]).filter(c=>c.venc&&c.venc<hoje&&!['Entrega Realizada','cancelada'].includes(c.status)).length,
+      vencidas_pendentes_por_status:(()=>{const o={};(cafsDB||[]).filter(c=>c.venc&&c.venc<hoje&&!['Entrega Realizada','cancelada'].includes(c.status)).forEach(c=>{o[c.status]=(o[c.status]||0)+1;});return o;})(),
+      vencidas_total_incluindo_ja_entregues:(cafsDB||[]).filter(c=>c.venc&&c.venc<hoje).length,
       vinculadas_a_veiculo_agora:cafsVinculadasVeiculo, // status "Vinculada a Veículo" agora, não é histórico de hoje
       sem_rua_atribuida:(cafsDB||[]).filter(c=>!c.ruaId&&c.status!=='Entrega Realizada'&&c.status!=='cancelada').length,
       amostra:(cafsDB||[]).slice(0,40).map(c=>({num:c.num,status:c.status,tipo:c.tipo,vol:c.vol,venc:c.venc||null,ruaId:c.ruaId||null,opId:c.opId||null}))
@@ -5088,6 +5127,11 @@ ${(()=>{
 })()}
 <div class="sec">📝 Observações</div>
 <div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="2">${o.obs||''}</textarea></div></div>
+${o.justificativaAtrasoDescarga?`<div class="sec">📋 Justificativa de Atraso na Descarga (Amazon)</div>
+<div style="font-size:.78rem;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:9px 12px;margin-bottom:10px">
+  ${esc(o.justificativaAtrasoDescarga)}
+  <div style="color:var(--t3);font-size:.65rem;margin-top:6px">Por ${esc(o.justificativaAtrasoPor||'—')} em ${o.justificativaAtrasoEm?new Date(o.justificativaAtrasoEm).toLocaleString('pt-BR'):'—'}</div>
+</div>`:''}
 <div class="sec">⚠️ Ocorrências</div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="fOcorrList">
   ${(o.ocorr||[]).map((oc,i)=>`<div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:5px 9px;font-size:.7rem;display:flex;align-items:center;gap:6px">
