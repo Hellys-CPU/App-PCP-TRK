@@ -1889,11 +1889,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v324';
+const APP_VERSION='v325';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v325:['🐛 Popup de "Novidades" nunca aparecia sozinho — só existia via clique manual no numerozinho de versão (canto superior esquerdo). Agora dispara automaticamente no login quando detecta versão nova desde a última vez que a pessoa usou o app, mostrando tudo que mudou entre as duas.'],
   v324:['🎤 Voz da Aurora ajustada pra soar mais feminina — escolhe automaticamente, entre as vozes em português instaladas no seu computador, a que tiver nome de voz feminina (varia por sistema operacional/navegador, nem sempre tem uma disponível) e ajusta o tom pra ficar mais agudo mesmo quando a voz é neutra.'],
   v323:['🤖 Aurora agora responde "quantas viagens sem SM/TMS/placa/motorista" (hoje e nos últimos 90 dias) — contagem já pronta pelo app, ela não precisa (e não é confiável) contar isso sozinha. Também sabe quantas CAFs estão sem rua atribuída. Amostra de viagens agora inclui SM e TMS, então ela consegue até citar quais viagens específicas estão com o campo vazio.'],
   v322:['🤖 Aurora agora enxerga também Retorno de Pallets e Insumos (com alerta de itens abaixo do mínimo já calculado), viagens dos últimos 90 dias (não só hoje), e a contagem de CAFs vinculadas a veículo agora vs total de veículos cadastrados. Ao abrir o balão, carrega Pallets/Insumos sozinha se ainda não tiver (tabelas pequenas, sem impacto real de egress).'],
@@ -2771,9 +2772,21 @@ async function bootApp(){
       const p=document.getElementById('tvFullscreenPrompt');if(p)p.style.display='flex';
     }
   }
-  // Popup de Novidades — aparece sozinho quando detecta que a versão publicada mudou
+  // Popup de Novidades — aparece sozinho quando a versão atual é mais nova que a última
+  // que essa pessoa já viu (guardado no navegador). Primeira vez que a pessoa usa o app
+  // (nunca visto nenhuma versão ainda) não mostra nada — só começa a marcar a partir de
+  // agora, pra não despejar o changelog inteiro em quem tá abrindo o app pela primeira vez.
   const badgeV=document.getElementById('appVersionBadge');if(badgeV)badgeV.textContent=APP_VERSION;
-  // Não mostra mais o popup de "novidades" sozinho — só verifica se a versão publicada mudou (ver abaixo)
+  const _ultimaVersaoVista=localStorage.getItem('trk_ultima_versao_vista');
+  if(!_ultimaVersaoVista){
+    // Primeira vez que essa checagem existe no navegador da pessoa — mostra pelo menos a
+    // versão atual (não a história toda), em vez de ficar quieto igual antes.
+    abrirNovidades(true);
+    localStorage.setItem('trk_ultima_versao_vista',APP_VERSION);
+  }else if(_verMaiorQue(APP_VERSION,_ultimaVersaoVista)){
+    abrirNovidades(false,_ultimaVersaoVista);
+    localStorage.setItem('trk_ultima_versao_vista',APP_VERSION);
+  }
   // Realtime e presença — não-bloqueantes, falhas não afetam a UI
   try{initRealtime();}catch(e){console.error('boot initRealtime:',e);}
   try{initAbly();}catch(e){console.error('boot initAbly:',e);}
