@@ -1478,16 +1478,20 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <div id="assistenteBubble" onclick="toggleAssistenteIA()" title="Assistente" style="display:none;position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:400;user-select:none">🤖</div>
 <div id="assistentePanel" style="display:none;flex-direction:column;position:fixed;bottom:82px;right:20px;width:340px;max-width:calc(100vw - 24px);max-height:min(480px,calc(100vh - 110px));background:var(--bg2);border:1px solid var(--bd);border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.4);z-index:401;overflow:hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg2);border-bottom:1px solid var(--bd)">
-    <span style="font-size:.8rem;font-weight:700">🤖 Assistente</span>
-    <button class="mclose" style="position:static" onclick="toggleAssistenteIA()">✕</button>
+    <span style="font-size:.8rem;font-weight:700">🤖 Aurora</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="btnVozAssistente" onclick="_toggleVozAssistente()" title="Ler respostas em voz alta" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:.4">🔊</button>
+      <button class="mclose" style="position:static" onclick="toggleAssistenteIA()">✕</button>
+    </div>
   </div>
   <div style="padding:8px 12px;font-size:.65rem;color:var(--t2);border-bottom:1px solid var(--bd)">
-    Pergunte sobre o que já está na tela, ou peça pra criar viagem (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Não mexe no banco sozinho — toda criação passa por sua confirmação.
+    Pergunte à Aurora sobre o que já está carregado no app, ou peça pra criar viagem (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Ela não mexe no banco sozinha — toda criação passa por sua confirmação.
   </div>
   <div id="assistenteChat" style="padding:10px 12px;flex:1;min-height:120px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
   <div id="assistentePreview" style="padding:0 12px;max-height:200px;overflow-y:auto"></div>
   <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--bd)">
     <input id="assistenteInput" placeholder="Pergunte algo..." style="flex:1;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.76rem" onkeydown="if(event.key==='Enter')enviarMensagemAssistente()">
+    <button class="btn btn-g" id="btnMicAssistente" style="font-size:.8rem;display:none" onclick="_toggleMicAssistente()" title="Falar">🎤</button>
     <button class="btn btn-p" id="btnEnviarAssistente" style="font-size:.72rem" onclick="enviarMensagemAssistente()">➤</button>
   </div>
 </div>
@@ -1779,7 +1783,7 @@ const TODAS_PERMS = [
   {key:'insumo_credito_debito',label:'Insumos HUB: crédito/débito manual de saldo (liderança)'},
   {key:'veiculos_gerir',label:'Cadastro de Veículos: criar/editar/excluir'},
   {key:'esteira_gerir',label:'Esteiras: atribuir colaborador por esteira'},
-  {key:'assistente_ia',label:'🤖 Assistente IA: acesso ao balão de perguntas/criação de viagem'},
+  {key:'assistente_ia',label:'🤖 Aurora (Assistente IA): acesso ao balão de perguntas/criação de viagem'},
 ];
 
 const TODAS_ABAS = [
@@ -1885,11 +1889,16 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v315';
+const APP_VERSION='v320';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v320:['🤖 Aurora agora lembra da conversa (dentro da mesma sessão aberta) — dá pra perguntar "quantas viagens tem hoje?" e depois "e quantas dessas estão atrasadas?" que ela entende que "dessas" é sobre a pergunta anterior. Some ao recarregar a página (não é permanente, é só da conversa atual).'],
+  v319:['🤖 Aurora agora também: (1) muda status de viagem por conversa (ex: "marca a VG-123 como em trânsito", "finaliza a VG-45") — reaproveita as mesmas regras do atalho manual, inclusive a trava de não deixar ir pra Em Trânsito sem CAF vinculada; (2) enxerga as ocorrências registradas em cada viagem, então já dá pra perguntar "quais viagens tiveram ocorrência hoje" ou pedir um resumo.'],
+  v318:['🤖 Aurora agora edita viagem existente também (ex: "muda a transportadora da VG-123 pra Fulano", "atrasa a chegada da VG-45 pra 16h") — não só criar. Sempre mostra antes → depois numa prévia antes de salvar, igual à criação. Aurora agora sabe quais permissões você tem (criar/editar/status de viagem) e já avisa na conversa se você não pode fazer algo, mas a trava de segurança de verdade continua sendo conferida pelo app na hora de confirmar, não só pela IA.'],
+  v317:['🤖 Assistente ganhou nome: Aurora. Atualizado no painel, na tela de permissões, e ela mesma agora sabe se apresentar assim se alguém perguntar.'],
+  v316:['🎤 Assistente IA agora tem voz — microfone pra falar em vez de digitar, e um botão 🔊 pra ela ler as respostas em voz alta (desligado por padrão, fica salvo sua preferência). Usa o reconhecimento/leitura de voz nativo do navegador, sem custo — só funciona em Chrome/Edge (Safari e Firefox geralmente não suportam). Voz é a padrão do sistema, não é uma voz humana natural.'],
   v315:['⚡ Assistente IA: correção de egress — o carregamento automático de CAFs (feito ao abrir o balão, se ainda não tinha sido carregado na sessão) estava usando a versão "pesada" (com histórico de cada CAF, 82% do peso). Agora usa a mesma versão enxuta que já existia pra TV — sem hist, ~5x mais leve. Se a pessoa depois visitar a aba de CAF de verdade, ela recarrega sozinha com tudo completo, sem risco de dado incompleto ficar preso na tela.'],
   v314:['🤖 Assistente IA agora enxerga CAFs e Veículos Cadastrados também, não só viagens de hoje — antes só respondia sobre viagem porque era só isso que mandávamos pra ele. Ao abrir o balão, ele garante sozinho que CAFs/Veículos estejam carregados (mesmo que você nunca tenha aberto aquelas abas nessa sessão), então a resposta não fica "não tenho essa informação" por falta de carregamento.'],
   v313:['🐛 Corrigido painel do Assistente IA aparecendo transparente — usava uma variável de cor (`--bg1`) que não existe no app. Achei o mesmo erro em outro lugar (tabela de Sessões Ativas) e corrigi também.'],
@@ -4481,6 +4490,7 @@ function closeModal(){document.getElementById('overlay').classList.remove('open'
 // manual antes de salvar (a IA nunca grava nada sozinha).
 // ══════════════════════════════════════════════════════════════════
 let _aguardandoRespostaIA=false;
+let _historicoConversaIA=[]; // turnos da conversa atual (some ao recarregar a página — é "lembrar da sessão", não permanente)
 let _assistenteCargaPendente=null;
 function toggleAssistenteIA(){
   if(!hasPerm('assistente_ia')){showToast('⛔ Sem permissão','err');return;}
@@ -4496,7 +4506,53 @@ function toggleAssistenteIA(){
     if(!cafsDB.length)promessas.push(loadCAFs(false).catch(()=>{})); // sem hist — assistente só precisa de status/contagem
     if(!veiculosCadastro.length)promessas.push(loadVeiculosCadastro().catch(()=>{}));
     _assistenteCargaPendente=promessas.length?Promise.all(promessas):null;
+    // Microfone só aparece se o navegador suportar (Chrome/Edge sim; Safari/Firefox geralmente não)
+    const btnMic=document.getElementById('btnMicAssistente');
+    if(btnMic)btnMic.style.display=(window.SpeechRecognition||window.webkitSpeechRecognition)?'':'none';
+    const btnVoz=document.getElementById('btnVozAssistente');
+    if(btnVoz)btnVoz.style.opacity=_vozAssistenteAtiva?'1':'.4';
   }
+}
+// ── Voz: entrada (microfone → texto) e saída (texto → fala), 100% nativo do navegador,
+// sem custo nenhum de API — qualidade robótica (voz padrão do sistema), não é uma voz
+// humana natural, mas funciona sem gastar nada.
+let _recognitionAssistente=null,_gravandoAssistente=false;
+function _toggleMicAssistente(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast('Reconhecimento de voz não suportado nesse navegador','err');return;}
+  const btn=document.getElementById('btnMicAssistente');
+  if(_gravandoAssistente){_recognitionAssistente?.stop();return;}
+  _recognitionAssistente=new SR();
+  _recognitionAssistente.lang='pt-BR';
+  _recognitionAssistente.interimResults=false;
+  _recognitionAssistente.maxAlternatives=1;
+  _recognitionAssistente.onstart=()=>{_gravandoAssistente=true;if(btn){btn.style.background='var(--red)';btn.style.color='#fff';}};
+  _recognitionAssistente.onend=()=>{_gravandoAssistente=false;if(btn){btn.style.background='';btn.style.color='';}};
+  _recognitionAssistente.onerror=()=>{_gravandoAssistente=false;if(btn){btn.style.background='';btn.style.color='';}showToast('Não entendi o áudio, tenta de novo','err');};
+  _recognitionAssistente.onresult=(e)=>{
+    const texto=e.results[0][0].transcript;
+    const input=document.getElementById('assistenteInput');
+    if(input)input.value=texto;
+    enviarMensagemAssistente(); // envia sozinho ao terminar de reconhecer a fala
+  };
+  try{_recognitionAssistente.start();}catch(e){}
+}
+let _vozAssistenteAtiva=(localStorage.getItem('trk_assistente_voz')==='1');
+function _toggleVozAssistente(){
+  _vozAssistenteAtiva=!_vozAssistenteAtiva;
+  localStorage.setItem('trk_assistente_voz',_vozAssistenteAtiva?'1':'0');
+  const btn=document.getElementById('btnVozAssistente');
+  if(btn)btn.style.opacity=_vozAssistenteAtiva?'1':'.4';
+  if(!_vozAssistenteAtiva&&window.speechSynthesis)window.speechSynthesis.cancel();
+}
+function _falarAssistente(texto){
+  if(!_vozAssistenteAtiva||!window.speechSynthesis||!texto)return;
+  try{
+    window.speechSynthesis.cancel(); // corta fala anterior se ainda tiver rolando
+    const u=new SpeechSynthesisUtterance(texto);
+    u.lang='pt-BR';u.rate=1.05;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
 }
 function _montarContextoAssistente(){
   const hoje=hojeLocal();
@@ -4514,12 +4570,22 @@ function _montarContextoAssistente(){
 
   return {
     data_hoje:hoje,
+    // Permissões do usuário atual — a Aurora usa isso pra já avisar na conversa se a
+    // pessoa não pode fazer algo, ANTES de tentar montar a ação. Isso é só pra conversa
+    // ficar certa; a trava de segurança de verdade acontece de novo no app na hora de
+    // confirmar (a Aurora não pode contornar permissão só por "achar" que pode).
+    permissoes_usuario:{
+      pode_criar_viagem:hasPerm('viagem_criar'),
+      pode_editar_viagem:hasPerm('viagem_editar'),
+      pode_mudar_status_viagem:hasPerm('viagem_status')
+    },
     viagens:{
       total_hoje:hojeOps.length,
       por_status_hoje:porStatus,
       atrasadas_hoje:hojeOps.filter(o=>getSLA(o)==='late').length,
       total_carregado_90dias:ops.length,
-      amostra_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,placa:o.placa,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null}))
+      amostra_hoje:hojeOps.slice(0,40).map(o=>({id:o.codigoCurto||o.id,rota:o.rota,transp:o.transp,placa:o.placa,mot:o.mot,status:o.status,planChegFC:o.planChegFC,realChegFC:o.realChegFC||null,ocorrencias:(o.ocorr||[]).map(oc=>`${oc.tipo}: ${oc.desc||''}`)})),
+      status_validos:STS.map(s=>({id:s.id,label:s.lb}))
     },
     cafs:{
       total_carregado:(cafsDB||[]).length,
@@ -4560,15 +4626,30 @@ async function enviarMensagemAssistente(){
     if(_assistenteCargaPendente)await _assistenteCargaPendente; // espera CAFs/Veículos, se ainda estiverem carregando
     const r=await fetch('/api/assistente',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mensagem:msg,contexto:_montarContextoAssistente()})
+      body:JSON.stringify({mensagem:msg,contexto:_montarContextoAssistente(),historico:_historicoConversaIA})
     });
     const data=await r.json().catch(()=>({tipo:'erro',texto:'Resposta inválida do assistente.'}));
     bolhaCarregando.remove();
+    // Guarda o turno na conversa (pra ela lembrar do que já foi falado nessa sessão) —
+    // guarda a mensagem crua do usuário e a resposta crua da IA, capado em 20 turnos (10
+    // idas e vindas) pra não deixar o payload crescer sem controle.
+    _historicoConversaIA.push({role:'user',parts:[{text:msg}]},{role:'model',parts:[{text:JSON.stringify(data)}]});
+    if(_historicoConversaIA.length>20)_historicoConversaIA=_historicoConversaIA.slice(-20);
     if(data.tipo==='resposta'){
       chat.appendChild(_bolhaChat(data.texto||'(sem resposta)','ia'));
+      _falarAssistente(data.texto);
     }else if(data.tipo==='criar_viagens'){
       chat.appendChild(_bolhaChat(data.resumo||'Entendi o pedido de criação — confira a prévia abaixo.','ia'));
+      _falarAssistente(data.resumo);
       _renderPreviewViagensIA(data.viagens||[]);
+    }else if(data.tipo==='editar_viagem'){
+      chat.appendChild(_bolhaChat(data.resumo||'Entendi a edição — confira a prévia abaixo.','ia'));
+      _falarAssistente(data.resumo);
+      _renderPreviewEdicaoIA(data.id,data.campos||{});
+    }else if(data.tipo==='mudar_status'){
+      chat.appendChild(_bolhaChat(data.resumo||'Entendi a mudança de status — confira a prévia abaixo.','ia'));
+      _falarAssistente(data.resumo);
+      _renderPreviewStatusIA(data.id,data.status);
     }else{
       chat.appendChild(_bolhaChat(data.texto||'Não entendi — pode reformular?','erro'));
     }
@@ -4613,6 +4694,8 @@ function _renderPreviewViagensIA(viagens){
 }
 function _cancelarPreviewIA(){
   _previewViagensIA=[];
+  _previewEdicaoIA=null;
+  _previewStatusIA=null;
   document.getElementById('assistentePreview').innerHTML='';
 }
 async function _confirmarViagensIA(){
@@ -4639,6 +4722,105 @@ async function _confirmarViagensIA(){
   document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ ${criadas} viagem(ns) criada(s) com sucesso.`,'ia'));
   _cancelarPreviewIA();
   render();
+  if(btn)btn.disabled=false;
+}
+
+let _previewEdicaoIA=null;
+const _CAMPOS_EDITAVEIS_IA={transp:'Transportadora',mot:'Motorista',placa:'Placa',planChegFC:'Chegada no FC',obs:'Observação'};
+function _renderPreviewEdicaoIA(id,campos){
+  const op=ops.find(o=>(o.codigoCurto||o.id)===id||o.id===id);
+  const chat=document.getElementById('assistenteChat');
+  if(!op){
+    chat.appendChild(_bolhaChat(`Não achei nenhuma viagem com o código "${esc(id)}" carregada agora.`,'erro'));
+    return;
+  }
+  if(!hasPerm('viagem_editar')){
+    chat.appendChild(_bolhaChat('Você não tem permissão pra editar viagem — fala com seu supervisor/admin.','erro'));
+    return;
+  }
+  // Só aceita campos conhecidos/editáveis, e só o que realmente muda em relação ao atual
+  const campoFiltrado={};
+  Object.keys(campos||{}).forEach(k=>{
+    if(!(k in _CAMPOS_EDITAVEIS_IA))return;
+    let v=campos[k];
+    if(k==='placa')v=normPlaca(v||'');
+    if(v!==''&&v!=null&&v!==op[k])campoFiltrado[k]=v;
+  });
+  if(!Object.keys(campoFiltrado).length){
+    chat.appendChild(_bolhaChat('Não encontrei nenhuma mudança real pra aplicar (os valores já são iguais aos atuais).','erro'));
+    return;
+  }
+  _previewEdicaoIA={op,campos:campoFiltrado};
+  const placaInvalida=campoFiltrado.placa&&!validaPlaca(campoFiltrado.placa);
+  document.getElementById('assistentePreview').innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--blue);border-radius:8px;padding:10px;margin:8px 0">
+    <div style="font-size:.7rem;font-weight:700;color:var(--blue);margin-bottom:8px">✏️ Editar ${esc(op.codigoCurto||op.id)} — confira antes de salvar</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:.68rem">
+      ${Object.keys(campoFiltrado).map(k=>`<div style="background:var(--bg3);border-radius:6px;padding:6px 8px">
+        <b>${_CAMPOS_EDITAVEIS_IA[k]}</b>: <span style="color:var(--t3);text-decoration:line-through">${esc(op[k]||'—')}</span> → <span style="color:var(--green)">${esc(campoFiltrado[k])}</span>
+      </div>`).join('')}
+      ${placaInvalida?'<div style="color:var(--red);font-size:.66rem">⚠ formato de placa inválido</div>':''}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-p" style="flex:1;font-size:.72rem" onclick="_confirmarEdicaoIA()">✅ Confirmar Edição</button>
+      <button class="btn btn-g" style="font-size:.72rem" onclick="_cancelarPreviewIA()">Cancelar</button>
+    </div>
+  </div>`;
+}
+async function _confirmarEdicaoIA(){
+  if(!_previewEdicaoIA)return;
+  if(!hasPerm('viagem_editar')){showToast('⛔ Sem permissão pra editar viagem','err');return;}
+  const {op,campos}=_previewEdicaoIA;
+  if(campos.placa&&!validaPlaca(campos.placa)){showToast('⚠ Placa em formato inválido','err');return;}
+  const btn=document.querySelector('#assistentePreview button[onclick="_confirmarEdicaoIA()"]');
+  if(btn)btn.disabled=true;
+  loading(true);
+  const who=currentUser?.nome||'Sistema';
+  const mudancas=Object.keys(campos).map(k=>`${_CAMPOS_EDITAVEIS_IA[k]}: "${op[k]||'—'}" → "${campos[k]}"`).join('; ');
+  Object.assign(op,campos);
+  op.updatedAt=ts();op.updatedBy=who;
+  await addHist(op,`[${who}] Editado via Assistente IA — ${mudancas}`);
+  await saveOp(op);
+  loading(false);
+  addActivityLog(`${op.id} editado via Assistente IA por ${who}`);
+  document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ ${op.codigoCurto||op.id} atualizado com sucesso.`,'ia'));
+  _cancelarPreviewIA();
+  if(btn)btn.disabled=false;
+}
+
+let _previewStatusIA=null;
+function _renderPreviewStatusIA(id,statusId){
+  const op=ops.find(o=>(o.codigoCurto||o.id)===id||o.id===id);
+  const chat=document.getElementById('assistenteChat');
+  if(!op){chat.appendChild(_bolhaChat(`Não achei nenhuma viagem com o código "${esc(id)}" carregada agora.`,'erro'));return;}
+  if(!hasPerm('viagem_status')){chat.appendChild(_bolhaChat('Você não tem permissão pra mudar status de viagem — fala com seu supervisor/admin.','erro'));return;}
+  const alvo=STS.find(s=>s.id===statusId);
+  if(!alvo){chat.appendChild(_bolhaChat(`Não reconheci o status "${esc(statusId)}".`,'erro'));return;}
+  if(alvo.id===op.status){chat.appendChild(_bolhaChat(`${esc(op.codigoCurto||op.id)} já está em ${alvo.lb}.`,'erro'));return;}
+  // Mesma regra que já existe no atalho manual — viagem não pode ir pra Em Trânsito sem CAF
+  if(alvo.id==='TRAN'&&(!op.cafs||!op.cafs.length)){chat.appendChild(_bolhaChat(`${esc(op.codigoCurto||op.id)} não pode ir pra Em Trânsito sem CAF vinculada.`,'erro'));return;}
+  _previewStatusIA={op,statusId:alvo.id};
+  document.getElementById('assistentePreview').innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--blue);border-radius:8px;padding:10px;margin:8px 0">
+    <div style="font-size:.7rem;font-weight:700;color:var(--blue);margin-bottom:8px">🔄 Mudar status — confira antes de salvar</div>
+    <div style="font-size:.7rem;background:var(--bg3);border-radius:6px;padding:6px 8px">
+      <b>${esc(op.codigoCurto||op.id)}</b>: <span style="color:var(--t3);text-decoration:line-through">${stObj(op.status).lb}</span> → <span style="color:var(--green)">${alvo.lb}</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-p" style="flex:1;font-size:.72rem" onclick="_confirmarStatusIA()">✅ Confirmar</button>
+      <button class="btn btn-g" style="font-size:.72rem" onclick="_cancelarPreviewIA()">Cancelar</button>
+    </div>
+  </div>`;
+}
+function _confirmarStatusIA(){
+  if(!_previewStatusIA)return;
+  if(!hasPerm('viagem_status')){showToast('⛔ Sem permissão pra mudar status','err');return;}
+  const {op,statusId}=_previewStatusIA;
+  const btn=document.querySelector('#assistentePreview button[onclick="_confirmarStatusIA()"]');
+  if(btn)btn.disabled=true;
+  // Reaproveita quickStatus — mesma função do atalho manual, com todas as regras/efeitos
+  // colaterais já existentes (libera doca, sincroniza CAF, gera retorno de pallets, etc.)
+  quickStatus(op.id,statusId,{stopPropagation:()=>{}});
+  document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ Status de ${esc(op.codigoCurto||op.id)} atualizado.`,'ia'));
+  _cancelarPreviewIA();
   if(btn)btn.disabled=false;
 }
 
