@@ -1891,11 +1891,14 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v332';
+const APP_VERSION='v335';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v335:['🕐 Viagens que cruzam a meia-noite agora mostram um "+1" pequeno do lado do horário planejado (Saída/Chegada FC), avisando que é do dia seguinte — na Gestão de Doca, TV Yard, Painel, Lista e na tabela de resumo dentro da viagem. Antes só dava pra saber isso olhando o Excel.'],
+  v334:['🐛 Extração Completa (Excel): colunas de horário PLANEJADO (Apresentação, Saída, Chegada FC) agora mostram a data certa quando a viagem cruza a meia-noite — antes era só "01:00" solto, sem indicar que era do dia seguinte. Agora vem com data completa, ex: Apresentação 28/08 23:00 e Saída 29/08 01:00, igual já acontecia nos horários reais.'],
+  v333:['🐛 Continuação do bug de viagens de madrugada: mesmo com o alerta corrigido, a viagem ainda aparecia na frente da fila (Gestão de Doca e TV Yard) — a ordenação comparava o horário de saída como texto puro ("01:00" < "23:00"), sem saber que era do dia seguinte. Corrigido pra ordenar pelo horário real. Também troquei o campo "Encosta até": em vez de calcular (saída - 1h, que dava errado em viagens de 2 dias), agora usa direto o horário de Apresentação já cadastrado.'],
   v332:['🐛 CRÍTICO: corrigido "Horário passou!" aparecendo errado em viagens de madrugada (encosta à noite, ex: 22h, e sai depois da meia-noite, ex: 00h ou 01h do dia seguinte) — na Gestão de Doca e na TV Yard. O app comparava o horário de saída direto com a data da operação, sem entender que "01:00" numa viagem assim é no dia seguinte, não no mesmo dia. Agora reconhece a virada de dia certinho, usando a apresentação como referência.'],
   v331:['🐛 CRÍTICO: corrigido "NaNmin neste status" que aparecia nos cartões do Painel/Lista — o campo updatedAt estava sendo gravado em texto (formato brasileiro) em 8 lugares diferentes do app (criar viagem, salvar edição, duplicar, atalho rápido, Prog. em Massa, entre outros), e isso quebrava o cálculo de "tempo neste status" desde sempre. Agora grava em formato correto (ISO) em todos os lugares — o contador de tempo (e o alerta vermelho de atraso que depende dele) passa a funcionar direito.'],
   v330:['🐛 Prévia de criação de viagem da Aurora aparecia cortada — chat e prévia eram duas caixas de rolagem separadas, agora são uma só, sempre mostra tudo. 🐛 Aurora estava inventando uma regra que não existe ("rota precisa estar estabelecida") e recusando criar viagem por causa disso — corrigido, rota/transportadora/motorista são texto livre no app, ela não deve mais validar isso sozinha. 🤖 Criação de viagem por conversa agora aceita também placa da carreta, SM e TMS — mesmos campos que a Programação em Massa usa.'],
@@ -3144,6 +3147,18 @@ function resolveDataHoraOp(op,horario){
   }
   return dt;
 }
+// Indicador visual "+1" pra usar do lado de um horário planejado quando ele cai no dia
+// seguinte ao da Apresentação (mesma regra do resolveDataHoraOp, só que pra exibir na
+// tela em vez de montar um Date).
+function diaSeguinteTag(op,horario){
+  if(!op?.planApres||!horario)return'';
+  const [hApres]=op.planApres.split(':').map(Number);
+  const [hAlvo]=horario.split(':').map(Number);
+  if(!isNaN(hApres)&&!isNaN(hAlvo)&&hApres>=18&&hAlvo<12){
+    return '<sup style="color:var(--red);font-weight:800;font-size:.62em;margin-left:1px" title="Dia seguinte">+1</sup>';
+  }
+  return'';
+}
 const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
 const dCls=d=>{if(d===null)return'';const s=_otScore(Math.max(0,d));if(s>=100)return'otimo';if(s>=90)return'bom';if(s>=80)return'atencao';if(s>=60)return'alerta';return'critico';};
 const tvCls=d=>{if(d===null)return'tv-nd';const s=_otScore(Math.max(0,d));if(s>=100)return'tv-otimo';if(s>=90)return'tv-bom';if(s>=80)return'tv-atencao';if(s>=60)return'tv-alerta';return'tv-critico';};
@@ -3455,9 +3470,9 @@ function cardHTML(op){
     </div>
     <div class="ct">
       <div class="tb"><div class="tl">Apres.Plan.</div><div class="tv">${op.planApres||'—'}</div></div>
-      <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}</div></div>
+      <div class="tb"><div class="tl">Saída Plan.</div><div class="tv tv-p">${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</div></div>
       <div class="tb"><div class="tl">Saída Real</div><div class="tv ${tvCls(dS)}">${toTime(op.realSaida)||'—'}</div></div>
-      <div class="tb"><div class="tl">FC Plan.</div><div class="tv tv-p">${op.planChegFC||'—'}</div></div>
+      <div class="tb"><div class="tl">FC Plan.</div><div class="tv tv-p">${op.planChegFC||'—'}${diaSeguinteTag(op,op.planChegFC)}</div></div>
       <div class="tb"><div class="tl">FC Real</div><div class="tv ${tvCls(dC)}">${toTime(op.realChegFC)||'—'}</div></div>
     </div>
     ${liveTimer(op)}
@@ -3686,12 +3701,12 @@ async function _gerarExtracaoCompleta(){
       'SM':op.sm||'',
       'TMS':op.tms||'',
       'Status':stLb[op.status]||op.status,
-      'Pl. Apresentação':op.planApres||'',
+      'Pl. Apresentação':resolveDataHoraOp(op,op.planApres),
       'Rl. Apresentação':_realDataHoraObj(op.realApres,op.dataOp),
-      'Pl. Saída':op.planSaida||'',
+      'Pl. Saída':resolveDataHoraOp(op,op.planSaida),
       'Rl. Saída':_realDataHoraObj(op.realSaida,op.dataOp),
       'Δ Saída':_minParaHoras(dS),
-      'Pl. Chegada FC':op.planChegFC||'',
+      'Pl. Chegada FC':resolveDataHoraOp(op,op.planChegFC),
       'Rl. Chegada FC':_realDataHoraObj(op.realChegFC,op.dataOp),
       'Δ Chegada FC':_minParaHoras(dC),
       'Descarga Real':_realDataHoraObj(op.realDescarga,op.dataOp),
@@ -3717,7 +3732,7 @@ async function _gerarExtracaoCompleta(){
   // Formata de verdade as colunas de data/data+hora (senão o Excel escreve a data como
   // serial numérico cru, sem formatação — cellDates:true só faz reconhecer como data, o
   // formato de exibição precisa ser setado à parte)
-  const COL_DATA=2,COLS_DATAHORA=[14,16,19,21,34];
+  const COL_DATA=2,COLS_DATAHORA=[13,14,15,16,18,19,21,34];
   for(let r=1;r<=linhas.length;r++){
     const refData=XLSX.utils.encode_cell({r,c:COL_DATA});
     if(ws[refData])ws[refData].z='dd/mm/yyyy';
@@ -3823,8 +3838,8 @@ function renderList(){
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
       <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
       <td style="color:var(--t2)">${op.sm||'—'}</td><td style="color:var(--t2)">${op.tms||'—'}</td>
-      <td>${op.planSaida||'—'}</td><td style="color:${dc(dS)}">${toTime(op.realSaida)||'—'}</td>
-      <td>${op.planChegFC||'—'}</td><td style="color:${dc(dC)}">${toTime(op.realChegFC)||'—'}</td>
+      <td>${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</td><td style="color:${dc(dS)}">${toTime(op.realSaida)||'—'}</td>
+      <td>${op.planChegFC||'—'}${diaSeguinteTag(op,op.planChegFC)}</td><td style="color:${dc(dC)}">${toTime(op.realChegFC)||'—'}</td>
       <td style="color:${dc(dS)};font-weight:600">${fDiff(dS)}</td>
       <td style="color:${dc(dC)};font-weight:600">${fDiff(dC)}</td>
       <td style="color:var(--purple);font-weight:600">${fDiff(dDoc)}</td>
@@ -3932,7 +3947,14 @@ function renderProg(){
   // YARD mostra todos os status que ainda estão no pátio (não saíram)
   // Gestão de Doca: mostra ops no pátio (aguardando/carregando) e em trânsito recente
   const data=ops.filter(o=>o.dataOp===yardDt&&['PROG','AGUCARR','EMCARR'].includes(o.status));
-  const dataOrd=[...data].sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
+  // Ordena pelo horário de saída DE VERDADE (considerando virada de dia) — antes comparava
+  // "01:00" e "23:00" como texto puro, e a viagem de madrugada pulava pra frente da lista
+  // mesmo sendo, na prática, a última a sair.
+  const dataOrd=[...data].sort((a,b)=>{
+    const ta=resolveDataHoraOp(a,a.planSaida)?.getTime()??Infinity;
+    const tb=resolveDataHoraOp(b,b.planSaida)?.getTime()??Infinity;
+    return ta-tb;
+  });
 
   // ── Ocupação de piso ──
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
@@ -4009,22 +4031,9 @@ function renderProg(){
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
       const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
 
-      // Calcula hora limite de encosto na doca
-      // Regra: o veículo precisa estar na doca X horas antes da saída planejada
-      // Regra: veículo encosta 1h antes da saída planejada
-      const horaEncostoLimite=(()=>{
-        if(!op.planSaida)return null;
-        const [hh,mm]=op.planSaida.split(':').map(Number);
-        let total=(hh*60+mm)-60; // 1h antes da saída // 2h antes
-        if(total<0)total+=1440; // saída de madrugada (ex: 00:00) — limite de encosto cai à noite do dia anterior
-        return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
-      })();
-      const agoraTm=new Date();
-      const encostoAtrasado=horaEncostoLimite&&op.status==='AGUCARR'&&(()=>{
-        const [eh,em]=horaEncostoLimite.split(':').map(Number);
-        const limDt=resolveDataHoraOp(op,horaEncostoLimite);
-        return agoraTm>limDt;
-      })();
+      // "Encosta até" agora é direto o horário de Apresentação (dado real que já existe),
+      // não mais um cálculo derivado da saída — evita erro em viagens que cruzam 2 dias.
+      const encostoAtrasado=op.planApres&&op.status==='AGUCARR'&&resolveDataHoraOp(op,op.planApres)<agora;
 
       return `<div class="yard-card" onclick="openEdit('${esc(op.id)}')">
         <!-- Header -->
@@ -4053,12 +4062,12 @@ function renderProg(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;background:var(--bg3);border-radius:var(--rs);padding:7px">
           <div style="text-align:center">
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosta até</div>
-            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
+            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':op.planApres?'var(--yellow)':'var(--t3)'}">${op.planApres||'—'}</div>
             ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
           </div>
           <div style="text-align:center">
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
-            <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+            <div style="font-weight:800;font-size:1rem;color:${atraso?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</div>
           </div>
         </div>
 
@@ -5010,8 +5019,8 @@ function imprimirCard(){
   </table>
   <table><tr><th>Horário</th><th>Planejado</th><th>Realizado</th><th>Δ</th></tr>
   <tr><td>Apresentação</td><td>${op.planApres||'—'}</td><td>${op.realApres||'—'}</td><td class="${dMin(op.planApres,op.realApres)>0?'late':dMin(op.planApres,op.realApres)<0?'ok':'nd'}">${fDiff(dMin(op.planApres,op.realApres))}</td></tr>
-  <tr><td>Saída TZX</td><td>${op.planSaida||'—'}</td><td>${toTime(op.realSaida)||'—'}</td><td class="${dS>0?'late':dS<0?'ok':'nd'}">${fDiff(dS)}</td></tr>
-  <tr><td>Chegada FC</td><td>${op.planChegFC||'—'}</td><td>${op.realChegFC||'—'}</td><td class="${dC>0?'late':dC<0?'ok':'nd'}">${fDiff(dC)}</td></tr>
+  <tr><td>Saída TZX</td><td>${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</td><td>${toTime(op.realSaida)||'—'}</td><td class="${dS>0?'late':dS<0?'ok':'nd'}">${fDiff(dS)}</td></tr>
+  <tr><td>Chegada FC</td><td>${op.planChegFC||'—'}${diaSeguinteTag(op,op.planChegFC)}</td><td>${op.realChegFC||'—'}</td><td class="${dC>0?'late':dC<0?'ok':'nd'}">${fDiff(dC)}</td></tr>
   <tr><td>Descarga</td><td>—</td><td>${toTime(op.realDescarga)||'—'}</td><td class="nd">${dDoc!==null?'⏱ '+fDiff(dDoc):'—'}</td></tr>
   </table>
   <table><tr><th colspan="2">Status</th></tr>
@@ -11061,7 +11070,11 @@ function renderTVYard(){
 
   // Ops no pátio neste dia
   const opsYard=ops.filter(o=>o.dataOp===yDt&&['PROG','AGUCARR','EMCARR'].includes(o.status))
-    .sort((a,b)=>(a.planSaida||'99:99').localeCompare(b.planSaida||'99:99'));
+    .sort((a,b)=>{
+      const ta=resolveDataHoraOp(a,a.planSaida)?.getTime()??Infinity;
+      const tb=resolveDataHoraOp(b,b.planSaida)?.getTime()??Infinity;
+      return ta-tb;
+    });
 
   // Ocupação de piso: conta pelo STATUS da CAF — some só ao chegar em Processo de Entrega/Entrega Realizada
   const CAF_MAX=CFG.pisoCAF||27,PAL_PER_CAF=CFG.pisoPallets||30,PAL_MAX=CAF_MAX*PAL_PER_CAF;
@@ -11168,15 +11181,9 @@ function renderTVYard(){
       const cor=passou?'var(--red)':stCors[op.status]||'#6b7280';
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
       const palTotal=cafsDaOp.reduce((s,c)=>s+(c.pallets||0),0);
-      // Hora limite de encosto (1h antes da saída planejada) — igual Gestão de Doca
-      const horaEncostoLimite=(()=>{
-        if(!op.planSaida)return null;
-        const [hh,mm]=op.planSaida.split(':').map(Number);
-        let total=(hh*60+mm)-60;
-        if(total<0)total+=1440; // saída de madrugada — limite de encosto cai à noite do dia anterior
-        return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
-      })();
-      const encostoAtrasado=horaEncostoLimite&&['PROG','AGUCARR'].includes(op.status)&&resolveDataHoraOp(op,horaEncostoLimite)<agora;
+      // "Encosta até" agora é direto o horário de Apresentação (dado real que já existe),
+      // não mais um cálculo derivado da saída — evita erro em viagens que cruzam 2 dias.
+      const encostoAtrasado=op.planApres&&['PROG','AGUCARR'].includes(op.status)&&resolveDataHoraOp(op,op.planApres)<agora;
       return`<div style="background:var(--bg2);border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
@@ -11188,12 +11195,12 @@ function renderTVYard(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;background:var(--bg3);border-radius:var(--rs);padding:7px">
           <div style="text-align:center">
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Encosta até</div>
-            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':horaEncostoLimite?'var(--yellow)':'var(--t3)'}">${horaEncostoLimite||'—'}</div>
+            <div style="font-weight:800;font-size:1rem;color:${encostoAtrasado?'var(--red)':op.planApres?'var(--yellow)':'var(--t3)'}">${op.planApres||'—'}</div>
             ${encostoAtrasado?'<div style="font-size:.55rem;color:var(--red);font-weight:700">⚠ PASSOU!</div>':''}
           </div>
           <div style="text-align:center">
             <div style="color:var(--t2);font-size:.56rem;text-transform:uppercase">Saída Planejada</div>
-            <div style="font-weight:800;font-size:1rem;color:${passou?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}</div>
+            <div style="font-weight:800;font-size:1rem;color:${passou?'var(--red)':'var(--blue)'}">${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;font-size:.72rem">
