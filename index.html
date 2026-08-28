@@ -1891,11 +1891,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v331';
+const APP_VERSION='v332';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v332:['🐛 CRÍTICO: corrigido "Horário passou!" aparecendo errado em viagens de madrugada (encosta à noite, ex: 22h, e sai depois da meia-noite, ex: 00h ou 01h do dia seguinte) — na Gestão de Doca e na TV Yard. O app comparava o horário de saída direto com a data da operação, sem entender que "01:00" numa viagem assim é no dia seguinte, não no mesmo dia. Agora reconhece a virada de dia certinho, usando a apresentação como referência.'],
   v331:['🐛 CRÍTICO: corrigido "NaNmin neste status" que aparecia nos cartões do Painel/Lista — o campo updatedAt estava sendo gravado em texto (formato brasileiro) em 8 lugares diferentes do app (criar viagem, salvar edição, duplicar, atalho rápido, Prog. em Massa, entre outros), e isso quebrava o cálculo de "tempo neste status" desde sempre. Agora grava em formato correto (ISO) em todos os lugares — o contador de tempo (e o alerta vermelho de atraso que depende dele) passa a funcionar direito.'],
   v330:['🐛 Prévia de criação de viagem da Aurora aparecia cortada — chat e prévia eram duas caixas de rolagem separadas, agora são uma só, sempre mostra tudo. 🐛 Aurora estava inventando uma regra que não existe ("rota precisa estar estabelecida") e recusando criar viagem por causa disso — corrigido, rota/transportadora/motorista são texto livre no app, ela não deve mais validar isso sozinha. 🤖 Criação de viagem por conversa agora aceita também placa da carreta, SM e TMS — mesmos campos que a Programação em Massa usa.'],
   v329:['🐛 Balão da Aurora estava sobrepondo o botão "⋯" de mais abas no mobile — reposicionado pra ficar em cima dele (mesmo lado direito, mais alto), não mais em cima.'],
@@ -3123,6 +3124,26 @@ const toTime=v=>v?(v.includes('T')?v.split('T')[1].substring(0,5):v.substring(0,
 // Extrai só YYYY-MM-DD
 const toDate=v=>v?(v.includes('T')?v.split('T')[0]:null):null;
 const dMin=(a,b)=>{const pa=pMin(a),pb=pMin(b);if(pa==null||pb==null)return null;let d=pb-pa;if(d<-720)d+=1440;if(d>720)d-=1440;return d;};
+// Resolve a data/hora real de um horário planejado (ex: planSaida) considerando viagens
+// que atravessam a meia-noite — encosta à noite (ex: 22h) e sai de madrugada no dia
+// seguinte (ex: 00h ou 01h). Sem isso, "01:00" era comparado direto contra dataOp e o
+// app achava que já tinha passado, mesmo a viagem ainda não ter chegado nesse horário de
+// verdade (que é no dia seguinte a dataOp). Mesma lógica que já usávamos em
+// tempoAguardandoDescarga, generalizada pra qualquer horário planejado do dia.
+function resolveDataHoraOp(op,horario){
+  if(!op?.dataOp||!horario)return null;
+  const dt=new Date(op.dataOp+'T00:00:00');
+  const [h,m]=horario.split(':').map(Number);
+  if(isNaN(h)||isNaN(m))return null;
+  dt.setHours(h,m,0,0);
+  // Referência: horário de apresentação (chegada) — se ele for tarde (noite) e o horário
+  // pedido for cedo (madrugada), o horário pedido é no dia seguinte.
+  if(op.planApres){
+    const [hApres]=op.planApres.split(':').map(Number);
+    if(!isNaN(hApres)&&hApres>=18&&h<12)dt.setDate(dt.getDate()+1);
+  }
+  return dt;
+}
 const fDiff=d=>{if(d===null)return'—';const a=Math.abs(d),h=Math.floor(a/60),m=a%60;return(d>0?'+':d<0?'-':'')+(h?h+'h ':'')+m+'min';};
 const dCls=d=>{if(d===null)return'';const s=_otScore(Math.max(0,d));if(s>=100)return'otimo';if(s>=90)return'bom';if(s>=80)return'atencao';if(s>=60)return'alerta';return'critico';};
 const tvCls=d=>{if(d===null)return'tv-nd';const s=_otScore(Math.max(0,d));if(s>=100)return'tv-otimo';if(s>=90)return'tv-bom';if(s>=80)return'tv-atencao';if(s>=60)return'tv-alerta';return'tv-critico';};
@@ -3978,7 +3999,7 @@ function renderProg(){
       // Atraso
       let atraso='';
       if(op.planSaida&&op.dataOp){
-        const planDt=new Date(op.dataOp+'T'+op.planSaida);
+        const planDt=resolveDataHoraOp(op,op.planSaida);
         if(planDt<agora)atraso='<div style="background:var(--red4);border:1px solid #fca5a5;border-radius:4px;padding:3px 7px;font-size:.62rem;color:var(--red);font-weight:700;margin-top:6px">⚠️ Horário passou!</div>';
       }
       // Status badge color
@@ -3994,14 +4015,14 @@ function renderProg(){
       const horaEncostoLimite=(()=>{
         if(!op.planSaida)return null;
         const [hh,mm]=op.planSaida.split(':').map(Number);
-        const total=(hh*60+mm)-60; // 1h antes da saída // 2h antes
-        if(total<0)return null;
+        let total=(hh*60+mm)-60; // 1h antes da saída // 2h antes
+        if(total<0)total+=1440; // saída de madrugada (ex: 00:00) — limite de encosto cai à noite do dia anterior
         return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
       })();
       const agoraTm=new Date();
       const encostoAtrasado=horaEncostoLimite&&op.status==='AGUCARR'&&(()=>{
         const [eh,em]=horaEncostoLimite.split(':').map(Number);
-        const limDt=new Date(op.dataOp+'T'+horaEncostoLimite);
+        const limDt=resolveDataHoraOp(op,horaEncostoLimite);
         return agoraTm>limDt;
       })();
 
@@ -11142,7 +11163,7 @@ function renderTVYard(){
       const cafsDaOp=cafsDBTV.filter(c=>c.opId===op.id||op.cafs.some(x=>x.num===c.num));
       const cafsSemProc=cafsDaOp.filter(c=>!['Processo de Entrega','Entrega Realizada'].includes(c.status));
       const agora=new Date();
-      const passou=op.planSaida&&new Date(op.dataOp+'T'+op.planSaida)<agora;
+      const passou=op.planSaida&&resolveDataHoraOp(op,op.planSaida)<agora;
       const stCors={PROG:'#6b7280',AGUCARR:'var(--yellow)',EMCARR:'var(--orange)'};
       const cor=passou?'var(--red)':stCors[op.status]||'#6b7280';
       const volTotal=cafsDaOp.reduce((s,c)=>s+(c.vol||0),0);
@@ -11151,11 +11172,11 @@ function renderTVYard(){
       const horaEncostoLimite=(()=>{
         if(!op.planSaida)return null;
         const [hh,mm]=op.planSaida.split(':').map(Number);
-        const total=(hh*60+mm)-60;
-        if(total<0)return null;
+        let total=(hh*60+mm)-60;
+        if(total<0)total+=1440; // saída de madrugada — limite de encosto cai à noite do dia anterior
         return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
       })();
-      const encostoAtrasado=horaEncostoLimite&&(agora.getHours()*60+agora.getMinutes())>(()=>{const[h,m]=horaEncostoLimite.split(':').map(Number);return h*60+m;})()&&['PROG','AGUCARR'].includes(op.status);
+      const encostoAtrasado=horaEncostoLimite&&['PROG','AGUCARR'].includes(op.status)&&resolveDataHoraOp(op,horaEncostoLimite)<agora;
       return`<div style="background:var(--bg2);border:1px solid ${cor}44;border-left:4px solid ${cor};border-radius:10px;padding:13px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
