@@ -487,8 +487,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .topbar{height:48px;padding:0 10px;}
   .tabs{display:none;}
   .mobile-nav{display:block;}
-  #assistenteBubble{bottom:76px!important;}
-  #assistentePanel{bottom:138px!important;}
+  #assistenteBubble{bottom:130px!important;right:14px!important;} /* fica em cima do botão "⋯" de mais abas (right:14px, bottom:70px), não do lado */
+  #assistentePanel{bottom:192px!important;}
   .topbar-r .clock{display:none;}
   .topbar-r .dbs span{display:none;}
   .ob-name,.ob-pg{display:none;}
@@ -1487,8 +1487,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div style="padding:8px 12px;font-size:.65rem;color:var(--t2);border-bottom:1px solid var(--bd)">
     Pergunte à Aurora sobre o que já está carregado no app, ou peça pra criar viagem (ex: "cria 2 viagens rota TZX_XC9, GALEGOS, chegada no FC às 14h e 16h"). Ela não mexe no banco sozinha — toda criação passa por sua confirmação.
   </div>
-  <div id="assistenteChat" style="padding:10px 12px;flex:1;min-height:120px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px"></div>
-  <div id="assistentePreview" style="padding:0 12px;max-height:200px;overflow-y:auto"></div>
+  <div id="assistenteScrollWrap" style="flex:1;min-height:120px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column">
+    <div id="assistenteChat" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    <div id="assistentePreview" style="padding:0 12px 10px"></div>
+  </div>
   <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--bd)">
     <input id="assistenteInput" placeholder="Pergunte algo..." style="flex:1;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font-size:.76rem" onkeydown="if(event.key==='Enter')enviarMensagemAssistente()">
     <button class="btn btn-g" id="btnMicAssistente" style="font-size:.8rem;display:none" onclick="_toggleMicAssistente()" title="Falar">🎤</button>
@@ -1889,11 +1891,14 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v328';
+const APP_VERSION='v331';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v331:['🐛 CRÍTICO: corrigido "NaNmin neste status" que aparecia nos cartões do Painel/Lista — o campo updatedAt estava sendo gravado em texto (formato brasileiro) em 8 lugares diferentes do app (criar viagem, salvar edição, duplicar, atalho rápido, Prog. em Massa, entre outros), e isso quebrava o cálculo de "tempo neste status" desde sempre. Agora grava em formato correto (ISO) em todos os lugares — o contador de tempo (e o alerta vermelho de atraso que depende dele) passa a funcionar direito.'],
+  v330:['🐛 Prévia de criação de viagem da Aurora aparecia cortada — chat e prévia eram duas caixas de rolagem separadas, agora são uma só, sempre mostra tudo. 🐛 Aurora estava inventando uma regra que não existe ("rota precisa estar estabelecida") e recusando criar viagem por causa disso — corrigido, rota/transportadora/motorista são texto livre no app, ela não deve mais validar isso sozinha. 🤖 Criação de viagem por conversa agora aceita também placa da carreta, SM e TMS — mesmos campos que a Programação em Massa usa.'],
+  v329:['🐛 Balão da Aurora estava sobrepondo o botão "⋯" de mais abas no mobile — reposicionado pra ficar em cima dele (mesmo lado direito, mais alto), não mais em cima.'],
   v328:['🐛 Extração Completa (Excel): colunas de data/hora real (Data, Rl. Apresentação/Saída/Chegada FC, Descarga Real, Justificativa Em) vinham como texto, não como data de verdade — Excel não conseguia ordenar/filtrar por elas. Corrigido, agora são datas nativas de verdade. Também corrigido: "Δ Saída (min)" e "Δ FC (min)" vinham como número cru de minutos (tipo -250) — agora mostram formato legível tipo "-4h10min".'],
   v327:['🐛 CRÍTICO: descoberto que a justificativa de atraso da Amazon era gravada mas nunca aparecia em lugar nenhum depois de preenchida — sumia da lista de "Pendentes" e não existia em nenhuma outra tela. Corrigido: (1) modal de edição da viagem agora mostra a justificativa (texto, quem escreveu, quando) quando ela existe; (2) Extração Completa (Excel) agora inclui 3 colunas novas com esse dado.'],
   v326:['🤖 Aurora: "quantas CAFs venceram" agora ignora CAF que já foi entregue (status Entrega Realizada/cancelada) por padrão — antes contava tudo junto (976 vencidas, a maioria já entregue há tempos e sem ser problema real nenhum). Agora responde só as que ainda estão pendentes de verdade, e sabe quebrar isso por status (Em Produção, Produzida, Vinculada a Veículo) quando perguntado.'],
@@ -4472,7 +4477,7 @@ async function onDrop(e,sid){
     const prevStatus=op.status;
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
-    op.status=sid;op.updatedAt=ts();op.updatedBy=who;
+    op.status=sid;op.updatedAt=new Date().toISOString();op.updatedBy=who;
     await addHist(op,`[${who}] ${p} → ${stObj(sid).lb}`);
     addActivityLog(`${esc(op.id)}: ${p} → ${stObj(sid).lb}`);
     render();renderFUP();
@@ -4728,12 +4733,12 @@ async function enviarMensagemAssistente(){
   const chat=document.getElementById('assistenteChat');
   chat.appendChild(_bolhaChat(msg,'user'));
   input.value='';
-  chat.scrollTop=chat.scrollHeight;
+  document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   document.getElementById('assistentePreview').innerHTML='';
   _aguardandoRespostaIA=true;
   const btn=document.getElementById('btnEnviarAssistente');if(btn)btn.disabled=true;
   const bolhaCarregando=_bolhaChat('Pensando...','ia');
-  chat.appendChild(bolhaCarregando);chat.scrollTop=chat.scrollHeight;
+  chat.appendChild(bolhaCarregando);document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   try{
     if(_assistenteCargaPendente)await _assistenteCargaPendente; // espera CAFs/Veículos, se ainda estiverem carregando
     const r=await fetch('/api/assistente',{
@@ -4770,7 +4775,7 @@ async function enviarMensagemAssistente(){
     chat.appendChild(_bolhaChat('Falha de conexão com o assistente. Tenta de novo.','erro'));
   }finally{
     _aguardandoRespostaIA=false;if(btn)btn.disabled=false;
-    chat.scrollTop=chat.scrollHeight;
+    document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   }
 }
 let _previewViagensIA=[];
@@ -4779,6 +4784,7 @@ function _renderPreviewViagensIA(viagens){
   // Massa (subMin) — a IA nunca faz essa conta, só o app.
   _previewViagensIA=viagens.map(v=>({
     rota:v.rota||'',transp:v.transp||'',mot:v.mot||'',placa:normPlaca(v.placa||''),
+    placaCarreta:normPlaca(v.placaCarreta||''),sm:v.sm||'',tms:v.tms||'',
     tipoCarga:v.tipoCarga||'LTL',tipologia:v.tipologia||'CARRETA',
     planChegFC:v.planChegFC||'',
     planSaida:v.planChegFC?subMin(v.planChegFC,60):'',
@@ -4788,11 +4794,11 @@ function _renderPreviewViagensIA(viagens){
   if(!_previewViagensIA.length){wrap.innerHTML='';return;}
   wrap.innerHTML=`<div style="background:var(--bg2);border:1.5px solid var(--blue);border-radius:8px;padding:10px;margin:8px 0">
     <div style="font-size:.7rem;font-weight:700;color:var(--blue);margin-bottom:8px">📋 Prévia — confira antes de salvar</div>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto">
+    <div style="display:flex;flex-direction:column;gap:6px">
       ${_previewViagensIA.map((v,i)=>{
-        const placaInvalida=v.placa&&!validaPlaca(v.placa);
+        const placaInvalida=(v.placa&&!validaPlaca(v.placa))||(v.placaCarreta&&!validaPlaca(v.placaCarreta));
         return `<div style="background:var(--bg3);border-radius:6px;padding:6px 8px;font-size:.68rem${placaInvalida?';border:1px solid var(--red)':''}">
-          <b>${esc(v.rota)||'<span style="color:var(--red)">rota?</span>'}</b> · ${esc(v.transp)||'<span style="color:var(--red)">transp?</span>'} ${v.placa?'· '+esc(v.placa):''}
+          <b>${esc(v.rota)||'<span style="color:var(--red)">rota?</span>'}</b> · ${esc(v.transp)||'<span style="color:var(--red)">transp?</span>'} ${v.placa?'· '+esc(v.placa):''}${v.placaCarreta?' / '+esc(v.placaCarreta):''}${v.sm?' · SM '+esc(v.sm):''}${v.tms?' · TMS '+esc(v.tms):''}
           <br>Apres ${v.planApres||'—'} → Saída ${v.planSaida||'—'} → Chegada FC ${v.planChegFC||'<span style="color:var(--red)">?</span>'}
           ${placaInvalida?'<br><span style="color:var(--red)">⚠ formato de placa inválido</span>':''}
         </div>`;
@@ -4815,15 +4821,15 @@ async function _confirmarViagensIA(){
   if(!hasPerm('viagem_criar')){showToast('⛔ Sem permissão pra criar viagem','err');return;}
   const semRota=_previewViagensIA.filter(v=>!v.rota||!v.planChegFC);
   if(semRota.length){showToast('⚠ Todas as viagens precisam ter rota e chegada no FC preenchidos','err');return;}
-  const placaRuim=_previewViagensIA.findIndex(v=>v.placa&&!validaPlaca(v.placa));
-  if(placaRuim>=0){showToast(`⚠ Viagem ${placaRuim+1}: placa em formato inválido`,'err');return;}
+  const placaRuim=_previewViagensIA.findIndex(v=>(v.placa&&!validaPlaca(v.placa))||(v.placaCarreta&&!validaPlaca(v.placaCarreta)));
+  if(placaRuim>=0){showToast(`⚠ Viagem ${placaRuim+1}: placa (cavalo ou carreta) em formato inválido`,'err');return;}
   const btn=document.querySelector('#assistentePreview button[onclick="_confirmarViagensIA()"]');
   if(btn)btn.disabled=true;
   loading(true);
   const dataOp=hojeLocal(),dataProg=hojeLocal(),who=currentUser?.nome||'Sistema';
   let criadas=0;
   for(const v of _previewViagensIA){
-    const op={id:genId(),dataProg,dataOp,rota:v.rota,tipoCarga:v.tipoCarga,tipologia:v.tipologia,transp:v.transp,mot:v.mot||'',placa:v.placa,placaCarreta:'',sm:'',tms:'',isa:'',planApres:v.planApres,planSaida:v.planSaida,planChegFC:v.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Assistente IA`}],updatedAt:ts(),updatedBy:who};
+    const op={id:genId(),dataProg,dataOp,rota:v.rota,tipoCarga:v.tipoCarga,tipologia:v.tipologia,transp:v.transp,mot:v.mot||'',placa:v.placa,placaCarreta:v.placaCarreta||'',sm:v.sm||'',tms:v.tms||'',isa:'',planApres:v.planApres,planSaida:v.planSaida,planChegFC:v.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Assistente IA`}],updatedAt:new Date().toISOString(),updatedBy:who};
     ops.push(op);
     if(supabaseOK){await saveToSupabase(op);}else{saveLocalOps();}
     criadas++;
@@ -4832,6 +4838,7 @@ async function _confirmarViagensIA(){
   loading(false);
   addActivityLog(`${criadas} operação(ões) criada(s) via Assistente IA por ${who}`);
   document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ ${criadas} viagem(ns) criada(s) com sucesso.`,'ia'));
+  document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   _cancelarPreviewIA();
   render();
   if(btn)btn.disabled=false;
@@ -4889,12 +4896,13 @@ async function _confirmarEdicaoIA(){
   const who=currentUser?.nome||'Sistema';
   const mudancas=Object.keys(campos).map(k=>`${_CAMPOS_EDITAVEIS_IA[k]}: "${op[k]||'—'}" → "${campos[k]}"`).join('; ');
   Object.assign(op,campos);
-  op.updatedAt=ts();op.updatedBy=who;
+  op.updatedAt=new Date().toISOString();op.updatedBy=who;
   await addHist(op,`[${who}] Editado via Assistente IA — ${mudancas}`);
   await saveOp(op);
   loading(false);
   addActivityLog(`${op.id} editado via Assistente IA por ${who}`);
   document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ ${op.codigoCurto||op.id} atualizado com sucesso.`,'ia'));
+  document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   _cancelarPreviewIA();
   if(btn)btn.disabled=false;
 }
@@ -4932,6 +4940,7 @@ function _confirmarStatusIA(){
   // colaterais já existentes (libera doca, sincroniza CAF, gera retorno de pallets, etc.)
   quickStatus(op.id,statusId,{stopPropagation:()=>{}});
   document.getElementById('assistenteChat').appendChild(_bolhaChat(`✅ Status de ${esc(op.codigoCurto||op.id)} atualizado.`,'ia'));
+  document.getElementById('assistenteScrollWrap').scrollTop=document.getElementById('assistenteScrollWrap').scrollHeight;
   _cancelarPreviewIA();
   if(btn)btn.disabled=false;
 }
@@ -4951,7 +4960,7 @@ async function deletarCard(){
 function duplicarCard(){
   if(!editId)return;const op=ops.find(o=>o.id===editId);if(!op)return;
   closeModal();
-  const novo={...JSON.parse(JSON.stringify(op)),id:genId(),status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',hist:[{t:ts(),txt:`[${currentUser?.nome||'Usuário'}] Duplicado de ${esc(op.id)}`}],updatedAt:ts(),updatedBy:currentUser?.nome||'Usuário'};
+  const novo={...JSON.parse(JSON.stringify(op)),id:genId(),status:'PROG',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',hist:[{t:ts(),txt:`[${currentUser?.nome||'Usuário'}] Duplicado de ${esc(op.id)}`}],updatedAt:new Date().toISOString(),updatedBy:currentUser?.nome||'Usuário'};
   editId=null;
   document.getElementById('mTitle').textContent='Nova Operação (duplicada)';
   document.getElementById('btnDeletar').style.display='none';
@@ -5282,7 +5291,7 @@ async function saveCard(){
     if(document.getElementById('fMotivoSaida'))upd('motivoAtrasoSaida',g('fMotivoSaida'));
     if(document.getElementById('fMotivoChegada'))upd('motivoAtrasoChegada',g('fMotivoChegada'));
     if(document.getElementById('fMotoristaApp'))upd('motoristaUsouApp',g('fMotoristaApp'));
-    op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=ts();op.updatedBy=who;
+    op.cafs=cafs;op.ocorr=_ocorrBuf||[];op.updatedAt=new Date().toISOString();op.updatedBy=who;
     if(ch.length){await addHist(op,`[${who}] `+ch.join('; '));addActivityLog(`${esc(op.id)} editado por ${who}`);}
     await saveOp(op);
     // Auto-vincular CAFs recém adicionadas à op
@@ -5295,7 +5304,7 @@ async function saveCard(){
   }else{
     const id=g('fId')||genId();
     document.getElementById('fId')?.setAttribute('value',id); // trava o ID gerado no próprio form, caso a trava acima falhe por algum motivo
-    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:normPlaca(g('fPlaca')),placaCarreta:normPlaca(g('fPlacaC')),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:ts(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
+    const newOp={id,dataProg:g('fDP')||hojeLocal(),dataOp:g('fDO')||hojeLocal(),rota:g('fRota'),tipoCarga:g('fTipo'),tipologia:g('fTipol'),transp:g('fTransp'),mot:g('fMot'),placa:normPlaca(g('fPlaca')),placaCarreta:normPlaca(g('fPlacaC')),sm:g('fSM'),tms:g('fTMS'),isa:g('fISA'),planApres:g('fPA'),planSaida:g('fPS'),planChegFC:g('fPC'),realApres:g('fRA'),realSaida:g('fRS'),realChegFC:g('fRC'),realDescarga:g('fRD'),status:g('fStatus')||'PROG',doca:g('fDoca')||'',obs:g('fObs'),ocorr:_ocorrBuf||[],hist:[{t:ts(),txt:`[${who}] Operação criada`}],updatedAt:new Date().toISOString(),updatedBy:who,gerarRetornoPallets:!!document.getElementById('fGerarRetorno')?.checked,retornoPalletsId:''};
     ops.push(newOp);addActivityLog(`${id} criada por ${who}`);
     await saveOp(newOp);
     await autoVincularCAFs(newOp);
@@ -5320,7 +5329,7 @@ function _ofertarViagemSubstituta(opOriginal){
     planChegFC:opOriginal.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',
     status:'PROG',doca:'',obs:`Gerada para suprir o declínio da viagem ${opOriginal.codigoCurto||opOriginal.id}. Vincule manualmente as CAFs que estavam nela.`,
     ocorr:[],cafs:[],hist:[{t:ts(),txt:`[${who}] Gerada para suprir o declínio de ${opOriginal.id}`}],
-    updatedAt:ts(),updatedBy:who,gerarRetornoPallets:false,retornoPalletsId:''
+    updatedAt:new Date().toISOString(),updatedBy:who,gerarRetornoPallets:false,retornoPalletsId:''
   };
   editId=null;
   document.getElementById('mTitle').textContent='Nova Operação (substituta do declínio)';
@@ -5490,7 +5499,7 @@ async function confirmarMassa(){
   const who=currentUser?currentUser.nome:'Sistema';
   loading(true);
   for(const r of mRows){
-    const op={id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:r.placaCarreta||'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Prog. em Massa`}],updatedAt:ts(),updatedBy:who};
+    const op={id:genId(),dataProg,dataOp,rota:r.rota,tipoCarga:r.tipoCarga,tipologia:r.tipologia,transp:r.transp,mot:r.mot,placa:r.placa,placaCarreta:r.placaCarreta||'',sm:r.sm,tms:r.tms,isa:'',planApres:r.planApres,planSaida:r.planSaida,planChegFC:r.planChegFC,realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',cafs:[],hist:[{t:ts(),txt:`[${who}] Criado via Prog. em Massa`}],updatedAt:new Date().toISOString(),updatedBy:who};
     ops.push(op);if(supabaseOK){await saveToSupabase(op);}else{saveLocalOps();}
   }
   if(supabaseOK)await loadFromSupabase();
