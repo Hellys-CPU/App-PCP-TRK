@@ -1894,11 +1894,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v337';
+const APP_VERSION='v338';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v338:['⚡ Egress: aba de CAFs agora usa sync incremental (igual já existia nas viagens) — antes, toda vez que alguém abria a aba ou o sync de segurança rodava, baixava a tabela de CAFs inteira de novo (~1,5MB, maioria histórico). Agora só busca o que mudou. 🐛 CRÍTICO achado no processo: o Supabase corta qualquer resposta em 1000 linhas, não importa o limite pedido na consulta — a tabela de CAFs já tem 1382, então 382 CAFs mais antigas estavam sumindo silenciosamente da tela (não apareciam em busca, relatório, nada). Corrigido com paginação, igual as viagens já tinham.'],
   v337:['🐛 Filtro de Status na Lista estava sem a opção "Declínio" — a lista de checkboxes é fixa no HTML e nunca foi atualizada quando esse status foi criado (v271). Adicionado na posição certa, do lado dos outros status de baixa (Cancelado/Recusado).'],
   v336:['🐛 CRÍTICO: "Tempo aguardando descarga" (FUP) somava 24h a mais em viagens que cruzam a meia-noite — mesmo com a data da Chegada FC Real ajustada certinho no campo, a função jogava essa data fora e recalculava usando sempre o dia da operação. Uma espera real de 8h27min aparecia como 32h27min. Corrigido: agora usa a data completa gravada no campo.'],
   v335:['🕐 Viagens que cruzam a meia-noite agora mostram um "+1" pequeno do lado do horário planejado (Saída/Chegada FC), avisando que é do dia seguinte — na Gestão de Doca, TV Yard, Painel, Lista e na tabela de resumo dentro da viagem. Antes só dava pra saber isso olhando o Excel.'],
@@ -7462,27 +7463,100 @@ function ruaNumeroDe(ruaId){
 let cafsDBTV=[]; // cópia enxuta (só CAFs ativas, sem histórico) — usada SÓ pela TV/TV Yard,
                   // nunca sobrescreve o cafsDB principal (compartilhado com Lista/Doca/Report PCP/etc.)
 
+let _lastCafSyncAt=null,_lastCafFullCheck=null;
+// Verifica exclusões de CAF do mesmo jeito seguro que já existe pras viagens: pergunta ao
+// banco especificamente pelos IDs que já temos localmente, em blocos — sem limite, sem
+// corte possível, sem risco de apagar CAF da tela por falha de rede.
+async function _checkCafDeletions(){
+  try{
+    if(!cafsDB.length)return false;
+    const ids=[...new Set(cafsDB.map(c=>c.id))];
+    const CHUNK=300;
+    const existentes=new Set();
+    for(let i=0;i<ids.length;i+=CHUNK){
+      const slice=ids.slice(i,i+CHUNK).map(id=>`"${id}"`).join(',');
+      const remote=await sbFetch(`${TABELA_CAF}?id=in.(${slice})&select=id`);
+      if(!Array.isArray(remote))return false;
+      remote.forEach(r=>existentes.add(r.id));
+    }
+    const before=cafsDB.length;
+    cafsDB=cafsDB.filter(c=>existentes.has(c.id));
+    _lastCafFullCheck=Date.now();
+    return cafsDB.length!==before;
+  }catch(e){}
+  return false;
+}
 async function loadCAFs(comHist=true,apenasAtivas=false){
   if(!supabaseOK)return;
   try{
-    // hist é ~82% do peso da linha (medido: 404KB de 491KB em 550 CAFs) — quem só precisa
-    // exibir status/pallets/vencimento (TV, TV Yard) não precisa desse campo. Corta egress ~5x.
-    const cols='id,num_caf,tipo,rota,volume,pallets,vencimento,status,op_id,obs,criado_por,criado_em,rua_id,codigo_curto,esteira_num'+(comHist?',hist':'');
-    // apenasAtivas: filtra fora "Entrega Realizada"/"cancelada" no próprio banco — medido que 95%
-    // das CAFs já estão finalizadas (521 de 550), e a TV nunca precisa exibir isso. Corta ~19x
-    // a quantidade de linhas, e o corte fica sempre proporcional (não cresce com o tempo).
-    // IMPORTANTE: quando apenasAtivas=true, grava em cafsDBTV (variável separada) — nunca no
-    // cafsDB principal, pra não sumir CAFs finalizadas da Lista/Report PCP/etc. se a pessoa
-    // trocar de aba logo depois de passar pela TV.
-    const filtroStatus=apenasAtivas?`&status=not.in.(${encodeURIComponent('"Entrega Realizada","cancelada"')})`:'';
-    const data=await sbFetch(`${TABELA_CAF}?select=${cols}${filtroStatus}&order=criado_em.desc&limit=2000`);
+    // hist é ~67% do peso da linha (medido: 1020KB de 1528KB em 1382 CAFs) — quem só precisa
+    // exibir status/pallets/vencimento (TV, TV Yard) não precisa desse campo. Corta egress ~3x.
+    const cols='id,num_caf,tipo,rota,volume,pallets,vencimento,status,op_id,obs,criado_por,criado_em,rua_id,codigo_curto,esteira_num,updated_at'+(comHist?',hist':'');
+    // apenasAtivas: filtra fora "Entrega Realizada"/"cancelada" no próprio banco — a TV
+    // nunca precisa exibir isso. Grava em cafsDBTV (separada), nunca no cafsDB principal.
+    if(apenasAtivas){
+      const filtroStatus=`&status=not.in.(${encodeURIComponent('"Entrega Realizada","cancelada"')})`;
+      const data=await sbFetch(`${TABELA_CAF}?select=${cols}${filtroStatus}&order=criado_em.desc&limit=2000`);
+      if(Array.isArray(data)){
+        cafsDBTV=data.map(r=>({
+          id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
+          rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
+          venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
+          opId:r.op_id||'',obs:r.obs||'',
+          criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
+          ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
+          hist:Array.isArray(r.hist)?r.hist:[]
+        }));
+      }
+      _updateCAFBadge();
+      return;
+    }
+    // ── SYNC INCREMENTAL: já temos uma carga completa nesta sessão — busca só o que
+    // mudou desde então (igual já funciona pras viagens). Payload mínimo em vez de
+    // rebaixar a tabela inteira (com hist) toda vez que a aba CAFs é reaberta ou a cada
+    // tick do sync de segurança. Funciona com comHist=true ou false. ──
+    if(_lastCafSyncAt&&cafsDB.length>0){
+      const since=new Date(_lastCafSyncAt-30000).toISOString();
+      const changed=await sbFetch(`${TABELA_CAF}?updated_at=gte.${encodeURIComponent(since)}&order=updated_at.asc&limit=1000&select=${cols}`);
+      if(Array.isArray(changed)){
+        changed.forEach(r=>{
+          const idx=cafsDB.findIndex(c=>c.id===r.id);
+          const mapeada={
+            id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
+            rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
+            venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
+            opId:r.op_id||'',obs:r.obs||'',
+            criadoPor:r.criado_por||'',criadoEm:r.criado_em||'',
+            ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
+            // comHist=false: backend não devolve o campo — preserva o hist já em memória em
+            // vez de sobrescrever com [] e apagar o histórico visível no modal de edição.
+            hist:Array.isArray(r.hist)?r.hist:(idx>=0?cafsDB[idx].hist:[])
+          };
+          if(idx>=0)cafsDB[idx]=mapeada;else cafsDB.push(mapeada);
+        });
+      }
+      // Deleções são raras — só confere a cada 5 min, igual já funciona pras viagens
+      if(!_lastCafFullCheck||Date.now()-_lastCafFullCheck>300000)await _checkCafDeletions();
+      _lastCafSyncAt=Date.now();
+      _updateCAFBadge();
+      return;
+    }
+    // ── FULL LOAD: primeira vez nesta sessão. Pagina em blocos de 1000 (limite real do
+    // PostgREST — ignora qualquer limit= maior que isso na URL, então sem paginação
+    // qualquer CAF além das 1000 mais recentes some silenciosamente da tela). ──
+    let allData=[],offset=0,pageSize=1000;
+    while(true){
+      const page=await sbFetch(`${TABELA_CAF}?select=${cols}&order=criado_em.desc&limit=${pageSize}&offset=${offset}`);
+      if(!Array.isArray(page)||page.length===0)break;
+      allData=[...allData,...page];
+      if(page.length<pageSize)break;
+      offset+=pageSize;
+    }
+    const data=allData;
     if(Array.isArray(data)){
-      // Quando comHist=false, o backend não devolve o campo — preserva o hist já em memória
-      // (vindo de uma carga anterior com comHist=true) em vez de sobrescrever com [] e apagar
-      // o histórico visível no modal de edição (openEditCAF lê cafsDB[].hist direto, sem refetch).
       const histAnterior={};
-      if(!comHist&&!apenasAtivas)for(const c of cafsDB)if(Array.isArray(c.hist)&&c.hist.length)histAnterior[c.id]=c.hist;
-      const mapeado=data.map(r=>({
+      if(!comHist)for(const c of cafsDB)if(Array.isArray(c.hist)&&c.hist.length)histAnterior[c.id]=c.hist;
+      cafsDB=data.map(r=>({
         id:r.id,num:r.num_caf||'',tipo:r.tipo||'LTL',
         rota:r.rota||'',vol:r.volume||0,pallets:r.pallets||0,
         venc:r.vencimento||'',status:CAF_STATUS_DB2CODE[r.status]||r.status||'Em Produção',
@@ -7491,8 +7565,8 @@ async function loadCAFs(comHist=true,apenasAtivas=false){
         ruaId:r.rua_id||null,codigoCurto:r.codigo_curto||'',esteiraNum:r.esteira_num||null,
         hist:Array.isArray(r.hist)?r.hist:(histAnterior[r.id]||[])
       }));
-      if(apenasAtivas)cafsDBTV=mapeado;
-      else cafsDB=mapeado;
+      _lastCafSyncAt=Date.now();
+      _lastCafFullCheck=Date.now();
     }
   }catch(e){
     const msg=e.message||'';
