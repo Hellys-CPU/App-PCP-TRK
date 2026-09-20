@@ -1894,11 +1894,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v338';
+const APP_VERSION='v339';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v339:['🚨 Novo alerta na Lista: quando uma viagem PROGRAMADA usa a mesma placa (cavalo + carreta) e motorista de outra viagem em dia anterior que ainda está Aguardando Descarga, a linha aparece destacada em vermelho — avisando que esse veículo/motorista pode não estar livre de verdade pra essa nova programação.'],
   v338:['⚡ Egress: aba de CAFs agora usa sync incremental (igual já existia nas viagens) — antes, toda vez que alguém abria a aba ou o sync de segurança rodava, baixava a tabela de CAFs inteira de novo (~1,5MB, maioria histórico). Agora só busca o que mudou. 🐛 CRÍTICO achado no processo: o Supabase corta qualquer resposta em 1000 linhas, não importa o limite pedido na consulta — a tabela de CAFs já tem 1382, então 382 CAFs mais antigas estavam sumindo silenciosamente da tela (não apareciam em busca, relatório, nada). Corrigido com paginação, igual as viagens já tinham.'],
   v337:['🐛 Filtro de Status na Lista estava sem a opção "Declínio" — a lista de checkboxes é fixa no HTML e nunca foi atualizada quando esse status foi criado (v271). Adicionado na posição certa, do lado dos outros status de baixa (Cancelado/Recusado).'],
   v336:['🐛 CRÍTICO: "Tempo aguardando descarga" (FUP) somava 24h a mais em viagens que cruzam a meia-noite — mesmo com a data da Chegada FC Real ajustada certinho no campo, a função jogava essa data fora e recalculava usando sempre o dia da operação. Uma espera real de 8h27min aparecia como 32h27min. Corrigido: agora usa a data completa gravada no campo.'],
@@ -3822,6 +3823,25 @@ function renderList(){
   });
   _listSortIndicators();
   const cnt=document.getElementById('listCnt');if(cnt)cnt.textContent=data.length+' op.';
+  // ── Índice: veículo (cavalo+carreta) + motorista que ainda está AGUARDANDO DESCARGA em
+  // outra viagem — construído uma vez por render, não por linha, pra não pesar. Usa o
+  // array global 'ops' (não só o filtrado da tela) pra pegar conflito mesmo se a viagem
+  // antiga estiver fora do filtro atual.
+  const _chaveVeic=o=>[(o.placa||'').trim().toUpperCase(),(o.placaCarreta||'').trim().toUpperCase(),(o.mot||'').trim().toUpperCase()].join('|');
+  const _aindaAguardando=new Map(); // chave -> [{dataOp, codigoCurto}]
+  ops.forEach(o=>{
+    if(o.status!=='AGUDESC')return;
+    const k=_chaveVeic(o);
+    if(!_aindaAguardando.has(k))_aindaAguardando.set(k,[]);
+    _aindaAguardando.get(k).push({dataOp:o.dataOp,codigoCurto:o.codigoCurto||o.id});
+  });
+  function _conflitoVeiculoOcupado(op){
+    if(op.status!=='PROGRAMADO')return null;
+    const lista=_aindaAguardando.get(_chaveVeic(op));
+    if(!lista)return null;
+    const anterior=lista.find(x=>x.dataOp<op.dataOp);
+    return anterior||null;
+  }
   document.getElementById('listBody').innerHTML=data.map((op,i)=>{
     try{
     const dS=dMin(op.planSaida,op.realSaida),dC=dMin(op.planChegFC,op.realChegFC),dDoc=dMin(op.realChegFC,op.realDescarga);
@@ -3829,7 +3849,9 @@ function renderList(){
     const cafsDaOp=cafsDB.filter(c=>c.opId===op.id);
     const totalPallets=cafsDaOp.reduce((s,c)=>s+(Number(c.pallets)||0),0);
     const rowId='det-'+op.id.replace(/[^a-zA-Z0-9]/g,'');
-    return `<tr onclick="openEdit('${esc(op.id)}')">
+    const conflito=_conflitoVeiculoOcupado(op);
+    const trStyle=conflito?' style="background:var(--red4);border-left:3px solid var(--red)" title="⚠ Este veículo/motorista ainda está Aguardando Descarga na viagem '+esc(conflito.codigoCurto)+' ('+fmtD(conflito.dataOp)+') — pode não estar livre de verdade pra essa programação."':'';
+    return `<tr onclick="openEdit('${esc(op.id)}')"${trStyle}>
       <td style="color:var(--t2);font-size:.7rem">${i+1}</td>
       <td style="font-size:.72rem">
         <div style="display:flex;align-items:center;gap:4px">
@@ -3851,7 +3873,7 @@ function renderList(){
       <td style="color:var(--purple);font-weight:600">${fDiff(dDoc)}</td>
       <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoSaida||'')}">${esc(op.motivoAtrasoSaida||(dS>30?'⚠ sem motivo':'—'))}</td>
       <td style="font-size:.62rem;color:var(--t2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(op.motivoAtrasoChegada||'')}">${esc(op.motivoAtrasoChegada||(dC>30?'⚠ sem motivo':'—'))}</td>
-      <td><span class="sb sb-${op.status}">${stObj(op.status).lb}</span></td>
+      <td><span class="sb sb-${op.status}">${stObj(op.status).lb}</span>${conflito?`<div style="font-size:.58rem;color:var(--red);font-weight:700;margin-top:2px">⚠ Aguard. descarga em ${esc(conflito.codigoCurto)}</div>`:''}</td>
     </tr>
     <tr id="${rowId}" style="display:none" onclick="event.stopPropagation()">
       <td></td>
