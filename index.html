@@ -11715,7 +11715,7 @@ function _renderPainelDescargaLive(){
       ${fcs.map(fc=>`<option value="${esc(fc)}" ${fc===_pdFiltroFC?'selected':''}>${esc(fc)}</option>`).join('')}
     </select>
     <input type="text" placeholder="🔍 Placa ou motorista..." value="${esc(_pdBusca)}" oninput="_pdSetBusca(this.value)" style="background:#111d33;border:1.5px solid #22314f;border-radius:8px;color:#e5e7eb;padding:5px 9px;font-size:.72rem;outline:none;min-width:180px">
-    ${_pdFiltroFC||_pdBusca?'<button class="btn btn-g" onclick="_pdLimparFiltro()" style="font-size:.68rem;padding:4px 10px">✕ Limpar</button>':''}
+    ${_pdFiltroFC||_pdBusca?'<button onclick="_pdLimparFiltro()" style="background:#1c2b45;border:1.5px solid #2f4468;border-radius:8px;color:#e5e7eb;font-size:.68rem;padding:5px 10px;cursor:pointer">✕ Limpar</button>':''}
   </div>`;
 
   if(!todos.length){
