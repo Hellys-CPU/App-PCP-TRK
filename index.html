@@ -7172,6 +7172,11 @@ function renderAnalise(){
   ${_renderHeatMap()}
 </div>
 <div class="an-card" style="grid-column:1/-1">
+  <h3>🛫 Painel de Descarga — Aguardando</h3>
+  <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Todos os veículos aguardando descarga no momento, ordenados por chegada mais antiga primeiro.</p>
+  ${_renderPainelDescarga()}
+</div>
+<div class="an-card" style="grid-column:1/-1">
   <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
   ${_renderMapaDoca()}
@@ -11540,6 +11545,52 @@ function _renderHeatMap(){
 // ══════════════════════════════════════════════════════════════════
 // Configuração das docas (editável via Admin futuramente)
 let DOCAS_CONFIG={total:8,prefix:'D'};
+
+function _renderPainelDescarga(){
+  const agora=new Date();
+  const lista=ops.filter(o=>o.status==='AGUDESC').map(o=>{
+    const chegDt=o.realChegFC?new Date(o.realChegFC):null;
+    const diasAg=chegDt&&!isNaN(chegDt)?Math.floor((agora-chegDt)/86400000):null;
+    return{op:o,chegDt,diasAg};
+  }).sort((a,b)=>{
+    if(!a.chegDt&&!b.chegDt)return 0;
+    if(!a.chegDt)return 1;
+    if(!b.chegDt)return -1;
+    return a.chegDt-b.chegDt;
+  });
+
+  if(!lista.length){
+    return'<div style="text-align:center;color:var(--green);font-size:.85rem;padding:20px">✅ Nenhum veículo aguardando descarga no momento</div>';
+  }
+
+  const linha=({op,chegDt,diasAg})=>{
+    const critico=diasAg!==null&&diasAg>=1;
+    const fc=_fcFromRota(op.rota)||op.rota||'—';
+    return`<tr style="border-bottom:1px solid var(--bg4);${critico?'background:var(--red4)':''}">
+      <td style="padding:6px 8px;font-weight:800;color:var(--text);white-space:nowrap">${esc(op.placa)||'—'}${op.placaCarreta?' / '+esc(op.placaCarreta):''}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap">${fmtD(op.dataOp)||'—'}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap">${chegDt?toTime(op.realChegFC):'—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:700;color:${critico?'var(--red)':'var(--t2)'}">${diasAg===null?'—':diasAg===0?'< 1 dia':diasAg+' dia'+(diasAg>1?'s':'')}${critico?' ⚠':''}</td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap;color:var(--purple)">🏭 Ag. Descarga${op.doca?' · '+esc(op.doca):''}</td>
+      <td style="padding:6px 8px;text-align:center;font-weight:700;color:#f59e0b">${esc(fc)}</td>
+    </tr>`;
+  };
+
+  return`<div style="overflow-x:auto">
+    <table style="width:100%;min-width:640px;border-collapse:collapse;font-size:.74rem;font-family:'Courier New',monospace">
+      <thead><tr style="border-bottom:2px solid var(--purple)">
+        <th style="text-align:left;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Placas (Cavalo/Carreta)</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Dia Operação</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Chegada Real</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Dias Aguardando</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">Status</th>
+        <th style="text-align:center;padding:5px 8px;color:var(--t2);font-size:.6rem;text-transform:uppercase">FC Destino</th>
+      </tr></thead>
+      <tbody>${lista.map(linha).join('')}</tbody>
+    </table>
+  </div>
+  <div style="margin-top:8px;font-size:.65rem;color:var(--t2)">Total: <b>${lista.length}</b> veículo${lista.length!==1?'s':''} aguardando descarga</div>`;
+}
 
 function _renderMapaDoca(){
   const totalDocas=DOCAS_CONFIG.total||8;
