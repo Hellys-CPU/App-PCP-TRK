@@ -1894,11 +1894,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v339';
+const APP_VERSION='v340';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v340:['🐛 Corrigido o alerta de veículo/motorista ainda aguardando descarga (v339) — não funcionava porque a checagem comparava com o rótulo "PROGRAMADO" em vez do código real do status ("PROG"). Testado agora com uma viagem real que estava reportando o problema (VG-022404 / VG-022264) e confirmado funcionando.'],
   v339:['🚨 Novo alerta na Lista: quando uma viagem PROGRAMADA usa a mesma placa (cavalo + carreta) e motorista de outra viagem em dia anterior que ainda está Aguardando Descarga, a linha aparece destacada em vermelho — avisando que esse veículo/motorista pode não estar livre de verdade pra essa nova programação.'],
   v338:['⚡ Egress: aba de CAFs agora usa sync incremental (igual já existia nas viagens) — antes, toda vez que alguém abria a aba ou o sync de segurança rodava, baixava a tabela de CAFs inteira de novo (~1,5MB, maioria histórico). Agora só busca o que mudou. 🐛 CRÍTICO achado no processo: o Supabase corta qualquer resposta em 1000 linhas, não importa o limite pedido na consulta — a tabela de CAFs já tem 1382, então 382 CAFs mais antigas estavam sumindo silenciosamente da tela (não apareciam em busca, relatório, nada). Corrigido com paginação, igual as viagens já tinham.'],
   v337:['🐛 Filtro de Status na Lista estava sem a opção "Declínio" — a lista de checkboxes é fixa no HTML e nunca foi atualizada quando esse status foi criado (v271). Adicionado na posição certa, do lado dos outros status de baixa (Cancelado/Recusado).'],
@@ -3836,7 +3837,7 @@ function renderList(){
     _aindaAguardando.get(k).push({dataOp:o.dataOp,codigoCurto:o.codigoCurto||o.id});
   });
   function _conflitoVeiculoOcupado(op){
-    if(op.status!=='PROGRAMADO')return null;
+    if(op.status!=='PROG')return null;
     const lista=_aindaAguardando.get(_chaveVeic(op));
     if(!lista)return null;
     const anterior=lista.find(x=>x.dataOp<op.dataOp);
