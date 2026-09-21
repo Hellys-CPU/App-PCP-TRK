@@ -7171,8 +7171,11 @@ function renderAnalise(){
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia · Este mapa mede especificamente o <b>SLA de Chegada no FC</b> (o principal) · Cor: verde = bom · vermelho = ruim · intensidade = volume de operações</p>
   ${_renderHeatMap()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🛫 Painel de Descarga — Aguardando</h3>
+<div class="an-card" style="grid-column:1/-1" id="pdCard">
+  <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>🛫 Painel de Descarga — Aguardando</span>
+    <button class="btn btn-s" id="pdWhatsBtn" onclick="_pdEnviarWhatsapp()" style="font-size:.68rem">📱 Enviar p/ WhatsApp</button>
+  </h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:8px">Todos os veículos aguardando descarga no momento, ordenados por chegada mais antiga primeiro.</p>
   <div id="pdCardBody">${_renderPainelDescarga()}</div>
 </div>
@@ -11545,6 +11548,60 @@ function _renderHeatMap(){
 // ══════════════════════════════════════════════════════════════════
 // Configuração das docas (editável via Admin futuramente)
 let DOCAS_CONFIG={total:8,prefix:'D'};
+
+// Carrega html2canvas sob demanda (só quando o usuário clica em "Enviar p/ WhatsApp")
+function _loadScriptCascade(cdns,cb){
+  let idx=0;
+  function tryLoad(){
+    if(idx>=cdns.length){cb(false);return;}
+    const s=document.createElement('script');
+    s.src=cdns[idx];
+    s.onload=()=>cb(true);
+    s.onerror=()=>{idx++;tryLoad();};
+    document.head.appendChild(s);
+  }
+  tryLoad();
+}
+async function _pdEnviarWhatsapp(){
+  const btn=document.getElementById('pdWhatsBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Gerando...';}
+  try{
+    if(typeof html2canvas==='undefined'){
+      await new Promise(res=>_loadScriptCascade([
+        'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+        'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+      ],res));
+    }
+    if(typeof html2canvas==='undefined'){
+      showToast('⚠️ Não foi possível carregar o gerador de imagem','err');
+      return;
+    }
+    const el=document.getElementById('pdCard');
+    const bg=(getComputedStyle(document.body).getPropertyValue('--bg2')||'#fff').trim()||'#fff';
+    const canvas=await html2canvas(el,{backgroundColor:bg,scale:2});
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+    if(!blob){showToast('⚠️ Erro ao gerar imagem','err');return;}
+    const texto='📦 Painel de Descarga — Aguardando ('+new Date().toLocaleString('pt-BR')+')';
+    const file=new File([blob],'painel-descarga.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:'Painel de Descarga',text:texto});
+        return;
+      }catch(e){if(e.name==='AbortError')return;}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='painel-descarga.png';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    showToast('📥 Imagem baixada — anexe ela na conversa do WhatsApp que vai abrir','ok');
+    window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank');
+  }catch(e){
+    console.error('_pdEnviarWhatsapp erro:',e);
+    showToast('⚠️ Erro ao gerar imagem: '+(e.message||e),'err');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='📱 Enviar p/ WhatsApp';}
+  }
+}
 
 let _pdFiltroFC='',_pdBusca='';
 function _pdSetFiltroFC(v){_pdFiltroFC=v;_pdRefresh();}
