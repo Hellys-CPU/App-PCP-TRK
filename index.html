@@ -11554,13 +11554,39 @@ function _pdRefresh(){
   const c=document.getElementById('pdCardBody');
   if(c)c.innerHTML=_renderPainelDescarga();
 }
+function _fmtHMS(ms){
+  if(!ms||ms<0)ms=0;
+  const totalSec=Math.floor(ms/1000);
+  const pad=n=>String(n).padStart(2,'0');
+  return pad(Math.floor(totalSec/3600))+':'+pad(Math.floor((totalSec%3600)/60))+':'+pad(totalSec%60);
+}
+function _pdSemanaLabel(dataOp){
+  const k=isoWeekKey(dataOp);
+  if(!k)return'—';
+  const[yr,wp]=k.split('-W');const y=parseInt(yr),w=parseInt(wp);
+  const jan4=new Date(y,0,4);const sw=new Date(jan4);sw.setDate(jan4.getDate()-(jan4.getDay()||7)+1);
+  const mon=new Date(sw.getTime()+(w-1)*7*86400000);
+  const sun=new Date(mon.getTime()+6*86400000);
+  const fmt=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return`S${w} (${fmt(mon)} a ${fmt(sun)})`;
+}
+// Atualiza ao vivo, a cada segundo, a coluna "Aguardando Descarga" do painel
+setInterval(()=>{
+  if(curPage!=='analise')return;
+  document.querySelectorAll('.pd-timer').forEach(el=>{
+    const cheg=new Date(el.dataset.cheg);
+    if(isNaN(cheg))return;
+    el.textContent=_fmtHMS(Date.now()-cheg);
+  });
+},1000);
 function _renderPainelDescarga(){
   const agora=new Date();
   const todos=ops.filter(o=>o.status==='AGUDESC').map(o=>{
     const chegDt=o.realChegFC?new Date(o.realChegFC):null;
-    const diasAg=chegDt&&!isNaN(chegDt)?Math.floor((agora-chegDt)/86400000):null;
     const fc=_fcFromRota(o.rota)||o.rota||'—';
-    return{op:o,chegDt,diasAg,fc};
+    const cafsOp=cafsDB.filter(c=>c.opId===o.id).map(c=>c.num);
+    const cafs=(cafsOp.length?cafsOp:(o.cafs||[]).map(c=>c.num||c)).filter(Boolean);
+    return{op:o,chegDt,fc,cafs};
   }).sort((a,b)=>{
     if(!a.chegDt&&!b.chegDt)return 0;
     if(!a.chegDt)return 1;
@@ -11592,27 +11618,36 @@ function _renderPainelDescarga(){
     return filtros+'<div style="text-align:center;color:var(--t3);font-size:.78rem;padding:16px">Nenhum veículo aguardando descarga para esse filtro</div>';
   }
 
-  const linha=({op,chegDt,diasAg,fc})=>{
-    const critico=diasAg!==null&&diasAg>=1;
-    return`<tr style="border-bottom:1px solid var(--bg4);${critico?'background:var(--red4)':''}">
-      <td style="padding:3px 6px;font-weight:800;color:var(--text);white-space:nowrap">${esc(op.placa)||'—'}${op.placaCarreta?' / '+esc(op.placaCarreta):''}</td>
+  const linha=({op,chegDt,fc,cafs})=>{
+    const ms=chegDt?agora-chegDt:0;
+    const critico=chegDt&&ms>24*3600000;
+    return`<tr style="border-bottom:1px solid var(--bg4)">
       <td style="padding:3px 6px;text-align:center;white-space:nowrap">${fmtD(op.dataOp)||'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${chegDt?toTime(op.realChegFC):'—'}</td>
-      <td style="padding:3px 6px;text-align:center;font-weight:700;color:${critico?'var(--red)':'var(--t2)'}">${diasAg===null?'—':diasAg===0?'< 1 dia':diasAg+' dia'+(diasAg>1?'s':'')}${critico?' ⚠':''}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap;font-weight:700;color:var(--blue)">${esc(op.rota)||'—'}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${cafs.length?esc(cafs.join(' | ')):'—'}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap;font-weight:700;color:var(--text)">${esc(op.placa)||'—'}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--blue)">${esc(op.placaCarreta)||'—'}</td>
       <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--purple)">🏭 Ag. Descarga${op.doca?' · '+esc(op.doca):''}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${chegDt?fmtD(op.dataOp)+' '+toTime(op.realChegFC):'—'}</td>
+      <td class="pd-timer" data-cheg="${chegDt?chegDt.toISOString():''}" style="padding:3px 6px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;background:${critico?'var(--red4)':'var(--yellow2)'};color:${critico?'var(--red)':'var(--yellow)'}">${chegDt?_fmtHMS(ms):'—'}</td>
       <td style="padding:3px 6px;text-align:center;font-weight:700;color:#f59e0b">${esc(fc)}</td>
+      <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--t2)">${_pdSemanaLabel(op.dataOp)}</td>
     </tr>`;
   };
 
   return`${filtros}<div style="overflow-x:auto">
-    <table style="width:100%;min-width:640px;border-collapse:collapse;font-size:.72rem">
+    <table style="width:100%;min-width:920px;border-collapse:collapse;font-size:.72rem">
       <thead><tr style="border-bottom:2px solid var(--purple)">
-        <th style="text-align:left;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Placas (Cavalo/Carreta)</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Dia Operação</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Chegada Real</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Dias Aguardando</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Data</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Rota</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">CAFs</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Cavalo</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Carreta</th>
         <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Status</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">FC Destino</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Chegada</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Aguardando Descarga</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">FC</th>
+        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Semana</th>
       </tr></thead>
       <tbody>${lista.map(linha).join('')}</tbody>
     </table>
