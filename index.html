@@ -11562,9 +11562,43 @@ function _loadScriptCascade(cdns,cb){
   }
   tryLoad();
 }
+// Monta o cartão visual (painel de aeroporto de verdade) usado só na imagem exportada —
+// não reaproveita a tabela da tela, que tem filtro/inputs e não fica bonita em print.
+function _pdBuildShareCardHTML(){
+  const agora=new Date();
+  const{lista}=_pdComputeLista();
+  const linha=({op,chegDt,fc,ms,critico})=>`
+    <div style="display:flex;align-items:center;gap:14px;background:${critico?'#3a1414':'#111d33'};border:1px solid ${critico?'#7f1d1d':'#22314f'};border-radius:10px;padding:10px 16px;">
+      <div style="flex:0 0 108px;font-family:'Courier New',monospace;font-size:22px;font-weight:800;letter-spacing:1px;color:${critico?'#ff6b6b':'#fbbf24'}">${chegDt?_fmtHMS(ms):'—'}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="font-size:15px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:#8fb4ff">/ '+esc(op.placaCarreta)+'</span>':''}</div>
+        <div style="font-size:11px;color:#9aa7bd;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}</div>
+      </div>
+      <div style="flex:0 0 auto;text-align:right">
+        <div style="font-size:14px;font-weight:800;color:#fb923c">${esc(fc)}</div>
+        <div style="font-size:10px;color:#9aa7bd;margin-top:2px">${_pdSemanaLabel(op.dataOp).split(' ')[0]}</div>
+      </div>
+    </div>`;
+
+  return`<div style="width:760px;padding:22px 26px;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(160deg,#0b1120,#141d30);border-radius:18px;color:#e5e7eb">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2px">
+      <div style="font-size:23px;font-weight:800;color:#fff;letter-spacing:.4px">🛫 PAINEL DE DESCARGA</div>
+      <div style="font-size:11px;color:#9aa7bd">${agora.toLocaleDateString('pt-BR')} · ${agora.toLocaleTimeString('pt-BR')}</div>
+    </div>
+    <div style="font-size:12px;color:#9aa7bd;margin-bottom:16px">Veículos aguardando descarga — ordenados por chegada mais antiga</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${lista.length?lista.map(linha).join(''):'<div style="text-align:center;color:#4ade80;font-size:14px;padding:20px">✅ Nenhum veículo aguardando descarga</div>'}
+    </div>
+    <div style="margin-top:16px;padding-top:10px;border-top:1px solid #22314f;display:flex;justify-content:space-between;font-size:11px;color:#9aa7bd">
+      <span>Total: <b style="color:#fff">${lista.length}</b> veículo${lista.length!==1?'s':''} aguardando</span>
+      <span>TRK PCP</span>
+    </div>
+  </div>`;
+}
 async function _pdEnviarWhatsapp(){
   const btn=document.getElementById('pdWhatsBtn');
   if(btn){btn.disabled=true;btn.textContent='⏳ Gerando...';}
+  let holder=null;
   try{
     if(typeof html2canvas==='undefined'){
       await new Promise(res=>_loadScriptCascade([
@@ -11576,9 +11610,11 @@ async function _pdEnviarWhatsapp(){
       showToast('⚠️ Não foi possível carregar o gerador de imagem','err');
       return;
     }
-    const el=document.getElementById('pdCard');
-    const bg=(getComputedStyle(document.body).getPropertyValue('--bg2')||'#fff').trim()||'#fff';
-    const canvas=await html2canvas(el,{backgroundColor:bg,scale:2});
+    holder=document.createElement('div');
+    holder.style.cssText='position:fixed;left:-9999px;top:0;';
+    holder.innerHTML=_pdBuildShareCardHTML();
+    document.body.appendChild(holder);
+    const canvas=await html2canvas(holder.firstElementChild,{backgroundColor:null,scale:2});
     const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
     if(!blob){showToast('⚠️ Erro ao gerar imagem','err');return;}
     const texto='📦 Painel de Descarga — Aguardando ('+new Date().toLocaleString('pt-BR')+')';
@@ -11599,6 +11635,7 @@ async function _pdEnviarWhatsapp(){
     console.error('_pdEnviarWhatsapp erro:',e);
     showToast('⚠️ Erro ao gerar imagem: '+(e.message||e),'err');
   }finally{
+    if(holder)holder.remove();
     if(btn){btn.disabled=false;btn.textContent='📱 Enviar p/ WhatsApp';}
   }
 }
@@ -11636,14 +11673,16 @@ setInterval(()=>{
     el.textContent=_fmtHMS(Date.now()-cheg);
   });
 },1000);
-function _renderPainelDescarga(){
+function _pdComputeLista(){
   const agora=new Date();
   const todos=ops.filter(o=>o.status==='AGUDESC').map(o=>{
     const chegDt=o.realChegFC?new Date(o.realChegFC):null;
     const fc=_fcFromRota(o.rota)||o.rota||'—';
     const cafsOp=cafsDB.filter(c=>c.opId===o.id).map(c=>c.num);
     const cafs=(cafsOp.length?cafsOp:(o.cafs||[]).map(c=>c.num||c)).filter(Boolean);
-    return{op:o,chegDt,fc,cafs};
+    const ms=chegDt?agora-chegDt:0;
+    const critico=!!(chegDt&&ms>24*3600000);
+    return{op:o,chegDt,fc,cafs,ms,critico};
   }).sort((a,b)=>{
     if(!a.chegDt&&!b.chegDt)return 0;
     if(!a.chegDt)return 1;
@@ -11658,6 +11697,10 @@ function _renderPainelDescarga(){
     if(q&&!((op.placa||'').toLowerCase().includes(q)||(op.placaCarreta||'').toLowerCase().includes(q)||(op.mot||'').toLowerCase().includes(q)))return false;
     return true;
   });
+  return{todos,lista,fcs};
+}
+function _renderPainelDescarga(){
+  const{todos,lista,fcs}=_pdComputeLista();
 
   const filtros=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
     <select onchange="_pdSetFiltroFC(this.value)" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:3px 7px;font-size:.7rem;outline:none;">
@@ -11675,9 +11718,7 @@ function _renderPainelDescarga(){
     return filtros+'<div style="text-align:center;color:var(--t3);font-size:.78rem;padding:16px">Nenhum veículo aguardando descarga para esse filtro</div>';
   }
 
-  const linha=({op,chegDt,fc,cafs})=>{
-    const ms=chegDt?agora-chegDt:0;
-    const critico=chegDt&&ms>24*3600000;
+  const linha=({op,chegDt,fc,cafs,ms,critico})=>{
     return`<tr style="border-bottom:1px solid var(--bg4)">
       <td style="padding:3px 6px;text-align:center;white-space:nowrap">${fmtD(op.dataOp)||'—'}</td>
       <td style="padding:3px 6px;text-align:center;white-space:nowrap;font-weight:700;color:var(--blue)">${esc(op.rota)||'—'}</td>
