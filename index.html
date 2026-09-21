@@ -263,6 +263,7 @@ body.dark .card-rota-badge{color:#e6edf3;}
 .b-ext{background:var(--purple2);color:var(--purple);}
 .b-prod{background:rgba(249,115,22,.12);color:#ea580c;border:1px solid rgba(249,115,22,.3);}
 .b-gris{background:rgba(220,38,38,.14);color:#dc2626;border:1.5px solid rgba(220,38,38,.4);font-weight:800;}
+.b-agend{background:rgba(30,58,138,.13);color:#1e3a8a;border:1px solid rgba(30,58,138,.35);}
 .ci{font-size:.69rem;color:var(--t2);display:flex;flex-direction:column;gap:2px;}
 .ci .row{display:flex;justify-content:space-between;}
 .ci .lbl{color:var(--t3);font-size:.65rem;}
@@ -1282,16 +1283,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 <!-- ADMIN -->
 <div class="view" id="view-admin">
   <div class="admin-grid">
-    <div class="admin-card" id="adm-ruas">
-      <h3>🏗️ Ruas — Andares (Mezanino)</h3>
-      <div id="ruasAndaresList" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
-      <div style="display:flex;gap:6px;align-items:flex-end">
-        <div class="fg" style="flex:1;margin:0"><label style="font-size:.62rem">Rua nº</label><input id="admRuaNum" type="number" min="1" style="width:100%"></div>
-        <div class="fg" style="flex:1;margin:0"><label style="font-size:.62rem">Capacidade (pal.)</label><input id="admRuaCap" type="number" value="28" style="width:100%"></div>
-        <button class="btn btn-s" style="font-size:.72rem" onclick="_adicionarAndarRua()">+ Add. Andar</button>
-      </div>
-      <div style="font-size:.6rem;color:var(--t2);margin-top:6px">Adiciona um novo andar/nível pra uma rua que já existe — vira uma posição física independente, mesma lógica das ruas 23-27.</div>
-    </div>
     <div class="admin-card" id="adm-users">
       <h3>👥 Gestão de Usuários</h3>
       <div class="user-list" id="userList"></div>
@@ -1894,11 +1885,13 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v340';
+const APP_VERSION='v342';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v342:['📅 Novo status de CAF: "Em Agendamento" (azul escuro) — etapa antes de "Em Produção", pra quando a CAF já foi agendada mas ainda não começou a ser produzida. Disponível pra Operação (operador_caf), Admin/Supervisor e qualquer perfil com permissão de editar/criar CAF. Aparece no dropdown de status, no selo colorido e no pipeline visual da TV.'],
+  v341:['🏗️ Ruas 31 a 35 agora são identificadas como "Porta Pallets" em vez de rua comum — aparecem assim no dropdown de vínculo de CAF, no mapa da TV Yard (selo "PP") e na lista por FC. Removido de vez o recurso de "andar/mezanino" (ruas 23-27 tinham níveis extras vazios, sem uso) — banco limpo, e a tela de Admin que criava andar novo foi removida.'],
   v340:['🐛 Corrigido o alerta de veículo/motorista ainda aguardando descarga (v339) — não funcionava porque a checagem comparava com o rótulo "PROGRAMADO" em vez do código real do status ("PROG"). Testado agora com uma viagem real que estava reportando o problema (VG-022404 / VG-022264) e confirmado funcionando.'],
   v339:['🚨 Novo alerta na Lista: quando uma viagem PROGRAMADA usa a mesma placa (cavalo + carreta) e motorista de outra viagem em dia anterior que ainda está Aguardando Descarga, a linha aparece destacada em vermelho — avisando que esse veículo/motorista pode não estar livre de verdade pra essa nova programação.'],
   v338:['⚡ Egress: aba de CAFs agora usa sync incremental (igual já existia nas viagens) — antes, toda vez que alguém abria a aba ou o sync de segurança rodava, baixava a tabela de CAFs inteira de novo (~1,5MB, maioria histórico). Agora só busca o que mudou. 🐛 CRÍTICO achado no processo: o Supabase corta qualquer resposta em 1000 linhas, não importa o limite pedido na consulta — a tabela de CAFs já tem 1382, então 382 CAFs mais antigas estavam sumindo silenciosamente da tela (não apareciam em busca, relatório, nada). Corrigido com paginação, igual as viagens já tinham.'],
@@ -2101,8 +2094,8 @@ const FCS_PALLETS=['GR8','XC9','GR9','GR5'];
 let supabaseOK=false,realtimeWS=null;
 
 // ── Status de CAF: agora o valor usado na UI é sempre o mesmo texto do banco (mapas mantidos como identidade por compatibilidade) ──
-const CAF_STATUS_CODE2DB={'Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
-const CAF_STATUS_DB2CODE={'Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
+const CAF_STATUS_CODE2DB={'Em Agendamento':'Em Agendamento','Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
+const CAF_STATUS_DB2CODE={'Em Agendamento':'Em Agendamento','Em Produção':'Em Produção','Produzida':'Produzida','Vinculada a Veículo':'Vinculada a Veículo','Processo de Entrega':'Processo de Entrega','Entrega Realizada':'Entrega Realizada','cancelada':'cancelada'};
 
 // ── Perfis reais do banco (tabela usuarios.perfil) ──
 // admin | supervisor | torre_controle | doca | operador_caf | visualizador
@@ -2110,17 +2103,17 @@ function _perfil(){return(currentUser?.perfil||'').toLowerCase();}
 function isReadOnly(){return _perfil()==='visualizador';}
 function _cafStatusPermitido(perfilRaw){
   const p=(perfilRaw||'').toLowerCase();
-  const TODOS=['Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','cancelada','Produzida','Em Auditoria GRIS'];
+  const TODOS=['Em Agendamento','Em Produção','Vinculada a Veículo','Entrega Realizada','Processo de Entrega','cancelada','Produzida','Em Auditoria GRIS'];
   // Permissão granular de acesso total a qualquer status — vale pra qualquer perfil que tiver
   // essa permissão customizada, não só admin/supervisor
   if(hasPerm('caf_status_full'))return TODOS;
   if(['admin','supervisor'].includes(p))return TODOS;
-  if(p==='operador_caf')return['Em Produção','Produzida','Em Auditoria GRIS'];
+  if(p==='operador_caf')return['Em Agendamento','Em Produção','Produzida','Em Auditoria GRIS'];
   if(p==='torre_controle')return['Processo de Entrega','Entrega Realizada'];
   // Qualquer outro perfil (ex: Liderança) que tenha ganhado permissão customizada de criar/editar
   // CAF precisa conseguir pelo menos o conjunto básico de criação/produção, senão fica travado
   // mesmo tendo a permissão de editar liberada.
-  if(hasPerm('caf_editar')||hasPerm('caf_criar'))return['Em Produção','Produzida','Em Auditoria GRIS'];
+  if(hasPerm('caf_editar')||hasPerm('caf_criar'))return['Em Agendamento','Em Produção','Produzida','Em Auditoria GRIS'];
   return[];
 }
 
@@ -4128,8 +4121,8 @@ function renderProg(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:3px">
             ${cafsDaOp.map(c=>{
-              const cor=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
-              const bg=c.status==='Em Auditoria GRIS'?'rgba(220,38,38,.15)':c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
+              const cor=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Agendamento'?'#1e3a8a':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Entrega Realizada'?'var(--orange)':c.status==='Processo de Entrega'?'var(--blue)':'var(--t3)';
+              const bg=c.status==='Em Auditoria GRIS'?'rgba(220,38,38,.15)':c.status==='Em Agendamento'?'rgba(30,58,138,.13)':c.status==='Em Produção'?'var(--bg4)':c.status==='Vinculada a Veículo'?'var(--green2)':c.status==='Entrega Realizada'?'rgba(249,115,22,.1)':c.status==='Processo de Entrega'?'var(--blue2)':'var(--bg4)';
               const ruaN=ruaNumeroDe(c.ruaId);
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
                 style="background:${bg};color:${cor};border:1.5px solid ${cor};border-radius:6px;padding:6px 10px;font-size:.85rem;font-weight:800;display:inline-flex;align-items:center;gap:6px">
@@ -5268,7 +5261,7 @@ function cafR(c,i){
   if(real){
     const podeStatus=_cafStatusPermitido(currentUser?.perfil);
     const selHtml=podeStatus.length?`<select onchange="alterarStatusCAFInline('${esc(real.id)}',this.value)" style="background:var(--bg3);border:1px solid var(--bd);border-radius:3px;color:var(--text);font-size:.62rem;padding:1px 4px">
-        ${['Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo','Processo de Entrega','Entrega Realizada','cancelada'].map(s=>`<option value="${s}" ${s===real.status?'selected':''} ${podeStatus.includes(s)?'':'disabled'}>${s}</option>`).join('')}
+        ${['Em Agendamento','Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo','Processo de Entrega','Entrega Realizada','cancelada'].map(s=>`<option value="${s}" ${s===real.status?'selected':''} ${podeStatus.includes(s)?'':'disabled'}>${s}</option>`).join('')}
       </select>`:`<span style="color:${real.status==='Entrega Realizada'?'var(--green)':'var(--t2)'}">${esc(real.status)}</span>`;
     return `<div id="cr-${i}"><div class="caf-row" style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:7px 10px">
       <input class="cn" type="hidden" value="${esc(real.num)}">
@@ -5691,7 +5684,7 @@ function setView(name){
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
-  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_renderRuasAndares();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());renderHistoricoTurnos();const _lblProj=document.getElementById('admProjetoAtivoLbl');if(_lblProj)_lblProj.textContent=PROJETO_ATIVO;
+  if(name==='admin'){renderUserList();renderStats();renderRotasList();renderTranspList();_veiculosLoadTried=true;loadVeiculosCadastro().then(()=>renderVeiculosCadastro());renderHistoricoTurnos();const _lblProj=document.getElementById('admProjetoAtivoLbl');if(_lblProj)_lblProj.textContent=PROJETO_ATIVO;
     const _monitorCard=document.getElementById('adm-db-monitor');
     if(currentUser?.user==='hellys'){if(_monitorCard)_monitorCard.style.display='';verificarSaudeBancos();}
     else if(_monitorCard)_monitorCard.style.display='none';
@@ -5840,12 +5833,12 @@ async function exportPPTX(){
   s=pptx.addSlide();
   s.addText('KPIs de CAFs',{x:.5,y:.3,w:9,h:.6,fontSize:24,color:'cc0000',bold:true});
   const cafsPer=cafsDB.filter(c=>c.criadoEm&&(!de||c.criadoEm.slice(0,10)>=de)&&(!ate||c.criadoEm.slice(0,10)<=ate));
-  const cSts=['Em Produção','Produzida','Vinculada a Veículo','Processo de Entrega','Entrega Realizada'];
+  const cSts=['Em Agendamento','Em Produção','Produzida','Vinculada a Veículo','Processo de Entrega','Entrega Realizada'];
   cSts.forEach((st,i)=>{
     const n=cafsPer.filter(c=>c.status===st).length;
-    s.addShape(pptx.shapes.ROUNDED_RECTANGLE,{x:.5+i*1.8,y:1.2,w:1.6,h:1,fill:{color:st==='Entrega Realizada'?'22c55e':st==='Processo de Entrega'?'3b82f6':'6b7280'},rectRadius:.1});
-    s.addText(String(n),{x:.5+i*1.8,y:1.25,w:1.6,h:.55,fontSize:24,color:'FFFFFF',bold:true,align:'center'});
-    s.addText(st,{x:.5+i*1.8,y:1.75,w:1.6,h:.35,fontSize:8,color:'FFFFFF',align:'center'});
+    s.addShape(pptx.shapes.ROUNDED_RECTANGLE,{x:.5+i*1.5,y:1.2,w:1.35,h:1,fill:{color:st==='Entrega Realizada'?'22c55e':st==='Processo de Entrega'?'3b82f6':st==='Em Agendamento'?'1e3a8a':'6b7280'},rectRadius:.1});
+    s.addText(String(n),{x:.5+i*1.5,y:1.25,w:1.35,h:.55,fontSize:24,color:'FFFFFF',bold:true,align:'center'});
+    s.addText(st,{x:.5+i*1.5,y:1.75,w:1.35,h:.35,fontSize:8,color:'FFFFFF',align:'center'});
   });
 
   pptx.writeFile({fileName:`TRK_Analise_${periodo.replace(/\//g,'-')}.pptx`});
@@ -7396,42 +7389,6 @@ const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','veic
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
 // Se tem 4 ou menos, mostra tudo na barra e esconde a bolha — não precisa de "Mais".
 // ── Gestão de Ruas/Andares no Admin ──
-function _renderRuasAndares(){
-  const el=document.getElementById('ruasAndaresList');if(!el)return;
-  // Agrupa por número, só mostra ruas que já têm mais de 1 andar (as "torres")
-  const porNumero={};
-  ruasDB.forEach(r=>{(porNumero[r.numero]=porNumero[r.numero]||[]).push(r);});
-  const comAndares=Object.entries(porNumero).filter(([,arr])=>arr.length>1).sort((a,b)=>Number(a[0])-Number(b[0]));
-  if(!comAndares.length){el.innerHTML='<div style="font-size:.68rem;color:var(--t3);text-align:center;padding:10px">Nenhuma rua com múltiplos andares ainda</div>';return;}
-  el.innerHTML=comAndares.map(([num,arr])=>{
-    const ordenado=[...arr].sort((a,b)=>a.andar-b.andar);
-    return`<div style="background:var(--bg3);border-radius:6px;padding:6px 10px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:.72rem;font-weight:700">Rua ${esc(num)}</span>
-      <span style="font-size:.65rem;color:var(--t2)">${ordenado.map(r=>`${r.andar>1?r.andar+'º':'Térreo'} (${r.capacidade_pallets}pal.)`).join(' · ')}</span>
-    </div>`;
-  }).join('');
-}
-
-async function _adicionarAndarRua(){
-  const num=parseInt(document.getElementById('admRuaNum')?.value||'',10);
-  const cap=parseInt(document.getElementById('admRuaCap')?.value||'28',10);
-  if(!num){showToast('Informe o número da rua','err');return;}
-  const existentes=ruasDB.filter(r=>r.numero===num);
-  if(!existentes.length){showToast(`Rua ${num} não existe no sistema`,'err');return;}
-  const proximoAndar=Math.max(...existentes.map(r=>r.andar||1))+1;
-  try{
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/${TABELA_RUAS}`,{
-      method:'POST',
-      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({numero:num,andar:proximoAndar,capacidade_pallets:cap,ocupada:false})
-    });
-    if(!res.ok)throw new Error(await res.text());
-    showToast(`✅ Rua ${num} — ${proximoAndar}º andar criado (${cap} pallets)`,'ok');
-    await loadRuas();
-    _renderRuasAndares();
-  }catch(e){showToast('❌ Erro ao criar andar: '+e.message,'err');}
-}
-
 function _organizarNavMobile(abasVisiveis){
   const ordenadas=ABAS_PRIORIDADE.filter(a=>abasVisiveis.includes(a));
   const bolha=document.getElementById('btnMobileMaisFlutuante');
@@ -7479,7 +7436,7 @@ function toggleMobileMore(){
 }
 function ruaNumeroDe(ruaId){
   const r=ruasDB.find(x=>x.id===ruaId);if(!r)return null;
-  return(r.andar&&r.andar>1)?`${r.numero} (${r.andar}º andar)`:r.numero;
+  return r.tipo==='PORTA_PALLETS'?`Porta Pallets ${r.numero}`:r.numero;
 }
 
 // Supabase CAF CRUD
@@ -7782,8 +7739,8 @@ function renderCAFs(){
   }
 
   // Table
-  const stCls={'Em Produção':'b-ext','Produzida':'b-inb','Em Auditoria GRIS':'b-gris','Processo de Entrega':'b-flt','Entrega Realizada':'b-ltl','Vinculada a Veículo':'b-prod','cancelada':'b-flt'};
-  const stLbl={'Em Produção':'Em Produção','Produzida':'Produzida','Em Auditoria GRIS':'⚠ Auditoria GRIS','Processo de Entrega':'Proc. Entrega','Entrega Realizada':'Entrega Realizada','Vinculada a Veículo':'Vinculada a Veículo','cancelada':'Cancelada'};
+  const stCls={'Em Agendamento':'b-agend','Em Produção':'b-ext','Produzida':'b-inb','Em Auditoria GRIS':'b-gris','Processo de Entrega':'b-flt','Entrega Realizada':'b-ltl','Vinculada a Veículo':'b-prod','cancelada':'b-flt'};
+  const stLbl={'Em Agendamento':'Em Agendamento','Em Produção':'Em Produção','Produzida':'Produzida','Em Auditoria GRIS':'⚠ Auditoria GRIS','Processo de Entrega':'Proc. Entrega','Entrega Realizada':'Entrega Realizada','Vinculada a Veículo':'Vinculada a Veículo','cancelada':'Cancelada'};
   const vencCls=c=>{if(!c.venc)return'';if(['Entrega Realizada','cancelada'].includes(c.status))return'';const v=new Date(c.venc+'T23:59'),n=new Date();return v<n?'color:var(--red);font-weight:700':'';};
   const body=document.getElementById('cafBody');
   if(!body)return;
@@ -7818,8 +7775,8 @@ function popularSelectRua(cafAtualId,ruaIdAtual){
     const opt=document.createElement('option');
     opt.value=r.id;
     const ocupadaPorOutra=r.ocupada&&r.caf_id&&r.caf_id!==cafAtualId;
-    const andarLabel=r.andar>1?` - ${r.andar}º andar`:(r.andar?' - Térreo':'');
-    opt.textContent=`Rua ${r.numero}${andarLabel} (${r.capacidade_pallets} pal.)`+(ocupadaPorOutra?' — ocupada':'');
+    const rotulo=r.tipo==='PORTA_PALLETS'?`Porta Pallets ${r.numero}`:`Rua ${r.numero}`;
+    opt.textContent=`${rotulo} (${r.capacidade_pallets} pal.)`+(ocupadaPorOutra?' — ocupada':'');
     opt.disabled=ocupadaPorOutra;
     sel.appendChild(opt);
   });
@@ -9050,13 +9007,13 @@ function renderChecklistAtivo(targetId){
       <div style="overflow-x:auto;margin-bottom:12px">
         <table style="width:100%;font-size:.72rem">
           <thead><tr style="text-align:left;color:var(--t2);font-size:.6rem;text-transform:uppercase">
-            <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+            <th style="padding:3px 6px">Rua</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
           </tr></thead>
           <tbody>
             ${chk.ruasSnapshot.length?chk.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
-              <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
+              <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td>
               <td>${esc(r.caf)||'—'}</td><td style="text-align:center;font-weight:700">${r.pallets??'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
-            </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada no momento do checklist.</td></tr>'}
+            </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada no momento do checklist.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -9210,13 +9167,13 @@ function abrirRelatorioTurno(checklistId){
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;font-size:.75rem">
         <thead><tr style="text-align:left;color:var(--t2);font-size:.62rem;text-transform:uppercase">
-          <th style="padding:3px 6px">Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
+          <th style="padding:3px 6px">Rua</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th>
         </tr></thead>
         <tbody>
           ${c.ruasSnapshot.length?c.ruasSnapshot.map(r=>`<tr style="border-bottom:1px solid var(--bd)">
-            <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td>
+            <td style="padding:3px 6px;font-weight:700">${esc(r.numero)}</td>
             <td>${esc(r.caf)||'—'}</td><td style="text-align:center;font-weight:700">${r.pallets??'—'}</td><td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
-          </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada.</td></tr>'}
+          </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:10px;color:var(--t3)">Nenhuma rua ocupada.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -9263,11 +9220,11 @@ function imprimirChecklist(checklistId){
   </table>
 
   <div class="sec">🚪 Ruas Ocupadas no Fechamento (${c.ruasSnapshot.length})</div>
-  <table><tr><th>Rua</th><th>Andar</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th></tr>
+  <table><tr><th>Rua</th><th>CAF</th><th>Pallets</th><th>Rota/Destino</th><th>Vencimento</th><th>Status</th></tr>
   ${c.ruasSnapshot.length?c.ruasSnapshot.map(r=>`<tr>
-    <td>${esc(r.numero)}</td><td>${esc(r.andar||'—')}</td><td>${esc(r.caf)||'—'}</td><td>${r.pallets??'—'}</td>
+    <td>${esc(r.numero)}</td><td>${esc(r.caf)||'—'}</td><td>${r.pallets??'—'}</td>
     <td>${esc(r.rota)||'—'}</td><td>${r.vencimento?fmtD(r.vencimento):'—'}</td><td>${esc(r.statusCaf)||'—'}</td>
-  </tr>`).join(''):'<tr><td colspan="7">Nenhuma rua ocupada.</td></tr>'}
+  </tr>`).join(''):'<tr><td colspan="6">Nenhuma rua ocupada.</td></tr>'}
   </table>
 
   <div class="sec">📝 Observações Gerais</div>
@@ -10667,6 +10624,7 @@ function renderTV(){
   <!-- PIPELINE DE CAFs (visão operacional) -->
   ${(()=>{
     const st={
+      'Em Agendamento':{cor:'#1e3a8a',ic:'📅'},
       'Em Produção':{cor:'#6b7280',ic:'🏭'},
       'Produzida':{cor:'var(--blue)',ic:'✅'},
       'Em Auditoria GRIS':{cor:'var(--red)',ic:'⚠️'},
@@ -10711,7 +10669,7 @@ function renderTV(){
       else if(horasParada>=1){cor='var(--blue)';nivel='ok';}
       const corPallets=pallets>=26?'var(--red)':pallets>=20?'var(--yellow)':'var(--green)';
       const h=Math.floor(horasParada),m=Math.round((horasParada-h)*60);
-      return{ruaId:r.id,numero:r.numero,andar:r.andar||1,caf:c?.num||'—',fc:fc||'—',venc:c?.venc||'',status2:c?.status||'',horasParada,cor,nivel,pronta,emAuditoria,vinculada,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
+      return{ruaId:r.id,numero:r.numero,tipo:r.tipo||'CAF',caf:c?.num||'—',fc:fc||'—',venc:c?.venc||'',status2:c?.status||'',horasParada,cor,nivel,pronta,emAuditoria,vinculada,pallets,corPallets,tempoTxt:h>0?`${h}h${m>0?m+'min':''}`:`${m}min`,status:c?.status||''};
     }).sort((a,b)=>b.horasParada-a.horasParada);
 
     const porFC={};
@@ -10751,12 +10709,13 @@ function renderTV(){
             const cor=d?d.cor:'var(--bg4)';
             const borda=d?d.cor:'var(--bd)';
             const piscar=d&&d.emAuditoria?'animation:pulseAlert 1.5s infinite;':'';
-            const andarTag=r.andar>1?`<span style="position:absolute;bottom:2px;left:3px;font-size:.58rem;font-weight:900;color:${d?cor:'var(--t3)'};background:var(--bg2);border-radius:3px;padding:0 4px">${r.andar}º</span>`:'';
-            return`<div title="Rua ${r.numero}${r.andar>1?` (${r.andar}º andar)`:''}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
+            const tipoTag=r.tipo==='PORTA_PALLETS'?`<span style="position:absolute;top:2px;left:3px;font-size:.52rem;font-weight:900;color:#fff;background:var(--purple);border-radius:3px;padding:0 4px">PP</span>`:'';
+            const rotuloRua=r.tipo==='PORTA_PALLETS'?`Porta Pallets ${r.numero}`:`Rua ${r.numero}`;
+            return`<div title="${rotuloRua}${d?` · CAF ${d.caf} · FC ${d.fc} · ${d.pallets} pallets · há ${d.tempoTxt} em ${esc(d.status)}`:' · livre'}"
               style="position:relative;width:78px;height:78px;border-radius:10px;background:${d?cor+'18':'var(--bg3)'};border:3px solid ${borda};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:${d?cor:'var(--t3)'};${piscar}">
               ${r.numero}
               ${d?`<span style="font-size:.68rem;font-weight:800;color:${d.corPallets};margin-top:2px">${d.pallets} PAL.</span>`:''}
-              ${andarTag}
+              ${tipoTag}
               ${d&&d.pronta?'<span style="position:absolute;top:-8px;right:-7px;background:#14b8a6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">✓</span>':''}
               ${d&&d.vinculada?'<span style="position:absolute;top:-8px;left:-7px;background:var(--green);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">🚛</span>':''}
               ${d&&d.emAuditoria?'<span style="position:absolute;top:-8px;right:-7px;background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 0 0 2px var(--bg2)">⚠</span>':''}
@@ -10780,7 +10739,7 @@ function renderTV(){
                   const vencido=d.venc&&d.venc<hojeStr;
                   return`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-top:1px solid var(--bd)">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                    <span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.78rem;font-weight:800;color:var(--text);text-transform:uppercase">RUA ${d.numero}${d.andar>1?` <span style="color:var(--yellow)">(${d.andar}º)</span>`:''}</span>
+                    <span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.78rem;font-weight:800;color:var(--text);text-transform:uppercase">${d.tipo==='PORTA_PALLETS'?'PORTA PALLETS':'RUA'} ${d.numero}</span>
                     <span style="background:var(--bg4);border-radius:5px;padding:4px 11px;font-size:1.05rem;font-weight:900;color:var(--green);letter-spacing:.3px">${esc(d.caf)}</span>
                     ${d.venc?`<span style="background:var(--bg4);border-radius:5px;padding:3px 9px;font-size:.72rem;font-weight:700;color:${vencido?'var(--red)':'var(--t2)'};text-transform:uppercase">VENC. ${fmtD(d.venc)}</span>`:''}
                   </div>
@@ -11333,7 +11292,7 @@ function renderTVYard(){
           </div>
           ${cafsDaOp.length?`<div style="display:flex;flex-wrap:wrap;gap:5px">
             ${cafsDaOp.map(c=>{
-              const cor2=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Processo de Entrega'?'var(--blue)':c.status==='Entrega Realizada'?'var(--orange)':'var(--t3)';
+              const cor2=c.status==='Em Auditoria GRIS'?'var(--red)':c.status==='Em Agendamento'?'#1e3a8a':c.status==='Em Produção'?'var(--t3)':c.status==='Vinculada a Veículo'?'var(--green)':c.status==='Processo de Entrega'?'var(--blue)':c.status==='Entrega Realizada'?'var(--orange)':'var(--t3)';
               const alerta=!['Processo de Entrega','Entrega Realizada'].includes(c.status);
               const ruaN=ruaNumeroDe(c.ruaId);
               return`<div title="${esc(c.num)} · ${c.tipo||''} · ${c.vol||0} un · ${c.pallets||0} pal.${ruaN?' · Rua '+ruaN:''}"
