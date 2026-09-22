@@ -11748,6 +11748,14 @@ function _pdKpisAtuais(){
   const maisAntigo=comChegada[0]||null; // lista já vem ordenada por chegada mais antiga primeiro
   return{total:lista.length,criticos,mediaMs,maisAntigo};
 }
+// Quantidade aguardando por FC — sempre sobre o total (ignora o filtro de FC ativo,
+// senão o quadro viraria só 1 linha quando alguém filtra por um FC específico)
+function _pdPorFC(){
+  const{todos}=_pdComputeLista();
+  const map={};
+  todos.forEach(x=>{map[x.fc]=(map[x.fc]||0)+1;});
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
 // Atualiza os números dos cards de KPI junto com o cronômetro de cada linha (mesmo intervalo de 1s)
 function _pdAtualizarKpis(){
   const k=_pdKpisAtuais();
@@ -11797,16 +11805,36 @@ function _renderPainelDescargaLive(){
       <div style="margin-top:14px;padding-top:10px;border-top:1px solid ${c.line};font-size:.72rem;color:${c.sub}">Total: <b style="color:${c.text}">${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
 
   const kpiCard=(label,valId,val,cor)=>`
-    <div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:18px 14px;text-align:center;">
-      <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:${c.sub};text-transform:uppercase;">${label}</div>
-      <div id="${valId}" style="font-family:'Courier New',monospace;font-size:38px;font-weight:800;color:${cor};line-height:1.15;margin-top:4px;">${val}</div>
+    <div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:14px 10px;text-align:center;">
+      <div style="font-size:9.5px;font-weight:700;letter-spacing:.6px;color:${c.sub};text-transform:uppercase;">${label}</div>
+      <div id="${valId}" style="font-family:'Courier New',monospace;font-size:30px;font-weight:800;color:${cor};line-height:1.15;margin-top:4px;">${val}</div>
     </div>`;
 
-  const kpis=`<div style="display:flex;flex-direction:column;gap:12px;flex:0 0 200px;">
-    ${kpiCard('Aguardando','pdKpiTotal',lista.length,c.timer)}
-    ${kpiCard('Críticos > 24h','pdKpiCritico',criticos,c.timerCrit)}
-    ${kpiCard('Tempo médio','pdKpiMedia',_fmtHMS(mediaMs),c.text)}
-    ${kpiCard('Mais antigo','pdKpiAntigo',maisAntigo?_fmtHMS(maisAntigo.ms):'—',c.fc)}
+  const porFC=_pdPorFC();
+  const maxFC=porFC.length?porFC[0][1]:1;
+  const fcCard=`<div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:16px 16px;">
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:${c.sub};text-transform:uppercase;margin-bottom:12px;">Aguardando por FC</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${porFC.length?porFC.map(([fc,n])=>`
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;color:${c.text};margin-bottom:4px;">
+            <span>${esc(fc)}</span><span style="font-family:'Courier New',monospace;font-size:16px;color:${c.fc}">${n}</span>
+          </div>
+          <div style="height:7px;background:${c.line};border-radius:4px;overflow:hidden;">
+            <div style="height:100%;width:${Math.max(6,Math.round(n/maxFC*100))}%;background:${c.fc};border-radius:4px;"></div>
+          </div>
+        </div>`).join(''):`<div style="font-size:11px;color:${c.sub};text-align:center;">—</div>`}
+    </div>
+  </div>`;
+
+  const kpis=`<div style="display:flex;flex-direction:column;gap:12px;flex:0 0 230px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      ${kpiCard('Aguardando','pdKpiTotal',lista.length,c.timer)}
+      ${kpiCard('Críticos >24h','pdKpiCritico',criticos,c.timerCrit)}
+      ${kpiCard('Tempo médio','pdKpiMedia',_fmtHMS(mediaMs),c.text)}
+      ${kpiCard('Mais antigo','pdKpiAntigo',maisAntigo?_fmtHMS(maisAntigo.ms):'—',c.fc)}
+    </div>
+    ${fcCard}
   </div>`;
 
   return`<div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap-reverse;">
