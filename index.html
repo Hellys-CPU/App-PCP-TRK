@@ -586,6 +586,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <button class="tab" id="tb-amazon" onclick="setView('amazon');closeAllTabDrops()">📦 FUP Amazon</button>
         <button class="tab" id="tb-analise" onclick="setView('analise');closeAllTabDrops()" style="color:#0891b2">📈 Análise</button>
         <button class="tab" id="tb-reportpcp" onclick="setView('reportpcp');closeAllTabDrops()" style="color:#f59e0b">📋 Report PCP</button>
+        <button class="tab" id="tb-descarga" onclick="setView('descarga');closeAllTabDrops()" style="color:#eab308">🚚 Painel de Descarga</button>
       </div>
     </div>
     <div class="tab-drop" id="dropTV">
@@ -1280,6 +1281,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
   <div class="analise-grid" id="analiseGrid">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t2)">Carregando análise...</div>
+  </div>
+</div>
+
+<!-- PAINEL DE DESCARGA -->
+<div class="view" id="view-descarga">
+  <div id="pdPageWrap" style="min-height:100%">
+    <div style="max-width:1120px;margin:0 auto;padding:20px 16px 40px">
+      <div id="pdViewBody"></div>
+    </div>
   </div>
 </div>
 
@@ -5585,6 +5595,7 @@ function toggleTheme(){
   localStorage.setItem('trk_theme',dark?'dark':'light');
   const btn=document.getElementById('themeBtn');if(btn)btn.textContent=dark?'☀️':'🌙';
   const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=dark?'#0d1117':'#cc0000';
+  if(curPage==='descarga'&&typeof _pdRefresh==='function')_pdRefresh();
 }
 function loadTheme(){
   const t=localStorage.getItem('trk_theme')||'light';
@@ -5615,11 +5626,12 @@ function setView(name){
   const v=document.getElementById('view-'+name),nb=document.getElementById('tb-'+name),mn=document.getElementById('mn-'+name);
   if(v)v.classList.add('active');if(nb)nb.classList.add('active');if(mn)mn.classList.add('active');
   // Destaca o botão-gatilho do menu suspenso (Relatórios/TV) quando um item dele está ativo
-  if(['fup','amazon','analise'].includes(name))document.getElementById('tbg-relatorios')?.classList.add('active');
+  if(['fup','amazon','analise','reportpcp','descarga'].includes(name))document.getElementById('tbg-relatorios')?.classList.add('active');
   if(['tv-yard','tv'].includes(name))document.getElementById('tbg-tv')?.classList.add('active');
   closeAllTabDrops();
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
+  if(name==='descarga')renderPainelDescargaView();
   if(name==='reportpcp'){
     loading(true);
     Promise.all([loadCAFs(),(_esteirasLoadTried?Promise.resolve():loadEsteiras())]).then(()=>{
@@ -7170,14 +7182,6 @@ function renderAnalise(){
   <h3>📅 Heat Map — Volume e SLA (últimos 60 dias)</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia · Este mapa mede especificamente o <b>SLA de Chegada no FC</b> (o principal) · Cor: verde = bom · vermelho = ruim · intensidade = volume de operações</p>
   ${_renderHeatMap()}
-</div>
-<div class="an-card" style="grid-column:1/-1" id="pdCard">
-  <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span>🛫 Painel de Descarga — Aguardando</span>
-    <button class="btn btn-s" id="pdWhatsBtn" onclick="_pdEnviarWhatsapp()" style="font-size:.68rem">📱 Enviar p/ WhatsApp</button>
-  </h3>
-  <p style="font-size:.7rem;color:var(--t2);margin-bottom:8px">Todos os veículos aguardando descarga no momento, ordenados por chegada mais antiga primeiro.</p>
-  <div id="pdCardBody">${_renderPainelDescarga()}</div>
 </div>
 <div class="an-card" style="grid-column:1/-1">
   <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
@@ -11562,35 +11566,63 @@ function _loadScriptCascade(cdns,cb){
   }
   tryLoad();
 }
+// Paleta do Painel de Descarga — segue o tema claro/escuro do app (duas versões visuais)
+function _pdColors(){
+  const dark=document.body.classList.contains('dark');
+  return dark?{
+    pageBg:'linear-gradient(160deg,#0b1120,#141d30)',
+    cardBg:'linear-gradient(160deg,#0b1120,#141d30)',
+    text:'#fff',sub:'#9aa7bd',
+    rowBg:'#111d33',rowBorder:'#22314f',rowShadow:'none',
+    critBg:'#3a1414',critBorder:'#7f1d1d',
+    timer:'#fbbf24',timerCrit:'#ff6b6b',
+    placa:'#fff',carreta:'#8fb4ff',fc:'#fb923c',ok:'#4ade80',
+    inputBg:'#111d33',inputBorder:'#22314f',inputText:'#e5e7eb',
+    limparBg:'#1c2b45',limparBorder:'#2f4468',
+    line:'#22314f'
+  }:{
+    pageBg:'linear-gradient(160deg,#eef1f6,#ffffff)',
+    cardBg:'linear-gradient(160deg,#eef1f6,#ffffff)',
+    text:'#111827',sub:'#64748b',
+    rowBg:'#ffffff',rowBorder:'#e2e8f0',rowShadow:'0 1px 3px rgba(15,23,42,.08)',
+    critBg:'#fef2f2',critBorder:'#fecaca',
+    timer:'#b45309',timerCrit:'#dc2626',
+    placa:'#111827',carreta:'#2563eb',fc:'#ea580c',ok:'#16a34a',
+    inputBg:'#ffffff',inputBorder:'#cbd5e1',inputText:'#111827',
+    limparBg:'#f1f5f9',limparBorder:'#cbd5e1',
+    line:'#e2e8f0'
+  };
+}
 // Monta o cartão visual (painel de aeroporto de verdade) usado só na imagem exportada —
 // não reaproveita a tabela da tela, que tem filtro/inputs e não fica bonita em print.
 function _pdBuildShareCardHTML(){
   const agora=new Date();
+  const c=_pdColors();
   const{lista}=_pdComputeLista();
   const linha=({op,chegDt,fc,ms,critico})=>`
-    <div style="display:flex;align-items:center;gap:14px;background:${critico?'#3a1414':'#111d33'};border:1px solid ${critico?'#7f1d1d':'#22314f'};border-radius:10px;padding:10px 16px;">
-      <div style="flex:0 0 108px;font-family:'Courier New',monospace;font-size:22px;font-weight:800;letter-spacing:1px;color:${critico?'#ff6b6b':'#fbbf24'}">${chegDt?_fmtHMS(ms):'—'}</div>
+    <div style="display:flex;align-items:center;gap:14px;background:${critico?c.critBg:c.rowBg};border:1px solid ${critico?c.critBorder:c.rowBorder};box-shadow:${c.rowShadow};border-radius:10px;padding:10px 16px;">
+      <div style="flex:0 0 108px;font-family:'Courier New',monospace;font-size:22px;font-weight:800;letter-spacing:1px;color:${critico?c.timerCrit:c.timer}">${chegDt?_fmtHMS(ms):'—'}</div>
       <div style="flex:1;min-width:0;overflow:hidden">
-        <div style="font-size:15px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:#8fb4ff">/ '+esc(op.placaCarreta)+'</span>':''}</div>
-        <div style="font-size:11px;color:#9aa7bd;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}</div>
+        <div style="font-size:15px;font-weight:800;color:${c.placa};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:'+c.carreta+'">/ '+esc(op.placaCarreta)+'</span>':''}</div>
+        <div style="font-size:11px;color:${c.sub};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}</div>
       </div>
       <div style="flex:0 0 auto;text-align:right">
-        <div style="font-size:14px;font-weight:800;color:#fb923c">${esc(fc)}</div>
-        <div style="font-size:10px;color:#9aa7bd;margin-top:2px">${_pdSemanaLabel(op.dataOp).split(' ')[0]}</div>
+        <div style="font-size:14px;font-weight:800;color:${c.fc}">${esc(fc)}</div>
+        <div style="font-size:10px;color:${c.sub};margin-top:2px">${_pdSemanaLabel(op.dataOp).split(' ')[0]}</div>
       </div>
     </div>`;
 
-  return`<div style="width:760px;padding:22px 26px;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(160deg,#0b1120,#141d30);border-radius:18px;color:#e5e7eb">
+  return`<div style="width:760px;padding:22px 26px;font-family:Arial,Helvetica,sans-serif;background:${c.cardBg};border-radius:18px;color:${c.text}">
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:2px">
-      <div style="font-size:23px;font-weight:800;color:#fff;letter-spacing:.4px">🛫 PAINEL DE DESCARGA</div>
-      <div style="font-size:11px;color:#9aa7bd">${agora.toLocaleDateString('pt-BR')} · ${agora.toLocaleTimeString('pt-BR')}</div>
+      <div style="font-size:23px;font-weight:800;color:${c.text};letter-spacing:.4px">PAINEL DE DESCARGA</div>
+      <div style="font-size:11px;color:${c.sub}">${agora.toLocaleDateString('pt-BR')} · ${agora.toLocaleTimeString('pt-BR')}</div>
     </div>
-    <div style="font-size:12px;color:#9aa7bd;margin-bottom:16px">Veículos aguardando descarga — ordenados por chegada mais antiga</div>
+    <div style="font-size:12px;color:${c.sub};margin-bottom:16px">Veículos aguardando descarga — ordenados por chegada mais antiga</div>
     <div style="display:flex;flex-direction:column;gap:8px">
-      ${lista.length?lista.map(linha).join(''):'<div style="text-align:center;color:#4ade80;font-size:14px;padding:20px">✅ Nenhum veículo aguardando descarga</div>'}
+      ${lista.length?lista.map(linha).join(''):'<div style="text-align:center;color:'+c.ok+';font-size:14px;padding:20px">✅ Nenhum veículo aguardando descarga</div>'}
     </div>
-    <div style="margin-top:16px;padding-top:10px;border-top:1px solid #22314f;display:flex;justify-content:space-between;font-size:11px;color:#9aa7bd">
-      <span>Total: <b style="color:#fff">${lista.length}</b> veículo${lista.length!==1?'s':''} aguardando</span>
+    <div style="margin-top:16px;padding-top:10px;border-top:1px solid ${c.line};display:flex;justify-content:space-between;font-size:11px;color:${c.sub}">
+      <span>Total: <b style="color:${c.text}">${lista.length}</b> veículo${lista.length!==1?'s':''} aguardando</span>
       <span>TRK PCP</span>
     </div>
   </div>`;
@@ -11645,9 +11677,12 @@ function _pdSetFiltroFC(v){_pdFiltroFC=v;_pdRefresh();}
 function _pdSetBusca(v){_pdBusca=v;_pdRefresh();}
 function _pdLimparFiltro(){_pdFiltroFC='';_pdBusca='';_pdRefresh();}
 function _pdRefresh(){
-  const c=document.getElementById('pdCardBody');
-  if(c)c.innerHTML=_renderPainelDescarga();
+  const wrap=document.getElementById('pdPageWrap');
+  if(wrap)wrap.style.background=_pdColors().pageBg;
+  const c=document.getElementById('pdViewBody');
+  if(c)c.innerHTML=_renderPainelDescargaLive();
 }
+function renderPainelDescargaView(){_pdRefresh();}
 function _fmtHMS(ms){
   if(!ms||ms<0)ms=0;
   const totalSec=Math.floor(ms/1000);
@@ -11666,7 +11701,7 @@ function _pdSemanaLabel(dataOp){
 }
 // Atualiza ao vivo, a cada segundo, a coluna "Aguardando Descarga" do painel
 setInterval(()=>{
-  if(curPage!=='analise')return;
+  if(curPage!=='descarga')return;
   document.querySelectorAll('.pd-timer').forEach(el=>{
     const cheg=new Date(el.dataset.cheg);
     if(isNaN(cheg))return;
@@ -11699,58 +11734,49 @@ function _pdComputeLista(){
   });
   return{todos,lista,fcs};
 }
-function _renderPainelDescarga(){
+function _renderPainelDescargaLive(){
+  const c=_pdColors();
   const{todos,lista,fcs}=_pdComputeLista();
 
-  const filtros=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
-    <select onchange="_pdSetFiltroFC(this.value)" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:3px 7px;font-size:.7rem;outline:none;">
+  const header=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:2px">
+    <div style="font-size:1.3rem;font-weight:800;color:${c.text};letter-spacing:.4px">PAINEL DE DESCARGA</div>
+    <button class="btn btn-s" id="pdWhatsBtn" onclick="_pdEnviarWhatsapp()" style="font-size:.72rem">📱 Enviar p/ WhatsApp</button>
+  </div>
+  <div style="font-size:.75rem;color:${c.sub};margin-bottom:16px">Veículos aguardando descarga, ordenados por chegada mais antiga primeiro.</div>`;
+
+  const filtros=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+    <select onchange="_pdSetFiltroFC(this.value)" style="background:${c.inputBg};border:1.5px solid ${c.inputBorder};border-radius:8px;color:${c.inputText};padding:5px 9px;font-size:.72rem;outline:none;">
       <option value="">Todos os FCs</option>
       ${fcs.map(fc=>`<option value="${esc(fc)}" ${fc===_pdFiltroFC?'selected':''}>${esc(fc)}</option>`).join('')}
     </select>
-    <input type="text" placeholder="🔍 Placa ou motorista..." value="${esc(_pdBusca)}" oninput="_pdSetBusca(this.value)" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:3px 7px;font-size:.7rem;outline:none;min-width:160px">
-    ${_pdFiltroFC||_pdBusca?'<button class="btn btn-g" onclick="_pdLimparFiltro()" style="font-size:.65rem;padding:3px 8px">✕ Limpar</button>':''}
+    <input type="text" placeholder="🔍 Placa ou motorista..." value="${esc(_pdBusca)}" oninput="_pdSetBusca(this.value)" style="background:${c.inputBg};border:1.5px solid ${c.inputBorder};border-radius:8px;color:${c.inputText};padding:5px 9px;font-size:.72rem;outline:none;min-width:180px">
+    ${_pdFiltroFC||_pdBusca?`<button onclick="_pdLimparFiltro()" style="background:${c.limparBg};border:1.5px solid ${c.limparBorder};border-radius:8px;color:${c.inputText};font-size:.68rem;padding:5px 10px;cursor:pointer">✕ Limpar</button>`:''}
   </div>`;
 
   if(!todos.length){
-    return filtros+'<div style="text-align:center;color:var(--green);font-size:.85rem;padding:16px">✅ Nenhum veículo aguardando descarga no momento</div>';
+    return header+filtros+`<div style="text-align:center;color:${c.ok};font-size:.9rem;padding:30px">✅ Nenhum veículo aguardando descarga no momento</div>`;
   }
   if(!lista.length){
-    return filtros+'<div style="text-align:center;color:var(--t3);font-size:.78rem;padding:16px">Nenhum veículo aguardando descarga para esse filtro</div>';
+    return header+filtros+`<div style="text-align:center;color:${c.sub};font-size:.82rem;padding:30px">Nenhum veículo aguardando descarga para esse filtro</div>`;
   }
 
-  const linha=({op,chegDt,fc,cafs,ms,critico})=>{
-    return`<tr style="border-bottom:1px solid var(--bg4)">
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${fmtD(op.dataOp)||'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap;font-weight:700;color:var(--blue)">${esc(op.rota)||'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${cafs.length?esc(cafs.join(' | ')):'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap;font-weight:700;color:var(--text)">${esc(op.placa)||'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--blue)">${esc(op.placaCarreta)||'—'}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--purple)">🏭 Ag. Descarga${op.doca?' · '+esc(op.doca):''}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap">${chegDt?fmtD(op.dataOp)+' '+toTime(op.realChegFC):'—'}</td>
-      <td class="pd-timer" data-cheg="${chegDt?chegDt.toISOString():''}" style="padding:3px 6px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;background:${critico?'var(--red4)':'var(--yellow2)'};color:${critico?'var(--red)':'var(--yellow)'}">${chegDt?_fmtHMS(ms):'—'}</td>
-      <td style="padding:3px 6px;text-align:center;font-weight:700;color:#f59e0b">${esc(fc)}</td>
-      <td style="padding:3px 6px;text-align:center;white-space:nowrap;color:var(--t2)">${_pdSemanaLabel(op.dataOp)}</td>
-    </tr>`;
-  };
+  const linha=({op,chegDt,fc,cafs,ms,critico})=>`
+    <div style="display:flex;align-items:center;gap:14px;background:${critico?c.critBg:c.rowBg};border:1px solid ${critico?c.critBorder:c.rowBorder};box-shadow:${c.rowShadow};border-radius:10px;padding:11px 16px;flex-wrap:wrap">
+      <div class="pd-timer" data-cheg="${chegDt?chegDt.toISOString():''}" style="flex:0 0 118px;font-family:'Courier New',monospace;font-size:23px;font-weight:800;letter-spacing:1px;color:${critico?c.timerCrit:c.timer}">${chegDt?_fmtHMS(ms):'—'}</div>
+      <div style="flex:1 1 220px;min-width:0">
+        <div style="font-size:15px;font-weight:800;color:${c.placa};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:'+c.carreta+';font-weight:700">/ '+esc(op.placaCarreta)+'</span>':''}</div>
+        <div style="font-size:11px;color:${c.sub};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}${cafs.length?' · CAF '+esc(cafs.join(' | ')):''}${op.doca?' · '+esc(op.doca):''}</div>
+      </div>
+      <div style="flex:0 0 auto;text-align:right">
+        <div style="font-size:14px;font-weight:800;color:${c.fc}">${esc(fc)}</div>
+        <div style="font-size:10px;color:${c.sub};margin-top:2px">${_pdSemanaLabel(op.dataOp)}</div>
+      </div>
+    </div>`;
 
-  return`${filtros}<div style="overflow-x:auto">
-    <table style="width:100%;min-width:920px;border-collapse:collapse;font-size:.72rem">
-      <thead><tr style="border-bottom:2px solid var(--purple)">
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Data</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Rota</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">CAFs</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Cavalo</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Carreta</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Status</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Chegada</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Aguardando Descarga</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">FC</th>
-        <th style="text-align:center;padding:3px 6px;color:var(--t2);font-size:.58rem;text-transform:uppercase">Semana</th>
-      </tr></thead>
-      <tbody>${lista.map(linha).join('')}</tbody>
-    </table>
+  return`${header}${filtros}<div style="display:flex;flex-direction:column;gap:9px">
+    ${lista.map(linha).join('')}
   </div>
-  <div style="margin-top:5px;font-size:.63rem;color:var(--t2)">Total: <b>${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
+  <div style="margin-top:14px;padding-top:10px;border-top:1px solid ${c.line};font-size:.72rem;color:${c.sub}">Total: <b style="color:${c.text}">${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
 }
 
 function _renderMapaDoca(){
