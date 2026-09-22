@@ -11704,7 +11704,7 @@ function _pdSemanaLabel(dataOp){
   const fmt=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
   return`S${w} (${fmt(mon)} a ${fmt(sun)})`;
 }
-// Atualiza ao vivo, a cada segundo, a coluna "Aguardando Descarga" do painel
+// Atualiza ao vivo, a cada segundo, a coluna "Aguardando Descarga" e os cards de KPI do painel
 setInterval(()=>{
   if(curPage!=='descarga')return;
   document.querySelectorAll('.pd-timer').forEach(el=>{
@@ -11712,6 +11712,7 @@ setInterval(()=>{
     if(isNaN(cheg))return;
     el.textContent=_fmtHMS(Date.now()-cheg);
   });
+  _pdAtualizarKpis();
 },1000);
 function _pdComputeLista(){
   const agora=new Date();
@@ -11739,9 +11740,26 @@ function _pdComputeLista(){
   });
   return{todos,lista,fcs};
 }
+function _pdKpisAtuais(){
+  const{lista}=_pdComputeLista();
+  const comChegada=lista.filter(x=>x.chegDt);
+  const criticos=lista.filter(x=>x.critico).length;
+  const mediaMs=comChegada.length?comChegada.reduce((s,x)=>s+x.ms,0)/comChegada.length:0;
+  const maisAntigo=comChegada[0]||null; // lista já vem ordenada por chegada mais antiga primeiro
+  return{total:lista.length,criticos,mediaMs,maisAntigo};
+}
+// Atualiza os números dos cards de KPI junto com o cronômetro de cada linha (mesmo intervalo de 1s)
+function _pdAtualizarKpis(){
+  const k=_pdKpisAtuais();
+  const elT=document.getElementById('pdKpiTotal');if(elT)elT.textContent=k.total;
+  const elC=document.getElementById('pdKpiCritico');if(elC)elC.textContent=k.criticos;
+  const elM=document.getElementById('pdKpiMedia');if(elM)elM.textContent=_fmtHMS(k.mediaMs);
+  const elA=document.getElementById('pdKpiAntigo');if(elA)elA.textContent=k.maisAntigo?_fmtHMS(k.maisAntigo.ms):'—';
+}
 function _renderPainelDescargaLive(){
   const c=_pdColors();
   const{todos,lista,fcs}=_pdComputeLista();
+  const{criticos,mediaMs,maisAntigo}=_pdKpisAtuais();
 
   const header=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:2px">
     <div style="font-size:1.3rem;font-weight:800;color:${c.text};letter-spacing:.4px">PAINEL DE DESCARGA</div>
@@ -11758,19 +11776,12 @@ function _renderPainelDescargaLive(){
     ${_pdFiltroFC||_pdBusca?`<button onclick="_pdLimparFiltro()" style="background:${c.limparBg};border:1.5px solid ${c.limparBorder};border-radius:8px;color:${c.inputText};font-size:.68rem;padding:5px 10px;cursor:pointer">✕ Limpar</button>`:''}
   </div>`;
 
-  if(!todos.length){
-    return header+filtros+`<div style="text-align:center;color:${c.ok};font-size:.9rem;padding:30px">✅ Nenhum veículo aguardando descarga no momento</div>`;
-  }
-  if(!lista.length){
-    return header+filtros+`<div style="text-align:center;color:${c.sub};font-size:.82rem;padding:30px">Nenhum veículo aguardando descarga para esse filtro</div>`;
-  }
-
   const linha=({op,chegDt,fc,cafs,ms,critico})=>`
     <div style="display:flex;align-items:center;gap:14px;background:${critico?c.critBg:c.rowBg};border:1px solid ${critico?c.critBorder:c.rowBorder};box-shadow:${c.rowShadow};border-radius:10px;padding:11px 16px;flex-wrap:wrap">
       <div class="pd-timer" data-cheg="${chegDt?chegDt.toISOString():''}" style="flex:0 0 118px;font-family:'Courier New',monospace;font-size:23px;font-weight:800;letter-spacing:1px;color:${critico?c.timerCrit:c.timer}">${chegDt?_fmtHMS(ms):'—'}</div>
       <div style="flex:1 1 220px;min-width:0">
         <div style="font-size:15px;font-weight:800;color:${c.placa};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:'+c.carreta+';font-weight:700">/ '+esc(op.placaCarreta)+'</span>':''}</div>
-        <div style="font-size:11px;color:${c.sub};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}${cafs.length?' · CAF '+esc(cafs.join(' | ')):''}${op.doca?' · '+esc(op.doca):''}</div>
+        <div style="font-size:11px;color:${c.sub};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}${cafs.length?' · CAF '+esc(cafs.join(' | ')):''}</div>
       </div>
       <div style="flex:0 0 auto;text-align:right">
         <div style="font-size:14px;font-weight:800;color:${c.fc}">${esc(fc)}</div>
@@ -11778,10 +11789,30 @@ function _renderPainelDescargaLive(){
       </div>
     </div>`;
 
-  return`${header}${filtros}<div style="display:flex;flex-direction:column;gap:9px">
-    ${lista.map(linha).join('')}
-  </div>
-  <div style="margin-top:14px;padding-top:10px;border-top:1px solid ${c.line};font-size:.72rem;color:${c.sub}">Total: <b style="color:${c.text}">${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
+  const corpo=!todos.length
+    ?`<div style="text-align:center;color:${c.ok};font-size:.9rem;padding:30px">✅ Nenhum veículo aguardando descarga no momento</div>`
+    :!lista.length
+    ?`<div style="text-align:center;color:${c.sub};font-size:.82rem;padding:30px">Nenhum veículo aguardando descarga para esse filtro</div>`
+    :`<div style="display:flex;flex-direction:column;gap:9px">${lista.map(linha).join('')}</div>
+      <div style="margin-top:14px;padding-top:10px;border-top:1px solid ${c.line};font-size:.72rem;color:${c.sub}">Total: <b style="color:${c.text}">${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
+
+  const kpiCard=(label,valId,val,cor)=>`
+    <div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:18px 14px;text-align:center;">
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:${c.sub};text-transform:uppercase;">${label}</div>
+      <div id="${valId}" style="font-family:'Courier New',monospace;font-size:38px;font-weight:800;color:${cor};line-height:1.15;margin-top:4px;">${val}</div>
+    </div>`;
+
+  const kpis=`<div style="display:flex;flex-direction:column;gap:12px;flex:0 0 200px;">
+    ${kpiCard('Aguardando','pdKpiTotal',lista.length,c.timer)}
+    ${kpiCard('Críticos > 24h','pdKpiCritico',criticos,c.timerCrit)}
+    ${kpiCard('Tempo médio','pdKpiMedia',_fmtHMS(mediaMs),c.text)}
+    ${kpiCard('Mais antigo','pdKpiAntigo',maisAntigo?_fmtHMS(maisAntigo.ms):'—',c.fc)}
+  </div>`;
+
+  return`<div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap-reverse;">
+    <div style="flex:1 1 480px;min-width:0;">${header}${filtros}${corpo}</div>
+    ${kpis}
+  </div>`;
 }
 
 function _renderMapaDoca(){
