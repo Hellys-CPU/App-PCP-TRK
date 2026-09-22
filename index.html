@@ -3836,19 +3836,24 @@ function renderList(){
   // outra viagem — construído uma vez por render, não por linha, pra não pesar. Usa o
   // array global 'ops' (não só o filtrado da tela) pra pegar conflito mesmo se a viagem
   // antiga estiver fora do filtro atual.
-  const _chaveVeic=o=>[(o.placa||'').trim().toUpperCase(),(o.placaCarreta||'').trim().toUpperCase(),(o.mot||'').trim().toUpperCase()].join('|');
+  // Chave só por cavalo + motorista (sem carreta): a carreta troca com frequência e um
+  // typo nela (ex: "ECM3G99" x "EZM3G99") não pode mascarar que o cavalo/motorista ainda
+  // está ocupado numa viagem anterior.
+  const _chaveVeic=o=>[(o.placa||'').trim().toUpperCase(),(o.mot||'').trim().toUpperCase()].join('|');
+  const _STATUS_OCUPA_VEIC=['EMCARR','TRAN','AGUDESC']; // viagem anterior nesses status = veículo/motorista ainda não livres
+  const _STATUS_CHECA_CONFLITO=['PROG','EMCARR','TRAN','AGUDESC']; // viagem atual nesses status pode acusar o conflito
   const _aindaAguardando=new Map(); // chave -> [{dataOp, codigoCurto}]
   ops.forEach(o=>{
-    if(o.status!=='AGUDESC')return;
+    if(!_STATUS_OCUPA_VEIC.includes(o.status))return;
     const k=_chaveVeic(o);
     if(!_aindaAguardando.has(k))_aindaAguardando.set(k,[]);
     _aindaAguardando.get(k).push({dataOp:o.dataOp,codigoCurto:o.codigoCurto||o.id});
   });
   function _conflitoVeiculoOcupado(op){
-    if(op.status!=='PROG')return null;
+    if(!_STATUS_CHECA_CONFLITO.includes(op.status))return null;
     const lista=_aindaAguardando.get(_chaveVeic(op));
     if(!lista)return null;
-    const anterior=lista.find(x=>x.dataOp<op.dataOp);
+    const anterior=lista.find(x=>x.dataOp<op.dataOp&&x.codigoCurto!==(op.codigoCurto||op.id));
     return anterior||null;
   }
   document.getElementById('listBody').innerHTML=data.map((op,i)=>{
