@@ -3660,6 +3660,13 @@ function _minParaHoras(m){
   const h=Math.floor(abs/60),mm=abs%60;
   return `${sinal}${h}h${String(mm).padStart(2,'0')}min`;
 }
+// Converte uma duração em minutos pra um objeto Date "zero" do Excel (30/12/1899 UTC +
+// duração) — assim a coluna vira hora de verdade no Excel (formatável com [h]:mm,
+// somável, comparável), em vez de texto "1h30min" que não dá pra somar/filtrar.
+function _duracaoDataObj(minutos){
+  if(minutos==null||isNaN(minutos))return null;
+  return new Date(Date.UTC(1899,11,30)+minutos*60000);
+}
 async function _gerarExtracaoCompleta(){
   if(!window.XLSX){showToast('Biblioteca de Excel não carregada — recarregue a página','err');return;}
   const dataDe=document.getElementById('_extracaoDataDe')?.value;
@@ -3726,6 +3733,7 @@ async function _gerarExtracaoCompleta(){
       'Rl. Chegada FC':_realDataHoraObj(op.realChegFC,op.dataOp),
       'Δ Chegada FC':_minParaHoras(dC),
       'Descarga Real':_realDataHoraObj(op.realDescarga,op.dataOp),
+      'Tempo de Doca (Apres → Saída)':_duracaoDataObj(dMin(op.realApres,op.realSaida)),
       'Qtd. CAFs':(op.cafs||[]).length,
       'CAF(s) — Número':cafsNumeros,
       'CAF(s) — Status':cafsStatusTxt,
@@ -3748,7 +3756,8 @@ async function _gerarExtracaoCompleta(){
   // Formata de verdade as colunas de data/data+hora (senão o Excel escreve a data como
   // serial numérico cru, sem formatação — cellDates:true só faz reconhecer como data, o
   // formato de exibição precisa ser setado à parte)
-  const COL_DATA=2,COLS_DATAHORA=[13,14,15,16,18,19,21,34];
+  const COL_DATA=2,COLS_DATAHORA=[13,14,15,16,18,19,21,35];
+  const COL_DURACAO=22; // Tempo de Doca — formato de hora pura, não data+hora
   for(let r=1;r<=linhas.length;r++){
     const refData=XLSX.utils.encode_cell({r,c:COL_DATA});
     if(ws[refData])ws[refData].z='dd/mm/yyyy';
@@ -3756,12 +3765,14 @@ async function _gerarExtracaoCompleta(){
       const ref=XLSX.utils.encode_cell({r,c});
       if(ws[ref])ws[ref].z='dd/mm/yyyy hh:mm';
     });
+    const refDur=XLSX.utils.encode_cell({r,c:COL_DURACAO});
+    if(ws[refDur])ws[refDur].z='[h]:mm'; // "[h]" soma horas além de 24 em vez de virar dia novo
   }
   // Largura de colunas — dá espaço extra pras colunas de texto longo
   ws['!cols']=[
     {wch:12},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:14},{wch:22},
     {wch:10},{wch:10},{wch:10},{wch:10},{wch:16},{wch:12},{wch:16},{wch:12},{wch:16},
-    {wch:9},{wch:12},{wch:16},{wch:9},{wch:16},{wch:8},
+    {wch:9},{wch:12},{wch:16},{wch:9},{wch:16},{wch:14},{wch:8},
     {wch:22},{wch:22},{wch:16},{wch:16},{wch:16},{wch:10},{wch:10},
     {wch:35},{wch:30},{wch:35},{wch:18},{wch:16},{wch:50},{wch:18}
   ];
