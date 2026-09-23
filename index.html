@@ -821,6 +821,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
     <button class="btn btn-p" onclick="openNew()">+ Programar</button>
     </div>
+    <div id="filaCarregamentoWrap" style="margin:0 0 14px"></div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
     <div id="progPalletsWrap" style="margin-top:16px"></div>
     <div class="an-card" style="margin:16px 16px 0">
@@ -4116,6 +4117,52 @@ function renderProg(){
   }
 
   const agora=new Date();
+
+  // ── Fila de Carregamento — quem está esperando pra encostar, desde quando, e a que
+  // horário deveria ter encostado. É a mesma informação que já existe espalhada nos
+  // cards abaixo (badge "Encosta até" + tempo no status), só que reunida e destacada
+  // num painel só, pra não precisar escanear card por card pra achar quem tá esperando há mais tempo.
+  const filaWrap=document.getElementById('filaCarregamentoWrap');
+  if(filaWrap){
+    const filaCarreg=data.filter(o=>o.status==='AGUCARR').map(o=>{
+      const previsto=o.planApres?resolveDataHoraOp(o,o.planApres):null;
+      const atrasado=previsto&&previsto<agora;
+      const esperandoMin=o.updatedAt?Math.floor((agora-new Date(o.updatedAt))/60000):null;
+      return{op:o,previsto,atrasado,esperandoMin};
+    }).sort((a,b)=>(a.previsto?.getTime()??Infinity)-(b.previsto?.getTime()??Infinity));
+
+    if(!filaCarreg.length){
+      filaWrap.innerHTML='';
+    }else{
+      const fmtEspera=m=>{if(m===null||m<0)return'—';const h=Math.floor(m/60),mm=m%60;return(h?h+'h ':'')+mm+'min';};
+      filaWrap.innerHTML=`<div class="an-card" style="margin:0">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>⏳ Fila de Carregamento — Aguardando Encostar (${filaCarreg.length})</span>
+        </h3>
+        <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Ordenado por horário previsto de encosto. Vermelho = já passou do horário previsto.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${filaCarreg.map(({op,previsto,atrasado,esperandoMin})=>`
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:${atrasado?'var(--red4)':'var(--bg3)'};border:1px solid ${atrasado?'var(--red)':'var(--bd)'};border-radius:var(--rs);padding:10px 14px" onclick="openEdit('${esc(op.id)}')" role="button" tabindex="0">
+              <div style="flex:0 0 130px">
+                <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Previsto p/ encostar</div>
+                <div class="mono" style="font-size:1.05rem;font-weight:800;color:${atrasado?'var(--red)':'var(--text)'}">${op.planApres||'—'}</div>
+              </div>
+              <div style="flex:0 0 110px">
+                <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;letter-spacing:.3px">Aguardando há</div>
+                <div class="mono" style="font-size:1.05rem;font-weight:800;color:${esperandoMin!==null&&esperandoMin>60?'var(--red)':'var(--text)'}">${fmtEspera(esperandoMin)}</div>
+              </div>
+              <div style="flex:1 1 220px;min-width:0">
+                <div style="font-weight:800;font-size:.85rem;color:var(--red)">${esc(op.codigoCurto||op.id)}</div>
+                <div style="font-size:.68rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)} · <span class="mono">${esc(op.placa)||'—'}</span> · ${esc(op.mot)||'—'} · ${esc(op.transp)||'—'}</div>
+              </div>
+              ${atrasado?'<span class="badge" style="background:var(--red);color:#fff;font-weight:800">⚠ ATRASADO</span>':''}
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
   document.getElementById('progGrid').innerHTML=dataOrd.length
     ?dataOrd.map(op=>{
       // CAFs desta operação
