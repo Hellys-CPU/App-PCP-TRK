@@ -184,6 +184,39 @@ body.dark .rota-cell{color:#e6edf3;}
 .tab-drop-panel{display:none;flex-direction:column;gap:1px;position:fixed;z-index:500;background:var(--bg2);border:1.5px solid var(--bd);border-radius:8px;padding:4px;min-width:180px;box-shadow:var(--sh3);}
 .tab-drop-panel.open{display:flex;}
 .tab-drop-panel .tab{width:100%;text-align:left;border-radius:6px;}
+
+/* SIDEBAR — gaveta lateral de navegação */
+#sidebar{position:fixed;top:0;left:0;bottom:0;width:232px;background:#14161f;color:#fff;z-index:300;overflow-y:auto;transform:translateX(-100%);transition:transform .2s ease;display:flex;flex-direction:column;padding:16px 12px;}
+body.sidebar-open #sidebar{transform:translateX(0);}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;flex-shrink:0;}
+.sb-logo-ico{width:30px;height:30px;border-radius:8px;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.sb-logo-txt{font-family:var(--font-h);font-size:14px;font-weight:800;color:#fff;white-space:nowrap;}
+.sb-logo-txt small{font-weight:600;color:#8b8fa3;font-size:10px;}
+.sb-nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;}
+.navgrp{font-size:10px;font-weight:700;letter-spacing:1px;color:#5b5f6f;text-transform:uppercase;padding:14px 10px 6px;}
+.navgrp:first-child{padding-top:2px;}
+#sidebar .tab{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border-radius:9px;font-size:.8rem;font-weight:600;text-align:left;color:#a8acbd;background:none;border:none;cursor:pointer;transition:.15s;}
+#sidebar .tab:hover{background:#1c1f2a;color:#fff;}
+#sidebar .tab.active{background:var(--red);color:#fff;font-weight:700;}
+#sidebar .tab-drop{position:static;display:flex;flex-direction:column;width:100%;}
+#sidebar .tab-drop-btn{width:100%;text-align:left;background:none;border:none;color:#5b5f6f;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:14px 10px 6px;cursor:default;}
+#sidebar .tab-drop-btn.active{color:var(--red);background:none;}
+#sidebar .tab-drop-panel{position:static;display:flex;flex-direction:column;background:none;border:none;box-shadow:none;padding:0;min-width:0;gap:2px;}
+#sidebarBackdrop{display:none;position:fixed;inset:0;background:rgba(10,12,18,.5);z-index:290;}
+.sidebar-toggle-btn{background:none;border:1.5px solid var(--bd);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--text);flex-shrink:0;}
+@media(min-width:1101px){
+  .topbar .logo{display:none;}
+  body.sidebar-open .topbar,body.sidebar-open .day-banner,body.sidebar-open .view.active{margin-left:232px;transition:margin-left .2s ease;}
+  body.sidebar-open .topbar .logo{display:none;}
+  body:not(.sidebar-open) .topbar .logo{display:flex;}
+  #sidebarBackdrop{display:none!important;}
+}
+@media(max-width:1100px){
+  body.sidebar-open #sidebarBackdrop{display:block;}
+}
+@media(max-width:768px){
+  #sidebar,#sidebarBackdrop,.sidebar-toggle-btn{display:none!important;}
+}
 .topbar-r{display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .clock{font-size:.68rem;color:var(--t2);background:var(--bg3);padding:3px 7px;border-radius:var(--rs);border:1px solid var(--bd);white-space:nowrap;}
 .btn{padding:5px 10px;border-radius:var(--rs);border:none;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap;}
@@ -575,35 +608,50 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- APP -->
 <div id="appRoot" style="display:none">
-<div class="topbar">
-  <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v287</span></div></div>
-  <div class="tabs">
+
+<!-- SIDEBAR (gaveta lateral — recolhe com o botão ☰ no topo) -->
+<div id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo-ico">🚛</div>
+    <div class="sb-logo-txt">TRK PCP <small>2026</small></div>
+  </div>
+  <div class="sb-nav">
+    <div class="navgrp">Operação</div>
     <button class="tab active" id="tb-painel" onclick="setView('painel')">📊 Painel</button>
     <button class="tab" id="tb-lista" onclick="setView('lista')">☰ Lista</button>
     <button class="tab" id="tb-prog" onclick="setView('prog')">🚪 Gestão de Doca</button>
     <button class="tab" id="tb-massa" onclick="setView('massa')">⚡ Em Massa</button>
-    <button class="tab" id="tb-caf" onclick="setView('caf')" style="color:#16a34a;position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:2px;right:-2px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
-    <button class="tab" id="tb-pallets" onclick="setView('pallets')" style="color:#f59e0b">🔄 Retorno de Pallets</button>
-    <button class="tab" id="tb-insumos" onclick="setView('insumos')" style="color:#8b5cf6">🧰 Insumos HUB</button>
-    <button class="tab" id="tb-veiculos" onclick="setView('veiculos')" style="color:#0ea5e9">🚛 Veículos</button>
+    <div class="navgrp">Cadastros</div>
+    <button class="tab" id="tb-caf" onclick="setView('caf')" style="position:relative">📦 CAFs<span id="cafAlertBadge" style="display:none;position:absolute;top:6px;right:8px;background:var(--red);color:#fff;border-radius:10px;font-size:.55rem;font-weight:800;padding:1px 5px;min-width:14px;text-align:center"></span></button>
+    <button class="tab" id="tb-pallets" onclick="setView('pallets')">🔄 Retorno de Pallets</button>
+    <button class="tab" id="tb-insumos" onclick="setView('insumos')">🧰 Insumos HUB</button>
+    <button class="tab" id="tb-veiculos" onclick="setView('veiculos')">🚛 Veículos</button>
     <div class="tab-drop" id="dropRelatorios">
-      <button type="button" class="tab-drop-btn" id="tbg-relatorios" onclick="event.stopPropagation();toggleTabDrop('dropRelatorios')">📊 Relatórios ▾</button>
+      <button type="button" class="tab-drop-btn" id="tbg-relatorios" onclick="event.stopPropagation();toggleTabDrop('dropRelatorios')">Relatórios</button>
       <div class="tab-drop-panel" id="panelRelatorios">
         <button class="tab fup-tab" id="tb-fup" onclick="setView('fup');closeAllTabDrops()">📋 FUP FC</button>
         <button class="tab" id="tb-amazon" onclick="setView('amazon');closeAllTabDrops()">📦 FUP Amazon</button>
-        <button class="tab" id="tb-analise" onclick="setView('analise');closeAllTabDrops()" style="color:#0891b2">📈 Análise</button>
-        <button class="tab" id="tb-reportpcp" onclick="setView('reportpcp');closeAllTabDrops()" style="color:#f59e0b">📋 Report PCP</button>
-        <button class="tab" id="tb-descarga" onclick="setView('descarga');closeAllTabDrops()" style="color:#eab308">🚚 Painel de Descarga</button>
+        <button class="tab" id="tb-analise" onclick="setView('analise');closeAllTabDrops()">📈 Análise</button>
+        <button class="tab" id="tb-reportpcp" onclick="setView('reportpcp');closeAllTabDrops()">📋 Report PCP</button>
+        <button class="tab" id="tb-descarga" onclick="setView('descarga');closeAllTabDrops()">🚚 Painel de Descarga</button>
       </div>
     </div>
     <div class="tab-drop" id="dropTV">
-      <button type="button" class="tab-drop-btn" id="tbg-tv" onclick="event.stopPropagation();toggleTabDrop('dropTV')">📺 TV ▾</button>
+      <button type="button" class="tab-drop-btn" id="tbg-tv" onclick="event.stopPropagation();toggleTabDrop('dropTV')">TV</button>
       <div class="tab-drop-panel" id="panelTV">
-        <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard');closeAllTabDrops()" style="color:#22c55e" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
-        <button class="tab" id="tb-tv" onclick="setView('tv');closeAllTabDrops()" style="color:#0891b2" title="Modo TV - tela cheia para telão">📺 TV</button>
+        <button class="tab" id="tb-tv-yard" onclick="setView('tv-yard');closeAllTabDrops()" title="TV Yard — Pátio de carregamento">📺 TV Yard</button>
+        <button class="tab" id="tb-tv" onclick="setView('tv');closeAllTabDrops()" title="Modo TV - tela cheia para telão">📺 TV</button>
       </div>
     </div>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
+  </div>
+</div>
+<div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+    <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v287</span></div></div>
   </div>
   <div class="topbar-r">
     <div id="onlineBar" style="display:none" style="display:flex;gap:4px;align-items:center;margin-right:4px"></div>
@@ -1906,11 +1954,16 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v343';
+const APP_VERSION='v344';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v344:['🎨 Início do redesign visual: nova tipografia (Manrope + IBM Plex Sans/Mono) em todo o app, cantos e sombras mais modernos, e a navegação virou uma sidebar retrátil (gaveta) — abre/fecha pelo ☰, empurra o conteúdo no desktop e vira uma gaveta sobreposta em tablets. No celular continua exatamente igual (barra inferior). Nenhum filtro, permissão ou funcionalidade foi alterado, só o visual em cima do que já existia. Mais abas vêm reestilizadas nas próximas versões.',
+    '🚚 Nova aba "Painel de Descarga" (menu Relatórios) — lista tudo que está aguardando descarga com cronômetro ao vivo, KPIs (aguardando, críticos >24h, tempo médio, mais antigo), quantidade por FC, filtro e botão de enviar print pro WhatsApp. Funciona em tema claro e escuro.',
+    '🐛 Corrigida a detecção de "veículo/motorista ainda ocupado" na Lista — comparava também a placa da carreta (que troca com frequência e um typo já quebrava o alerta); agora compara só cavalo+motorista, e conta viagem anterior em Carregamento/Trânsito/Ag.Descarga como ocupada, não só Ag.Descarga.',
+    '📊 Extração completa em Excel ganhou a coluna "Tempo de Doca (Apres → Saída)", como valor de hora de verdade (não texto), formatada [h]:mm.',
+  ],
   v343:['🐛 "Em Agendamento" (v342) não aparecia em 2 lugares que eu não tinha visto: o dropdown de edição da CAF (que usa opções fixas no HTML, não a lista central de status) e o filtro de checkbox da aba CAFs (também fixo, igual o bug do "Declínio" nas viagens). Adicionado nos dois — a permissão por perfil já funcionava certinho, só faltava a opção existir na tela.'],
   v342:['📅 Novo status de CAF: "Em Agendamento" (azul escuro) — etapa antes de "Em Produção", pra quando a CAF já foi agendada mas ainda não começou a ser produzida. Disponível pra Operação (operador_caf), Admin/Supervisor e qualquer perfil com permissão de editar/criar CAF. Aparece no dropdown de status, no selo colorido e no pipeline visual da TV.'],
   v341:['🏗️ Ruas 31 a 35 agora são identificadas como "Porta Pallets" em vez de rua comum — aparecem assim no dropdown de vínculo de CAF, no mapa da TV Yard (selo "PP") e na lista por FC. Removido de vez o recurso de "andar/mezanino" (ruas 23-27 tinham níveis extras vazios, sem uso) — banco limpo, e a tela de Admin que criava andar novo foi removida.'],
@@ -5611,6 +5664,27 @@ async function confirmarMassa(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+// SIDEBAR — gaveta lateral de navegação
+// ══════════════════════════════════════════════════════════════════
+// Desktop largo (>1100px): sidebar aberta empurra o conteúdo, estado lembrado.
+// Tablet/telas médias (≤1100px): sidebar vira gaveta sobreposta, fechada por padrão,
+// com fundo escurecido que fecha ela ao clicar fora. Celular (≤768px): sidebar nem
+// aparece — continua usando a barra inferior de sempre, sem mudança nenhuma ali.
+function toggleSidebar(){
+  const open=document.body.classList.toggle('sidebar-open');
+  if(window.innerWidth>1100){
+    try{localStorage.setItem('trk_sidebar_open',open?'1':'0');}catch(e){}
+  }
+}
+function _restoreSidebarState(){
+  try{
+    const saved=localStorage.getItem('trk_sidebar_open');
+    if(window.innerWidth>1100&&saved!=='0')document.body.classList.add('sidebar-open');
+  }catch(e){}
+}
+_restoreSidebarState();
+
+// ══════════════════════════════════════════════════════════════════
 // TEMA
 // ══════════════════════════════════════════════════════════════════
 function toggleTheme(){
@@ -5652,6 +5726,8 @@ function setView(name){
   if(['fup','amazon','analise','reportpcp','descarga'].includes(name))document.getElementById('tbg-relatorios')?.classList.add('active');
   if(['tv-yard','tv'].includes(name))document.getElementById('tbg-tv')?.classList.add('active');
   closeAllTabDrops();
+  // Em tablet/telas médias a sidebar é uma gaveta sobreposta — fecha sozinha ao trocar de aba
+  if(window.innerWidth<=1100)document.body.classList.remove('sidebar-open');
   if(name==='massa')initMassa();if(name==='fup')renderFUP();
   if(name==='analise')renderAnalise();
   if(name==='descarga')renderPainelDescargaView();
