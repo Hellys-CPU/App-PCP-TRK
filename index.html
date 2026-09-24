@@ -443,13 +443,84 @@ body.dark .fup-sep td{color:#e6edf3;}
 .log-item .lt{color:var(--t2);font-size:.61rem;}
 
 /* ANÁLISE */
-.analise-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;}
-@media(max-width:768px){.analise-grid{grid-template-columns:1fr;}}
+.analise-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;}
+@media(max-width:768px){.analise-grid{grid-template-columns:minmax(0,1fr);}}
+#analiseGrid .an-card{min-width:0;overflow-x:auto;}
 .an-card{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh);}
 .an-card summary::-webkit-details-marker{display:none}
 .an-card details[open] summary span:first-child{display:inline-block;transform:rotate(90deg)}
-.an-card h3{font-size:.8rem;font-weight:700;color:var(--gray3);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--red3);display:flex;align-items:center;gap:6px;}
+.an-card h3{font-family:var(--font-h);font-size:.9rem;font-weight:800;color:var(--gray3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;letter-spacing:-.1px;}
 body.dark .an-card h3{color:var(--gray2);}
+
+/* Análise — seções em abas (os cards continuam todos no DOM; a seção só decide qual aparece) */
+.an-secs{display:flex;gap:6px;padding:14px 14px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.an-secs::-webkit-scrollbar{display:none;}
+.an-sec{background:var(--bg2);border:1.5px solid var(--bd);color:var(--t2);border-radius:20px;padding:8px 16px;font-size:.76rem;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;transition:.15s;flex-shrink:0;}
+.an-sec:hover{border-color:var(--gray2);color:var(--text);}
+.an-sec.active{background:var(--gray3);border-color:var(--gray3);color:var(--bg2);}
+#analiseGrid .an-card[data-sec]{display:none;}
+#analiseGrid .an-card[data-sec="hero"]{display:flex;order:-10;}
+#analiseGrid[data-sec="geral"] .an-card[data-sec="geral"],
+#analiseGrid[data-sec="pontualidade"] .an-card[data-sec="pontualidade"],
+#analiseGrid[data-sec="descarga"] .an-card[data-sec="descarga"],
+#analiseGrid[data-sec="cafs"] .an-card[data-sec="cafs"],
+#analiseGrid[data-sec="frota"] .an-card[data-sec="frota"],
+#analiseGrid[data-sec="pivot"] .an-card[data-sec="pivot"]{display:block;}
+#analiseGrid .an-card[data-pri="1"]{order:-2;}
+#analiseGrid .an-card[data-pri="2"]{order:-1;}
+#analiseGrid[data-sec="pivot"] .an-card[data-sec="hero"]{display:none;}
+#analiseGrid .an-card[data-wide]{grid-column:1/-1;}
+/* Linguagem visual dos gráficos da Análise */
+#analiseGrid .an-card{border-width:1px;border-radius:14px;padding:16px 18px;box-shadow:none;}
+#analiseGrid table th{font-size:.6rem!important;letter-spacing:.5px;color:var(--t3)!important;font-weight:700;background:none!important;border:none!important;}
+#analiseGrid table thead tr{border-bottom:1px solid var(--bd)!important;}
+#analiseGrid table tbody tr{border-bottom:1px solid var(--bd)!important;}
+#analiseGrid table tbody tr:last-child{border-bottom:none!important;}
+#analiseGrid table tbody tr:hover{background:var(--bg3);}
+#analiseGrid table td{padding-top:7px!important;padding-bottom:7px!important;}
+.an-gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.an-gauge{position:relative;background:var(--bg3);border:1px solid transparent;border-radius:12px;padding:16px 10px 12px;display:flex;flex-direction:column;align-items:center;}
+.an-gauge.on{border-color:var(--gc);background:var(--bg2);box-shadow:0 0 0 3px color-mix(in srgb,var(--gc) 14%,transparent);}
+.an-gauge-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--gc);color:#fff;font-size:.55rem;font-weight:800;padding:2px 9px;border-radius:9px;text-transform:uppercase;letter-spacing:.6px;}
+.an-gauge-l{font-size:.66rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-top:6px;text-align:center;}
+.an-ring{width:112px;height:112px;display:block;}
+.an-gauge.on .an-ring{width:128px;height:128px;}
+.an-hbar{flex:1;height:10px;background:var(--bg3);border-radius:99px;overflow:hidden;min-width:40px;}
+.an-hbar>div{height:100%;border-radius:99px;transition:width .4s;}
+.an-farol{display:inline-block;width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 3px var(--bg3);}
+.an-scroll{max-height:360px;overflow-y:auto;padding-right:4px;}
+#analiseGrid .tr-bar-bg{height:10px;border-radius:99px;}
+#analiseGrid .tr-bar-fill{border-radius:99px;}
+#analiseGrid .tr-cnt{color:var(--text);font-family:var(--font-mono);}
+#analiseGrid .bar7-wrap{height:170px;gap:10px;align-items:flex-end;background:repeating-linear-gradient(to top,transparent 0,transparent 39px,var(--bd) 39px,var(--bd) 40px);background-position:0 -24px;}
+#analiseGrid .bar7-bar{width:62%;max-width:64px;border-radius:8px 8px 3px 3px;background:var(--gray2);opacity:.28;}
+#analiseGrid .bar7-col.hj .bar7-bar{background:var(--red);opacity:1;}
+#analiseGrid .bar7-val{font-family:var(--font-mono);font-size:.72rem;}
+#analiseGrid .bar7-col.hj .bar7-val{color:var(--red);}
+#analiseGrid .bar7-lbl{display:flex;flex-direction:column;align-items:center;font-size:.58rem;color:var(--t3);line-height:1.3;margin-top:4px;}
+#analiseGrid .bar7-lbl b{font-size:.66rem;color:var(--t2);text-transform:capitalize;}
+#analiseGrid .bar7-col.hj .bar7-lbl b{color:var(--red);}
+#analiseGrid .pizza-row{padding:6px 0;margin:0;border-bottom:1px solid var(--bd);font-size:.72rem;}
+#analiseGrid .pizza-row:last-child{border-bottom:none;}
+#analiseGrid .pizza-dot{width:9px;height:9px;border-radius:3px;}
+#analiseGrid .pizza-pct{font-family:var(--font-mono);}
+@media(max-width:768px){.an-ring{width:92px;height:92px;}.an-gauge.on .an-ring{width:104px;height:104px;}.an-gauges{grid-template-columns:repeat(2,minmax(0,1fr));}.an-gauges.g3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.an-gauges.g3 .an-ring{width:80px;height:80px;}.an-gauges.g3 .an-gauge{padding:12px 4px 10px;}#analiseGrid .bar7-wrap{gap:4px;}}
+
+/* Análise — hero (resumo do período, sempre no topo) */
+#analiseGrid .an-card.an-hero{gap:22px;flex-wrap:wrap;align-items:stretch;background:#14161f;border-color:#14161f;color:#fff;padding:22px;}
+.an-hero-main{flex:0 0 210px;display:flex;flex-direction:column;justify-content:center;}
+.an-hero-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:#8b8fa3;font-weight:700;}
+.an-hero-val{font-family:var(--font-h);font-size:3.4rem;font-weight:800;line-height:1;margin-top:4px;}
+.an-hero-sub{font-size:.72rem;color:#8b8fa3;margin-top:6px;}
+.an-hero-grid{flex:1 1 320px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.an-hero-box{background:#1c1f2a;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;}
+.an-hero-box .v{font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:#fff;line-height:1.1;}
+.an-hero-box .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;color:#8b8fa3;font-weight:700;margin-top:4px;}
+@media(max-width:768px){
+  .an-hero-main{flex-basis:100%;}
+  .an-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .an-hero-val{font-size:2.8rem;}
+}
 .met-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .met-box{background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:10px;text-align:center;}
 .met-box .mv{font-size:1.5rem;font-weight:800;line-height:1;}
@@ -1326,7 +1397,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-p" onclick="exportRD()" style="font-size:.72rem;background:var(--blue)">📊 Exportar RD</button>
     <button class="btn btn-p" onclick="exportPPTX()" style="font-size:.72rem;background:var(--red)">📊 Exportar PPTX</button>
   </div>
-  <div class="analise-grid" id="analiseGrid">
+  <div class="an-secs" id="anSecs" role="tablist" aria-label="Seções da análise">
+    <button class="an-sec" data-sec="geral" onclick="setAnaliseSec('geral')" role="tab">Visão Geral</button>
+    <button class="an-sec" data-sec="pontualidade" onclick="setAnaliseSec('pontualidade')" role="tab">Pontualidade</button>
+    <button class="an-sec" data-sec="descarga" onclick="setAnaliseSec('descarga')" role="tab">Descarga &amp; Doca</button>
+    <button class="an-sec" data-sec="cafs" onclick="setAnaliseSec('cafs')" role="tab">CAFs</button>
+    <button class="an-sec" data-sec="frota" onclick="setAnaliseSec('frota')" role="tab">Operação &amp; Frota</button>
+    <button class="an-sec" data-sec="pivot" onclick="setAnaliseSec('pivot')" role="tab">Monte sua Análise</button>
+  </div>
+  <div class="analise-grid" id="analiseGrid" data-sec="geral">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--t2)">Carregando análise...</div>
   </div>
 </div>
@@ -1946,11 +2025,15 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v344';
+const APP_VERSION='v345';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v345:['📈 Aba Análise reestruturada: em vez de 27 quadros num scroll só, agora tem um resumo fixo no topo (SLA de chegada no FC em destaque + total, finalizadas, fora do prazo, Δ saída, Δ chegada e tempo de doca) e os quadros foram separados em seções — Visão Geral, Pontualidade, Descarga & Doca, CAFs, Operação & Frota e Monte sua Análise. Gráficos repaginados: medidores em anel nos SLAs e OT, rosca com total no centro na distribuição por status/tipo, barras mais finas e legíveis, SLA por Rota com barra de progresso e farol em bolinha, Últimos 7 dias com o dia de hoje destacado, listas longas (motoristas, veículos sem cadastro) com rolagem própria. Corrigido "++1h" duplicado no Top Atrasos no FC e o NaN no Comparativo Semanal. Nenhum quadro foi removido, todos continuam calculando igual; a seção escolhida fica lembrada na próxima vez.',
+    '🚪 Gestão de Doca ganhou o painel "Fila de Carregamento": quem está aguardando encostar, horário previsto e há quanto tempo espera, em vermelho quando já passou do horário.',
+    '🗂️ Sidebar agora é sempre uma gaveta sobreposta (PC e tablet): abre pelo ☰, fecha clicando fora ou trocando de aba. Celular continua igual, com a barra inferior e a bolha.',
+  ],
   v344:['🎨 Início do redesign visual: nova tipografia (Manrope + IBM Plex Sans/Mono) em todo o app, cantos e sombras mais modernos, e a navegação virou uma sidebar retrátil (gaveta) — abre/fecha pelo ☰, empurra o conteúdo no desktop e vira uma gaveta sobreposta em tablets. No celular continua exatamente igual (barra inferior). Nenhum filtro, permissão ou funcionalidade foi alterado, só o visual em cima do que já existia. Mais abas vêm reestilizadas nas próximas versões.',
     '🚚 Nova aba "Painel de Descarga" (menu Relatórios) — lista tudo que está aguardando descarga com cronômetro ao vivo, KPIs (aguardando, críticos >24h, tempo médio, mais antigo), quantidade por FC, filtro e botão de enviar print pro WhatsApp. Funciona em tema claro e escuro.',
     '🐛 Corrigida a detecção de "veículo/motorista ainda ocupado" na Lista — comparava também a placa da carreta (que troca com frequência e um typo já quebrava o alerta); agora compara só cavalo+motorista, e conta viagem anterior em Carregamento/Trânsito/Ag.Descarga como ocupada, não só Ag.Descarga.',
@@ -5900,16 +5983,25 @@ function getAnaliseLabel(){
 }
 function pizzaSVG(items,total){
   if(!total)return'<text x="80" y="88" text-anchor="middle" font-size="11" fill="var(--t3)">Sem dados</text>';
-  let angle=-Math.PI/2,slices='';
+  // Rosca: cada fatia é um arco de circunferência (stroke-dasharray) — mais legível que pizza cheia
+  const r=62,c=2*Math.PI*r;let off=0,segs='';
   items.forEach(item=>{
     const pct=item.v/total;if(pct<0.005)return;
-    const sweep=pct*2*Math.PI,r=70,cx=80,cy=80;
-    const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle);
-    angle+=sweep;
-    const x2=cx+r*Math.cos(angle),y2=cy+r*Math.sin(angle);
-    slices+=`<path d="M${cx},${cy}L${x1.toFixed(1)},${y1.toFixed(1)}A${r},${r} 0 ${sweep>Math.PI?1:0} 1 ${x2.toFixed(1)},${y2.toFixed(1)}Z" fill="${item.cor}" stroke="var(--bg2)" stroke-width="1.5"><title>${item.lb}: ${item.v} (${Math.round(pct*100)}%)</title></path>`;
+    const len=pct*c,gap=items.length>1?1.5:0;
+    segs+=`<circle cx="80" cy="80" r="${r}" fill="none" stroke="${item.cor}" stroke-width="18" stroke-dasharray="${Math.max(len-gap,0.5).toFixed(2)} ${(c-len+gap).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 80 80)"><title>${item.lb}: ${item.v} (${Math.round(pct*100)}%)</title></circle>`;
+    off+=len;
   });
-  return slices;
+  return `<circle cx="80" cy="80" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="18"/>${segs}
+    <text x="80" y="82" text-anchor="middle" font-size="30" font-weight="800" fill="var(--text)" style="font-family:var(--font-h)">${total}</text>
+    <text x="80" y="100" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--t2)" letter-spacing=".8">VIAGENS</text>`;
+}
+// Medidor em anel (0–100%) usado nos cards de SLA/OT da Análise
+function _anRing(pct,cor,sub){
+  const r=42,c=2*Math.PI*r,v=pct===null?0:Math.max(0,Math.min(100,pct));
+  return `<svg viewBox="0 0 100 100" class="an-ring"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="9"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${cor}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(v/100*c).toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 50 50)"/>
+    <text x="50" y="${sub?51:56}" text-anchor="middle" font-size="${pct===100?16.5:19}" font-weight="800" fill="${pct===null?'var(--t3)':cor}" style="font-family:var(--font-h)">${pct===null?'—':pct+'%'}</text>
+    ${sub?`<text x="50" y="65" text-anchor="middle" font-size="8" font-weight="600" fill="var(--t3)">${sub}</text>`:''}</svg>`;
 }
 const ST_COR={PROG:'#9ca3af',AGUCARR:'#f59e0b',EMCARR:'#f97316',TRAN:'#3b82f6',AGUDESC:'#8b5cf6',FIN:'#22c55e',CANC:'#ef4444',REC:'#dc2626',PERN:'#f0883e'};
 // ── Exportação PPTX (só admin) ──
@@ -6051,7 +6143,7 @@ function _paretoSVG(dados,opts){
   let acc=0;
   const pontos=arr.map(([lb,v])=>{acc+=v;return{lb,v,pctAcc:acc/total*100};});
 
-  const larguraBarra=64,gap=14,margemEsq=42,margemDir=42,margemTopo=26,alturaGrafico=200,margemBaixo=64;
+  const larguraBarra=56,gap=22,margemEsq=42,margemDir=42,margemTopo=26,alturaGrafico=200,margemBaixo=64;
   const w=margemEsq+margemDir+pontos.length*(larguraBarra+gap);
   const h=margemTopo+alturaGrafico+margemBaixo;
   const maxV=pontos[0].v;
@@ -6081,7 +6173,7 @@ function _paretoSVG(dados,opts){
   const y80=yPct(80);
 
   return `<div style="overflow-x:auto">
-    <svg viewBox="0 0 ${w} ${h}" style="width:100%;min-width:${Math.min(w,900)}px;max-width:${w}px;height:${h*0.9}px">
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" style="width:100%;min-width:${Math.min(w,520)}px;max-width:${Math.max(w,900)}px;height:auto;max-height:290px;display:block;margin:0 auto">
       <line x1="${margemEsq}" y1="${y80}" x2="${w-margemDir+10}" y2="${y80}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
       <text x="${w-margemDir+12}" y="${y80+4}" font-size="9" fill="#f59e0b">80%</text>
       ${barras}
@@ -6542,8 +6634,25 @@ function togglePivotChart(){
   if(btn)btn.textContent=showing?'📊 Mostrar gráfico':'🔼 Esconder gráfico';
   if(!showing)renderPivotChart();
 }
+// Seção ativa da Análise — os cards de todas as seções continuam sendo calculados e
+// renderizados; a seção só controla qual grupo fica visível (via data-sec no grid + CSS).
+let _analiseSec=(()=>{try{return localStorage.getItem('trk_analise_sec')||'geral';}catch(e){return'geral';}})();
+function _aplicarAnaliseSec(){
+  const g=document.getElementById('analiseGrid');if(g)g.setAttribute('data-sec',_analiseSec);
+  document.querySelectorAll('#anSecs .an-sec').forEach(b=>{
+    const on=b.dataset.sec===_analiseSec;
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-selected',on?'true':'false');
+  });
+}
+function setAnaliseSec(sec){
+  _analiseSec=sec;
+  try{localStorage.setItem('trk_analise_sec',sec);}catch(e){}
+  _aplicarAnaliseSec();
+}
 function renderAnalise(){
   const el=document.getElementById('analiseGrid');if(!el)return;
+  _aplicarAnaliseSec();
   if(supabaseOK&&!_veiculosLoadTried){
     _veiculosLoadTried=true;
     loadVeiculosCadastro().then(()=>renderAnalise());
@@ -6587,20 +6696,32 @@ function renderAnalise(){
   const delta=hjV-otV;
   const dCor=delta>0?'var(--green)':delta<0?'var(--red)':'var(--t2)';
 
+  const atrasadasAn=data.filter(o=>getSLA(o)==='late').length;
+  const heroCor=v=>v===null?'#8b8fa3':v>0?'#ff5a68':'#4ee0a1';
   el.innerHTML=`
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Métricas Gerais</h3>
-  <div class="met-grid">
-    <div class="met-box"><div class="mv" style="color:var(--red)">${total}</div><div class="ml">Total Op.</div></div>
-    <div class="met-box"><div class="mv" style="color:var(--green)">${fin}</div><div class="ml">Finalizadas</div></div>
-    <div class="met-box"><div class="mv" style="color:${taxaSLA>=80?'var(--green)':taxaSLA>=60?'var(--yellow)':'var(--red)'}">${taxaSLA}%</div><div class="ml">Taxa SLA</div></div>
-    <div class="met-box"><div class="mv" style="color:${avgDS===null?'var(--t2)':avgDS>0?'var(--red)':'var(--green)'}">${fAvg(avgDS)}</div><div class="ml">Δ Médio Saída</div></div>
-    <div class="met-box"><div class="mv" style="color:${avgDC===null?'var(--t2)':avgDC>0?'var(--red)':'var(--green)'}">${fAvg(avgDC)}</div><div class="ml">Δ Médio FC</div></div>
-    <div class="met-box"><div class="mv" style="color:var(--purple)">${fAvg(avgDoc)}</div><div class="ml">T.Médio Doca</div></div>
+<div class="an-card an-hero" data-sec="hero" style="grid-column:1/-1">
+  ${(()=>{
+    // Mesmo número do quadro "SLA por Etapa → Chegada FC (★ principal)": só conta viagens
+    // que já têm chegada no FC — as que ainda não chegaram não entram no denominador.
+    const ch=_calcSLAsSeparados(data).chegada;
+    const cor=ch.pct===null?'#8b8fa3':ch.pct>=92?'#4ee0a1':ch.pct>=80?'#f0b429':'#ff5a68';
+    return`<div class="an-hero-main">
+      <div class="an-hero-lbl">SLA chegada no FC · principal</div>
+      <div class="an-hero-val" style="color:${cor}">${ch.pct===null?'—':ch.pct+'%'}</div>
+      <div class="an-hero-sub">${ch.total?`${ch.ok} de ${ch.total} viagens que já chegaram`:'nenhuma chegada registrada no período'}</div>
+    </div>`;
+  })()}
+  <div class="an-hero-grid">
+    <div class="an-hero-box"><div class="v">${total}</div><div class="l">Total de viagens</div></div>
+    <div class="an-hero-box"><div class="v" style="color:#4ee0a1">${fin}</div><div class="l">Finalizadas</div></div>
+    <div class="an-hero-box"><div class="v" style="color:${atrasadasAn?'#ff5a68':'#fff'}">${atrasadasAn}</div><div class="l">Fora do prazo</div></div>
+    <div class="an-hero-box"><div class="v" style="color:${heroCor(avgDS)}">${fAvg(avgDS)}</div><div class="l">Δ médio saída</div></div>
+    <div class="an-hero-box"><div class="v" style="color:${heroCor(avgDC)}">${fAvg(avgDC)}</div><div class="l">Δ médio chegada FC</div></div>
+    <div class="an-hero-box"><div class="v" style="color:#b39bff">${fAvg(avgDoc)}</div><div class="l">Tempo médio de doca</div></div>
   </div>
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🧮 Monte sua Análise (Tabela Dinâmica)</h3>
+<div class="an-card" data-sec="pivot" style="grid-column:1/-1">
+  <h3>Monte sua Análise (Tabela Dinâmica)</h3>
   <div style="font-size:.68rem;color:var(--t2);margin-bottom:10px">Arraste os campos abaixo pros blocos — igual tabela dinâmica do Excel. Em tablet/touch, é só <b>tocar</b> no campo e escolher o bloco (arrastar pode falhar em touch).</div>
   <div style="font-size:.6rem;color:var(--t2);text-transform:uppercase;font-weight:700;margin-bottom:5px">📋 Campos disponíveis (vermelho = dimensão, azul = métrica)</div>
   <div id="pivotCamposDisponiveis" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:14px"></div>
@@ -6646,8 +6767,8 @@ function renderAnalise(){
   </div>
   <div id="pivotChartWrap" style="display:none;margin-top:10px"><div id="pivotChartResult"></div></div>
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📦 KPIs de CAFs</h3>
+<div class="an-card" data-sec="cafs" style="grid-column:1/-1">
+  <h3>KPIs de CAFs</h3>
   ${(()=>{
     const _datasPeriodo=data.map(o=>o.dataOp).filter(Boolean).sort();
     const _pDe=_datasPeriodo[0]||'', _pAte=_datasPeriodo[_datasPeriodo.length-1]||'';
@@ -6691,8 +6812,8 @@ function renderAnalise(){
   })()}
 </div>
 
-<div class="an-card" style="grid-column:1/-1;border:1.5px solid var(--yellow);background:rgba(234,179,8,.03)">
-  <h3 style="color:var(--yellow)">💡 Consolidação de CAF — Onde e Quando Está Acontecendo</h3>
+<div class="an-card" data-sec="cafs" style="grid-column:1/-1;border:1.5px solid var(--yellow);background:rgba(234,179,8,.03)">
+  <h3 style="color:var(--yellow)">Consolidação de CAF — Onde e Quando Está Acontecendo</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">
     Regra: CAFs já <b>Produzidas</b> com o <b>mesmo vencimento</b> e <b>mesmo destino</b> (FC) poderiam ter sido uma única CAF.
     Nunca aplica a vencimentos diferentes.
@@ -6791,8 +6912,8 @@ function renderAnalise(){
     </details>`;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1;border:1.5px solid var(--red);background:rgba(220,38,38,.03)">
-  <h3 style="color:var(--red)">🚨 CAFs Pendentes — Viagem Finalizada Sem Baixa</h3>
+<div class="an-card" data-sec="cafs" style="grid-column:1/-1;border:1.5px solid var(--red);background:rgba(220,38,38,.03)">
+  <h3 style="color:var(--red)">CAFs Pendentes — Viagem Finalizada Sem Baixa</h3>
   ${(()=>{
     const _dP=data.map(o=>o.dataOp).filter(Boolean).sort();
     const _de2=_dP[0]||'', _ate2=_dP[_dP.length-1]||'';
@@ -6830,8 +6951,8 @@ function renderAnalise(){
     </div>`;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📱 Uso do App pelo Motorista</h3>
+<div class="an-card" data-sec="frota" style="grid-column:1/-1">
+  <h3>Uso do App pelo Motorista</h3>
   ${(()=>{
     const cSim=data.filter(o=>o.motoristaUsouApp==='sim').length;
     const cNao=data.filter(o=>o.motoristaUsouApp==='nao').length;
@@ -6893,8 +7014,8 @@ function renderAnalise(){
     const motArr=Object.entries(byMot).filter(([,d])=>d.nao>0).sort((a,b)=>b[1].nao-a[1].nao);
 
     html+=`<div style="font-size:.7rem;font-weight:700;color:var(--text);margin-bottom:6px">👤 Motoristas que Não Usaram o App</div>`;
-    html+=motArr.length?`<div style="display:flex;flex-direction:column;gap:5px">
-      ${motArr.map(([mot,d])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:6px 10px;font-size:.72rem">
+    html+=motArr.length?`<div class="an-scroll" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+      ${motArr.map(([mot,d])=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--bg3);border-radius:8px;padding:7px 10px;font-size:.72rem">
         <span><b style="color:var(--text)">${esc(mot)}</b> <span style="color:var(--t2)">· ${esc(d.placa||'—')} · ${esc(d.transp||'—')}</span></span>
         <span style="color:var(--red);font-weight:700">${d.nao}x não usou</span>
       </div>`).join('')}
@@ -6902,8 +7023,8 @@ function renderAnalise(){
     return html;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📦 CAFs Expedidas por Dia — % Baixa por FC</h3>
+<div class="an-card" data-sec="cafs" style="grid-column:1/-1">
+  <h3>CAFs Expedidas por Dia — % Baixa por FC</h3>
   <div style="font-size:.62rem;color:var(--t3);margin-bottom:10px">Considera só rotas de ida (TZX_FC) — retornos de pallets/insumos (FC_TZX) ficam de fora, já que não têm CAF. Barra = CAFs expedidas naquele dia. Linha tracejada = % dessas CAFs já baixadas (hoje).</div>
   ${(()=>{
     // Só rotas de ida: TZX_FC. Retornos (FC_TZX) não têm CAF e ficam de fora.
@@ -7008,16 +7129,15 @@ function renderAnalise(){
     return html;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🎯 OT (On Time) — Saída / Chegada / Total</h3>
+<div class="an-card" data-sec="geral" data-pri="2" style="grid-column:1/-1">
+  <h3>OT (On Time) — Saída / Chegada / Total</h3>
   ${(()=>{
     const ot=_calcOT(data);
-    const card=(label,val,n)=>`<div style="text-align:center;background:var(--bg3);border-radius:10px;padding:14px 10px;flex:1;min-width:140px">
-      <div style="font-size:2.2rem;font-weight:800;color:${_otCor(val)}">${val===null?'—':val+'%'}</div>
-      <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;margin-top:2px">${label}</div>
-      <div style="font-size:.58rem;color:var(--t3);margin-top:2px">${n} viagem(ns)</div>
+    const card=(label,val,n)=>`<div class="an-gauge">
+      ${_anRing(val,_otCor(val),n+' viagens')}
+      <div class="an-gauge-l">${label}</div>
     </div>`;
-    return`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+    return`<div class="an-gauges g3" style="margin-bottom:12px">
       ${card('OT Saída',ot.otSaida,ot.nSaida)}
       ${card('OT Chegada',ot.otChegada,ot.nChegada)}
       ${card('OT Total',ot.otTotal,ot.nUnico)}
@@ -7028,8 +7148,8 @@ function renderAnalise(){
   })()}
 </div>
 
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🚨 Maiores Atrasos de Saída</h3>
+<div class="an-card" data-sec="pontualidade" style="grid-column:1/-1">
+  <h3>Maiores Atrasos de Saída</h3>
   ${(()=>{
     const atrasadas=data.filter(o=>{const d=dMin(o.planSaida,o.realSaida);return d!==null&&d>30;})
       .map(o=>({...o,_d:dMin(o.planSaida,o.realSaida)}))
@@ -7040,11 +7160,9 @@ function renderAnalise(){
       ${atrasadas.map(o=>{
         const score=_otScore(o._d);
         return`<div style="display:flex;align-items:center;gap:8px">
-          <div style="width:90px;font-size:.62rem;color:var(--t2);flex-shrink:0">${esc(o.codigoCurto||o.id)}</div>
-          <div style="flex:1;background:var(--bg3);border-radius:4px;height:18px;position:relative;overflow:hidden">
-            <div style="background:${_otCor(score)};height:100%;width:${Math.round(o._d/max*100)}%;border-radius:4px"></div>
-          </div>
-          <div style="width:60px;text-align:right;font-size:.65rem;font-weight:700;color:${_otCor(score)}">+${o._d}min</div>
+          <div class="mono" style="width:90px;font-size:.66rem;color:var(--t2);flex-shrink:0">${esc(o.codigoCurto||o.id)}</div>
+          <div class="an-hbar"><div style="background:${_otCor(score)};width:${Math.round(o._d/max*100)}%"></div></div>
+          <div class="mono" style="width:64px;text-align:right;font-size:.7rem;font-weight:700;color:${_otCor(score)}">+${o._d}min</div>
           <div style="width:110px;font-size:.6rem;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.motivoAtrasoSaida||'')}">${esc(o.motivoAtrasoSaida||'sem motivo')}</div>
         </div>`;
       }).join('')}
@@ -7052,8 +7170,8 @@ function renderAnalise(){
   })()}
 </div>
 
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📦 Quadro de Descarregamento</h3>
+<div class="an-card" data-sec="descarga" style="grid-column:1/-1">
+  <h3>Quadro de Descarregamento</h3>
   ${(()=>{
     const comDesc=data.filter(o=>o.realChegFC&&!['CANC','REC'].includes(o.status)).map(o=>{
       const t=tempoAguardandoDescarga(o);
@@ -7103,8 +7221,8 @@ function renderAnalise(){
   })()}
 </div>
 
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Tempo de Descarga por Viagem</h3>
+<div class="an-card" data-sec="descarga" style="grid-column:1/-1">
+  <h3>Tempo de Descarga por Viagem</h3>
   ${(()=>{
     const comDesc=data.filter(o=>o.realChegFC&&!['CANC','REC'].includes(o.status)).map(o=>{
       const t=tempoAguardandoDescarga(o);
@@ -7117,19 +7235,16 @@ function renderAnalise(){
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:3px"></span>até 2h (padrão)</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--yellow);border-radius:2px;margin-right:3px"></span>2h-4h (atenção)</span>
       <span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:3px"></span>acima de 4h (precário)</span>
-      <span style="color:var(--blue)">🔄 ainda em andamento</span>
+      <span><span style="color:var(--blue)">●</span> ainda em andamento</span>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${comDesc.map(d=>{
         const cor=d.mins>240?'var(--red)':d.mins>120?'var(--yellow)':'var(--green)';
         const pct=Math.round(d.mins/max*100);
         return`<div style="display:flex;align-items:center;gap:8px">
-          <div style="width:80px;font-size:.62rem;color:var(--t2);flex-shrink:0;font-weight:600">${esc(d.id)}${d.emAndamento?' 🔄':''}</div>
-          <div style="flex:1;background:var(--bg3);border-radius:4px;height:20px;position:relative;overflow:hidden">
-            <div style="background:${cor};height:100%;width:${pct}%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px">
-              <span style="font-size:.6rem;font-weight:700;color:#fff;white-space:nowrap">${fmtHM(d.mins)}</span>
-            </div>
-          </div>
+          <div class="mono" style="width:90px;font-size:.66rem;color:var(--t2);flex-shrink:0;font-weight:600">${esc(d.id)}${d.emAndamento?' <span title="em andamento" style="color:var(--blue)">●</span>':''}</div>
+          <div class="an-hbar"><div style="width:${pct}%;background:${cor}"></div></div>
+          <div class="mono" style="width:72px;text-align:right;font-size:.7rem;font-weight:700;color:${cor}">${fmtHM(d.mins)}</div>
           <div style="width:130px;font-size:.6rem;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.placa||'')} · ${esc(d.transp||'')}">${esc(d.placa||'—')} · ${esc(d.transp||'—')}</div>
         </div>`;
       }).join('')}
@@ -7137,20 +7252,20 @@ function renderAnalise(){
     <div style="font-size:.58rem;color:var(--t3);margin-top:8px">Viagens ordenadas da maior pra menor tempo de descarga no período selecionado.</div>`;
   })()}
 </div>
-<div class="an-card">
-  <h3>🚛 Volume por Transportadora</h3>
+<div class="an-card" data-wide="1" data-sec="frota">
+  <h3>Volume por Transportadora</h3>
   ${tArr.length?tArr.map(([n,d])=>{const p=Math.round((d.t/maxT)*100);const perf=d.ok/d.t;const bc=perf>=0.8?'#22c55e':perf>=0.5?'#f59e0b':'#ef4444';return`<div class="tr-row"><span class="tr-name" title="${n}">${n}</span><div class="tr-bar-bg"><div class="tr-bar-fill" style="width:${p}%;background:${bc}"></div></div><span class="tr-cnt">${d.t}</span></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
   <div style="display:flex;gap:14px;margin-top:8px;font-size:.61rem;color:var(--t2)"><span>🟢 ≥80% SLA</span><span>🟡 50–79%</span><span>🔴 &lt;50%</span></div>
 </div>
-<div class="an-card">
-  <h3>🛣️ SLA por Rota</h3>
+<div class="an-card" data-wide="1" data-sec="pontualidade" data-pri="1">
+  <h3>SLA por Rota</h3>
   <table style="width:100%;min-width:820px;border-collapse:collapse;font-size:.72rem">
     <thead><tr style="border-bottom:2px solid var(--red3)">
       <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Rota</th>
       <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Total</th>
       <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">OK</th>
       <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Atraso</th>
-      <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">SLA</th>
+      <th style="text-align:left;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase;width:34%">SLA</th>
       <th style="text-align:center;padding:4px 6px;color:var(--t2);font-size:.61rem;text-transform:uppercase">Farol</th>
     </tr></thead>
     <tbody>
@@ -7165,20 +7280,20 @@ function renderAnalise(){
         <td style="padding:5px 6px;text-align:center">${d.t}</td>
         <td style="padding:5px 6px;text-align:center;color:var(--green);font-weight:600">${d.ok}</td>
         <td style="padding:5px 6px;text-align:center;color:var(--red);font-weight:600">${d.t-d.ok}</td>
-        <td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:${bg};color:${cor}">${p}%</span></td>
-        <td style="padding:5px 6px;text-align:center;font-size:1rem">${farol}</td>
+        <td style="padding:5px 6px"><div style="display:flex;align-items:center;gap:8px"><div class="an-hbar" style="height:8px"><div style="width:${p}%;background:${cor}"></div></div><b class="mono" style="color:${cor};width:38px;text-align:right">${p}%</b></div></td>
+        <td style="padding:5px 6px;text-align:center"><span class="an-farol" style="background:${farol==='✅'?'var(--green)':farol==='⚠️'?'var(--yellow)':'var(--red)'}" title="Meta ${meta}%"></span></td>
       </tr>`;
     }).join(''):'<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--t3)">Sem dados</td></tr>'}
     </tbody>
   </table>
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📊 Pareto — Atraso por Rota</h3>
+<div class="an-card" data-sec="pontualidade" style="grid-column:1/-1">
+  <h3>Pareto — Atraso por Rota</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Barras = quantidade de viagens em atraso por rota, do maior pro menor · Linha laranja = % acumulado (a régua clássica dos 80/20: geralmente poucas rotas concentram a maior parte do problema)</p>
   ${_paretoSVG(rArr.map(([r,d])=>[r,d.t-d.ok]))}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🚛 Veículos sem Cadastro</h3>
+<div class="an-card" data-sec="frota" style="grid-column:1/-1">
+  <h3>Veículos sem Cadastro</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Placas usadas em viagens do período que ainda não têm metragem/capacidade cadastrada — sem isso, o selo de ocupação (%) não aparece pra elas na Lista nem na Gestão de Doca. Ordenado pelas que mais aparecem primeiro.</p>
   ${(()=>{
     const vistas={};
@@ -7194,7 +7309,7 @@ function renderAnalise(){
     });
     const semCadastro=Object.entries(vistas).sort((a,b)=>b[1].count-a[1].count);
     if(!semCadastro.length)return '<div style="text-align:center;padding:16px;color:var(--green);font-size:.8rem">✅ Todas as placas usadas no período já estão cadastradas</div>';
-    return `<div style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
+    return `<div class="an-scroll" style="overflow-x:auto"><table style="width:100%;font-size:.78rem">
       <thead><tr style="text-align:left;color:var(--t2);font-size:.65rem;text-transform:uppercase"><th style="padding:6px 8px">Placa</th><th>Transportadora</th><th style="text-align:center">Viagens no período</th><th></th></tr></thead>
       <tbody>${semCadastro.slice(0,15).map(([placa,info])=>`<tr style="border-bottom:1px solid var(--bd)">
         <td style="padding:6px 8px;font-weight:800">${esc(placa)}</td>
@@ -7205,8 +7320,8 @@ function renderAnalise(){
     </table></div>`;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📦 Ocupação e Volume por Viagem</h3>
+<div class="an-card" data-sec="frota" style="grid-column:1/-1">
+  <h3>Ocupação e Volume por Viagem</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Considera só viagens com CAF vinculada no período. Ocupação média só entra quem tem veículo cadastrado (senão não dá pra calcular %). Meta mínima configurada: ${CFG.pisoPallets||30} pallets/veículo.</p>
   ${(()=>{
     const viagensComCAF=data.map(o=>{
@@ -7232,27 +7347,27 @@ function renderAnalise(){
     </div>`;
   })()}
 </div>
-<div class="an-card">
+<div class="an-card" data-sec="geral">
 
-  <h3>🔵 Distribuição por Status</h3>
-  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
-    <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(stArr,total)}</svg>
+  <h3>Distribuição por Status</h3>
+  <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+    <svg viewBox="0 0 160 160" width="150" height="150" style="flex-shrink:0">${pizzaSVG(stArr,total)}</svg>
     <div style="flex:1;min-width:120px">${stArr.map(s=>`<div class="pizza-row"><div class="pizza-dot" style="background:${s.cor}"></div><span class="pizza-lbl">${s.lb.replace('AGUARD. ','Ag.')}</span><span class="pizza-pct">${s.v}<span style="color:var(--t2);font-size:.6rem"> (${Math.round(s.v/total*100)}%)</span></span></div>`).join('')}</div>
   </div>
 </div>
-<div class="an-card">
-  <h3>🚚 Distribuição por Tipo de Carga</h3>
-  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
-    <svg viewBox="0 0 160 160" width="130" height="130" style="flex-shrink:0">${pizzaSVG(tipoArr,total)}</svg>
+<div class="an-card" data-sec="geral">
+  <h3>Distribuição por Tipo de Carga</h3>
+  <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+    <svg viewBox="0 0 160 160" width="150" height="150" style="flex-shrink:0">${pizzaSVG(tipoArr,total)}</svg>
     <div style="flex:1;min-width:120px">${tipoArr.map(t=>`<div class="pizza-row"><div class="pizza-dot" style="background:${t.cor}"></div><span class="pizza-lbl">${t.lb}</span><span class="pizza-pct">${t.v}<span style="color:var(--t2);font-size:.6rem"> (${Math.round(t.v/total*100)}%)</span></span></div>`).join('')}</div>
   </div>
 </div>
-<div class="an-card">
-  <h3>📅 Comparativo Semanal</h3>
+<div class="an-card" data-wide="1" data-sec="geral">
+  <h3>Comparativo Semanal</h3>
   ${_renderComparativoSemanas()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📅 Últimos 7 dias</h3>
+<div class="an-card" data-sec="geral" style="grid-column:1/-1">
+  <h3>Últimos 7 dias</h3>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
     <span style="font-size:.72rem;color:var(--t2)">Volume diário de operações</span>
     <div style="display:flex;gap:10px;align-items:center;font-size:.72rem">
@@ -7262,41 +7377,40 @@ function renderAnalise(){
     </div>
   </div>
   <div class="bar7-wrap">
-    ${vol7.map(x=>{const h=Math.max(Math.round((x.v/maxV)*90),x.v?4:0);const isHj=x.d===hoje;const dl=new Date(x.d+'T12:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});return`<div class="bar7-col"><div class="bar7-val">${x.v||''}</div><div class="bar7-bar" style="height:${h}px;background:${isHj?'var(--red)':'var(--blue)'};opacity:${isHj?1:.65}"></div><div class="bar7-lbl" style="color:${isHj?'var(--red)':'var(--t2)'};font-weight:${isHj?700:400}">${dl}</div></div>`;}).join('')}
+    ${vol7.map(x=>{const h=Math.max(Math.round((x.v/maxV)*120),x.v?4:0);const isHj=x.d===hoje;const dt=new Date(x.d+'T12:00');const ds=dt.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');const dd=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});return`<div class="bar7-col${isHj?' hj':''}"><div class="bar7-val">${x.v||''}</div><div class="bar7-bar" style="height:${h}px"></div><div class="bar7-lbl"><b>${isHj?'hoje':ds}</b>${dd}</div></div>`;}).join('')}
   </div>
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📦 CAFs — Painel de Status</h3>
+<div class="an-card" data-sec="cafs" data-pri="1" style="grid-column:1/-1">
+  <h3>CAFs — Painel de Status</h3>
   ${_renderCAFPanel(data)}
 </div>
-<div class="an-card">
-  <h3>⏱️ Tempo Médio por Etapa</h3>
+<div class="an-card" data-sec="pontualidade">
+  <h3>Tempo Médio por Etapa</h3>
   ${_renderEtapas(data)}
 </div>
-<div class="an-card">
-  <h3>🚛 SLA por Tipo de Carga</h3>
+<div class="an-card" data-sec="pontualidade">
+  <h3>SLA por Tipo de Carga</h3>
   ${_renderSLATipo(data)}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📋 Top Operações com Maior Atraso no FC</h3>
+<div class="an-card" data-sec="pontualidade" style="grid-column:1/-1">
+  <h3>Top Operações com Maior Atraso no FC</h3>
   ${_renderTopAtraso(data)}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🎯 SLA por Etapa</h3>
+<div class="an-card" data-sec="geral" data-pri="1" style="grid-column:1/-1">
+  <h3>SLA por Etapa</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Tolerância de 30min por etapa · Meta: 92% · <b>Chegada no FC pesa 50% no Geral</b> (é o indicador que a Amazon vê)</p>
   ${(()=>{
     const s=_calcSLAsSeparados(data);
     const card=(label,obj,destaque)=>{
       const pct=obj.pct;
       const cor=pct===null?'var(--t3)':pct>=92?'var(--green)':pct>=80?'var(--yellow)':'var(--red)';
-      return`<div style="text-align:center;background:var(--bg3);border-radius:10px;padding:${destaque?'18px 14px':'14px 10px'};flex:1;min-width:${destaque?'160px':'130px'};border:${destaque?'2px solid '+cor:'1px solid var(--bd)'};position:relative">
-        ${destaque?'<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:'+cor+';color:#fff;font-size:.55rem;font-weight:800;padding:1px 8px;border-radius:8px;white-space:nowrap">★ PRINCIPAL</div>':''}
-        <div style="font-size:${destaque?'2.6rem':'2rem'};font-weight:800;color:${cor}">${pct===null?'—':pct+'%'}</div>
-        <div style="font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;margin-top:2px">${label}</div>
-        ${obj.total!==''?`<div style="font-size:.58rem;color:var(--t3);margin-top:2px">${obj.ok}/${obj.total} no prazo</div>`:`<div style="font-size:.58rem;color:var(--t3);margin-top:2px">ponderado</div>`}
+      return`<div class="an-gauge${destaque?' on':''}" style="${destaque?'--gc:'+cor:''}">
+        ${destaque?'<div class="an-gauge-tag">Principal</div>':''}
+        ${_anRing(pct,cor,obj.total!==''?obj.ok+'/'+obj.total:'ponderado')}
+        <div class="an-gauge-l">${label}</div>
       </div>`;
     };
-    return`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    return`<div class="an-gauges">
       ${card('Apresentação',s.apres,false)}
       ${card('Saída TZX',s.saida,false)}
       ${card('Chegada FC',s.chegada,true)}
@@ -7304,13 +7418,13 @@ function renderAnalise(){
     </div>`;
   })()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>📅 Heat Map — Volume e SLA (últimos 60 dias)</h3>
+<div class="an-card" data-sec="geral" style="grid-column:1/-1">
+  <h3>Heat Map — Volume e SLA (últimos 60 dias)</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Cada quadrado = 1 dia · Este mapa mede especificamente o <b>SLA de Chegada no FC</b> (o principal) · Cor: verde = bom · vermelho = ruim · intensidade = volume de operações</p>
   ${_renderHeatMap()}
 </div>
-<div class="an-card" style="grid-column:1/-1">
-  <h3>🚪 Mapa de Doca — Ag. Descarga</h3>
+<div class="an-card" data-sec="descarga" style="grid-column:1/-1">
+  <h3>Mapa de Doca — Ag. Descarga</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Posição estimada por ordem de chegada ao FC. Alerta em vermelho após 90min na doca.</p>
   ${_renderMapaDoca()}
 </div>`;
@@ -10453,12 +10567,13 @@ function _renderSLATipo(data){
     const p=Math.round(d.ok/d.t*100);
     const cor=p>=92?'var(--green)':p>=85?'var(--yellow)':'var(--red)';
     const bg=p>=92?'var(--green2)':p>=85?'var(--yellow2)':'var(--red4)';
-    return '<div class="rota-sla-row">'+
-      '<span class="badge '+tCls(tipo)+'" style="font-size:.72rem">'+tipo+'</span>'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-        '<span style="color:var(--t2);font-size:.66rem">'+d.ok+'/'+d.t+'</span>'+
-        '<span class="sla-pill" style="background:'+bg+';color:'+cor+'">'+p+'% SLA</span>'+
-      '</div></div>';
+    return '<div style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
+        '<span class="badge '+tCls(tipo)+'" style="font-size:.7rem">'+tipo+'</span>'+
+        '<span style="font-size:.7rem"><span style="color:var(--t3)">'+d.ok+'/'+d.t+' · </span><b class="mono" style="color:'+cor+'">'+p+'%</b></span>'+
+      '</div>'+
+      '<div class="an-hbar" style="height:8px"><div style="width:'+p+'%;background:'+cor+'"></div></div>'+
+    '</div>';
   }).join('');
 }
 
@@ -10480,7 +10595,7 @@ function _renderTopAtraso(data){
     '<td style="padding:5px 6px;text-align:center;color:var(--t2)">'+fmtD(o.dataOp)+'</td>'+
     '<td style="padding:5px 6px;text-align:center">'+(toTime(o.planChegFC)||'—')+'</td>'+
     '<td style="padding:5px 6px;text-align:center;color:var(--red)">'+(toTime(o.realChegFC)||'—')+'</td>'+
-    '<td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:var(--red4);color:var(--red)">+'+fDiff(o.deltaFC)+'</span></td>'+
+    '<td style="padding:5px 6px;text-align:center"><span class="sla-pill" style="background:var(--red4);color:var(--red)">'+(String(fDiff(o.deltaFC)).startsWith('+')?'':'+')+fDiff(o.deltaFC)+'</span></td>'+
     '</tr>'
   ).join('');
   return hdr+rows+'</tbody></table>';
@@ -11162,7 +11277,7 @@ function _renderComparativoSemanas(){
   const rows=[
     {l:'Total ops',va:a.total,vb:b.total,inv:false},
     {l:'Finalizadas',va:a.fin,vb:b.fin,inv:false},
-    {l:'Taxa SLA %',va:a.taxa+'%',vb:b.taxa+'%',dv:a.taxa-b.taxa,inv:false},
+    {l:'Taxa SLA %',va:a.taxa+'%',vb:b.taxa+'%',na:a.taxa,nb:b.taxa,inv:false},
     {l:'Atrasadas',va:a.late,vb:b.late,inv:true},
   ];
   let html='<table style="width:100%;min-width:820px;border-collapse:collapse;font-size:.72rem">';
@@ -11173,12 +11288,13 @@ function _renderComparativoSemanas(){
   html+='<th style="text-align:center;padding:5px 6px;color:var(--t2);font-size:.6rem">Variação</th>';
   html+='</tr></thead><tbody>';
   rows.forEach(row=>{
-    const dv=row.dv!==undefined?row.dv:(typeof row.va==='number'?row.va-row.vb:0);
+    // na/nb = valor numérico quando o exibido é texto (ex: "42%") — sem isso a variação virava NaN
+    const numA=row.na!==undefined?row.na:row.va, numB=row.nb!==undefined?row.nb:row.vb;
     html+='<tr style="border-bottom:1px solid var(--bg4)">';
     html+='<td style="padding:5px 6px;font-weight:600;color:var(--gray2)">'+row.l+'</td>';
     html+='<td style="padding:5px 6px;text-align:center">'+row.vb+'</td>';
     html+='<td style="padding:5px 6px;text-align:center;font-weight:700;color:var(--text)">'+row.va+'</td>';
-    html+='<td style="padding:5px 6px;text-align:center">'+varCell(typeof row.va==='number'?row.va:dv+row.vb,typeof row.vb==='number'?row.vb:0,row.inv)+'</td>';
+    html+='<td style="padding:5px 6px;text-align:center">'+varCell(numA,numB,row.inv)+'</td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
