@@ -324,6 +324,18 @@ body.sidebar-open #sidebarBackdrop{display:block;}
 .card{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:10px 11px;cursor:pointer;transition:.15s;user-select:none;box-shadow:0 1px 2px rgba(16,24,40,.05);}
 .card:hover,.card:active{border-color:var(--bd2);transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,.10);}
 .card.dragging{opacity:.3;}
+/* Calor: o cartão vai esquentando conforme o tempo parado no status (ver _calorCartao) */
+.card.heat-1{background:linear-gradient(180deg,rgba(245,158,11,.10),var(--bg2) 55%);}
+.card.heat-2{background:linear-gradient(180deg,rgba(249,115,22,.17),var(--bg2) 60%);border-color:rgba(249,115,22,.45);}
+.card.heat-3{background:linear-gradient(180deg,rgba(239,68,68,.20),var(--bg2) 65%);border-color:rgba(239,68,68,.55);animation:heatPulse 2.4s ease-in-out infinite;}
+@keyframes heatPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 0 4px rgba(239,68,68,.18)}}
+.card-tempo{font-size:.62rem;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:4px;}
+.card-eta{font-size:.64rem;font-weight:800;margin-top:3px;font-family:var(--font-mono);}
+/* Chegada: cartão que acabou de mudar de coluna entra deslizando com um contorno azul que some */
+.card.card-chegou{animation:cardChegou .55s cubic-bezier(.2,.8,.2,1),cardRealce 1.8s ease-out;}
+@keyframes cardChegou{from{transform:translateX(-28px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+@keyframes cardRealce{0%,30%{box-shadow:0 0 0 3px var(--blue)}100%{box-shadow:0 1px 2px rgba(16,24,40,.05)}}
+@media(prefers-reduced-motion:reduce){.card.card-chegou,.card.heat-3{animation:none;}}
 .card.r-late{border-left:3px solid var(--red);}
 .card.r-warn{border-left:3px solid #f59e0b;}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
@@ -399,6 +411,126 @@ body.dark .countdown{color:#58a6ff;}
 .hist-list{display:flex;flex-direction:column;gap:5px;max-height:150px;overflow-y:auto;}
 .hi{background:var(--bg3);border-left:3px solid var(--red);padding:5px 9px;border-radius:0 4px 4px 0;font-size:.7rem;}
 .hi .ht{color:var(--t2);font-size:.62rem;margin-bottom:1px;}
+
+/* LINHA DO TEMPO DA VIAGEM (topo do modal) — horizontal no PC, vertical no celular */
+.vtl{background:var(--bg3);border:1px solid var(--bd);border-radius:12px;padding:12px 14px 14px;margin-bottom:14px;}
+.vtl-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+.vtl-head span{font-family:var(--font-h);font-weight:800;font-size:.8rem;color:var(--text);}
+.vtl-head small{font-size:.62rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.vtl-track{display:flex;align-items:flex-start;}
+.vtl-node,.vtl-seg{--c:var(--bd2);}
+.vtl-ok{--c:var(--green);}.vtl-warn{--c:#f59e0b;}.vtl-late{--c:var(--red);}.vtl-now{--c:var(--blue);}
+.vtl-node{display:flex;flex-direction:column;align-items:center;text-align:center;width:104px;flex-shrink:0;}
+.vtl-dot{width:18px;height:18px;border-radius:50%;background:var(--c);border:3px solid var(--bg3);box-shadow:0 0 0 2px var(--c);}
+.vtl-node.vtl-pend .vtl-dot{background:var(--bg2);}
+.vtl-node.vtl-now .vtl-dot{animation:tlPulse 1.6s ease-in-out infinite;}
+@keyframes tlPulse{0%,100%{box-shadow:0 0 0 2px var(--c)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c) 25%,transparent)}}
+.vtl-txt{display:flex;flex-direction:column;gap:1px;margin-top:6px;font-size:.64rem;color:var(--t2);}
+.vtl-txt b{font-size:.68rem;color:var(--text);}
+.vtl-txt .vtl-r{font-family:var(--font-mono);font-weight:700;color:var(--c);}
+.vtl-node.vtl-pend .vtl-r{color:var(--t3);}
+.vtl-prev{font-family:var(--font-mono);font-size:.6rem;font-weight:700;color:var(--blue);}
+.vtl-d{font-style:normal;font-family:var(--font-mono);font-size:.6rem;font-weight:700;color:var(--c);}
+.vtl-seg{flex:1;min-width:36px;position:relative;height:18px;display:flex;justify-content:center;}
+.vtl-seg::before{content:'';position:absolute;left:-6px;right:-6px;top:7.5px;height:3px;border-radius:3px;background:var(--c);}
+.vtl-seg.vtl-pend::before{background:repeating-linear-gradient(90deg,var(--bd2) 0 6px,transparent 6px 11px);}
+.vtl-seg.vtl-vivo::before{animation:pulse 1.4s infinite;}
+.vtl-seg span{position:relative;top:16px;font-size:.6rem;font-family:var(--font-mono);font-weight:700;color:var(--c);white-space:nowrap;}
+.vtl-seg.vtl-pend span{color:var(--t3);}
+.vtl-seg small{font-weight:500;color:var(--t3);}
+@media(max-width:560px){
+  .vtl-track{flex-direction:column;align-items:stretch;}
+  .vtl-node{flex-direction:row;align-items:flex-start;width:auto;text-align:left;gap:10px;}
+  .vtl-txt{margin-top:0;flex-direction:row;flex-wrap:wrap;gap:2px 8px;align-items:baseline;}
+  .vtl-seg{height:auto;min-height:24px;justify-content:flex-start;padding:4px 0 4px 28px;}
+  .vtl-seg::before{left:7.5px;right:auto;top:-2px;bottom:-2px;width:3px;height:auto;}
+  .vtl-seg.vtl-pend::before{background:repeating-linear-gradient(180deg,var(--bd2) 0 6px,transparent 6px 11px);}
+  .vtl-seg span{top:0;}
+}
+
+/* FICHA DA TRANSPORTADORA / MOTORISTA */
+.ficha-link{cursor:pointer;text-decoration:underline dotted;text-decoration-color:var(--bd2);text-underline-offset:3px;}
+.ficha-link:hover{color:var(--red);text-decoration-color:var(--red);}
+.ficha-mini{font-size:.6rem;font-weight:700;color:var(--blue);cursor:pointer;margin-left:6px;text-transform:none;letter-spacing:0;}
+.fi-back{position:fixed;inset:0;background:rgba(10,12,18,.55);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;}
+.fi-box{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--sh3);}
+.fi-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 18px;border-bottom:1px solid var(--bd);}
+.fi-tipo{font-size:.6rem;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1px;}
+.fi-nome{font-family:var(--font-h);font-size:1.25rem;font-weight:800;color:var(--text);}
+.fi-per{font-size:.68rem;color:var(--t2);margin-top:2px;}
+.fi-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
+.fi-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;}
+.fi-kpi{background:var(--bg3);border-radius:10px;padding:10px 12px;}
+.fi-kpi .v{font-family:var(--font-h);font-size:1.25rem;font-weight:800;line-height:1.1;}
+.fi-kpi .l{font-size:.58rem;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:3px;}
+.fi-st{font-size:.62rem;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.fi-st small{text-transform:none;letter-spacing:0;font-weight:600;}
+.fi-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.fi-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:.74rem;}
+.fi-row:last-child{border-bottom:none;}
+.fi-row small{color:var(--t3);}
+.fi-click{cursor:pointer;}.fi-click:hover{background:var(--bg3);}
+.fi-trend{display:flex;align-items:flex-end;gap:8px;height:90px;}
+.fi-bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;}
+.fi-bar i{display:block;width:100%;max-width:34px;border-radius:5px 5px 2px 2px;}
+.fi-bar span{font-size:.56rem;color:var(--t3);font-family:var(--font-mono);}
+
+/* PLANTA DO PÁTIO (Gestão de Doca) */
+.pp-dica{font-family:var(--font-body,inherit);font-size:.66rem;font-weight:600;color:var(--t2);}
+.pp-docas{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;background:repeating-linear-gradient(90deg,var(--bg3) 0 14px,var(--bg2) 14px 16px);padding:10px;border-radius:12px;border:1px solid var(--bd);}
+.pp-doca{position:relative;min-height:112px;border-radius:10px;border:2px solid var(--bd);background:var(--bg2);display:flex;flex-direction:column;padding:8px;}
+.pp-nome{font-family:var(--font-h);font-weight:800;font-size:.8rem;color:var(--t2);letter-spacing:.5px;}
+.pp-livre{border-style:dashed;cursor:pointer;align-items:center;}
+.pp-livre-txt{margin:auto;font-size:.7rem;font-weight:800;color:var(--green);letter-spacing:1px;}
+.pp-livre.pp-alvo{border-color:var(--green);background:var(--green2);animation:pulse 1.4s infinite;}
+.pp-livre.pp-over{border-color:var(--blue);background:var(--blue2);}
+.pp-cam-na-doca{margin-top:6px;flex:1;border-radius:8px;background:var(--bg3);border-left:4px solid var(--orange);padding:6px 8px;display:flex;flex-direction:column;gap:1px;cursor:grab;}
+.pp-cam-na-doca b{font-size:.78rem;color:var(--text);}
+.pp-cam-na-doca span{font-family:var(--font-mono);font-size:.74rem;font-weight:700;color:var(--blue);}
+.pp-cam-na-doca small{font-size:.6rem;color:var(--t2);}
+.pp-pal .pp-cam-na-doca{border-left-color:var(--purple);cursor:default;}
+.pp-ocupada.heat-2 .pp-cam-na-doca{border-left-color:#ea580c;background:rgba(249,115,22,.12);}
+.pp-ocupada.heat-3 .pp-cam-na-doca{border-left-color:var(--red);background:rgba(239,68,68,.14);}
+.pp-sel,.pp-ocupada.pp-sel{outline:3px solid var(--blue);outline-offset:2px;}
+.pp-entrada{margin-top:12px;}
+.pp-rot{font-size:.62rem;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.pp-rot span{text-transform:none;letter-spacing:0;font-weight:600;color:var(--t2);margin-left:6px;}
+.pp-fila{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch;}
+.pp-cam{flex:0 0 auto;min-width:118px;background:var(--bg2);border:1.5px solid var(--bd);border-left:4px solid var(--yellow);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:1px;cursor:grab;user-select:none;}
+.pp-cam b{font-family:var(--font-mono);font-size:.82rem;color:var(--text);}
+.pp-cam span{font-size:.68rem;font-weight:700;color:var(--red);}
+.pp-cam small{font-size:.6rem;color:var(--t2);}
+.pp-cam.pp-atras{border-left-color:var(--red);background:var(--red3);}
+.pp-vazia{font-size:.72rem;color:var(--t3);padding:10px 4px;}
+@media(max-width:768px){.pp-docas{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));}.pp-doca{min-height:100px;}}
+
+/* CAFs — MODO TABLET (cartões) */
+#view-caf:not(.caf-modo-cartoes) .caf-chips,#view-caf:not(.caf-modo-cartoes) .caf-cards{display:none;}
+#view-caf.caf-modo-cartoes table,#view-caf.caf-modo-cartoes .caf-dica-tabela{display:none;}
+.caf-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+.caf-chip{background:var(--bg2);border:1.5px solid var(--bd);border-radius:20px;padding:9px 14px;font-size:.8rem;font-weight:700;color:var(--t2);cursor:pointer;font-family:inherit;min-height:40px;}
+.caf-chip b{font-family:var(--font-mono);color:var(--text);margin-left:4px;}
+.caf-chip.on{background:var(--text);border-color:var(--text);color:var(--bg2);}
+.caf-chip.on b{color:var(--bg2);}
+.caf-chip-aviso{font-size:.72rem;color:var(--t2);}
+.caf-chip-aviso a{color:var(--red);font-weight:700;cursor:pointer;}
+.caf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.caf-card{background:var(--bg2);border:1px solid var(--bd);border-left:5px solid var(--st);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;}
+.caf-card.caf-vencida{box-shadow:0 0 0 2px rgba(220,38,38,.35);}
+.caf-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.caf-num{font-family:var(--font-mono);font-size:1.35rem;font-weight:800;color:var(--green);letter-spacing:.5px;}
+.caf-sub{font-size:.75rem;color:var(--t2);font-weight:600;margin-top:2px;}
+.caf-st{font-size:.72rem;font-weight:800;color:var(--st);border:1.5px solid var(--st);border-radius:8px;padding:4px 9px;white-space:nowrap;}
+.caf-info{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;background:var(--bg3);border-radius:10px;padding:8px;}
+.caf-info div{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.caf-info span{font-size:.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+.caf-info b{font-family:var(--font-mono);font-size:.95rem;color:var(--text);}
+.caf-op{font-size:.75rem;color:var(--t2);font-weight:600;}
+.caf-acao{background:var(--green);color:#fff;border:none;border-radius:10px;padding:13px;font-size:.92rem;font-weight:800;cursor:pointer;font-family:inherit;min-height:48px;}
+.caf-acao:active{transform:scale(.98);}
+.caf-acao-vinc{background:var(--blue);}
+.caf-mais{grid-column:1/-1;padding:12px;}
+.caf-vazio{grid-column:1/-1;text-align:center;color:var(--t3);padding:40px;}
 
 /* LIST */
 .lt-wrap{padding:12px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -550,6 +682,17 @@ body.dark .an-card h3{color:var(--gray2);}
 #analiseGrid .pizza-pct{font-family:var(--font-mono);}
 @media(max-width:768px){.an-ring{width:92px;height:92px;}.an-gauge.on .an-ring{width:104px;height:104px;}.an-gauges{grid-template-columns:repeat(2,minmax(0,1fr));}.an-gauges.g3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.an-gauges.g3 .an-ring{width:80px;height:80px;}.an-gauges.g3 .an-gauge{padding:12px 4px 10px;}#analiseGrid .bar7-wrap{gap:4px;}}
 
+/* Análise — mapa dia × horário dos atrasos */
+.hm-grid{display:grid;grid-template-columns:38px repeat(12,minmax(26px,1fr));gap:3px;min-width:420px;}
+.hm-h{font-size:.56rem;color:var(--t3);text-align:center;font-family:var(--font-mono);}
+.hm-d{font-size:.64rem;font-weight:700;color:var(--t2);display:flex;align-items:center;}
+.hm-c{height:30px;border-radius:5px;color:#fff;font-size:.6rem;font-weight:800;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;cursor:default;}
+.hm-vazio{background:var(--bg3);}
+.hm-pouca{opacity:.35;}
+.hm-pior{outline:2px solid var(--text);outline-offset:1px;}
+.hm-leg{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin-top:10px;font-size:.6rem;color:var(--t3);}
+.hm-esc{display:inline-flex;align-items:center;gap:4px;}
+.hm-esc i{display:inline-block;width:14px;height:10px;border-radius:3px;}
 /* Análise — hero (resumo do período, sempre no topo) */
 #analiseGrid .an-card.an-hero{gap:22px;flex-wrap:wrap;align-items:stretch;background:#14161f;border-color:#14161f;color:#fff;padding:22px;}
 .an-hero-main{flex:0 0 210px;display:flex;flex-direction:column;justify-content:center;}
@@ -670,6 +813,38 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .col{width:78vw;max-width:300px;}
   .card{font-size:.72rem;}
 }
+
+/* TV — TORRE DE CONTROLE */
+.tt{background:var(--bg2);border:2px solid var(--bd);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+.tt.tt-alerta{border-color:var(--red);animation:ttAlerta 1.6s ease-in-out infinite;}
+@keyframes ttAlerta{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.0)}50%{box-shadow:0 0 0 6px rgba(220,38,38,.28)}}
+.tt-top{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.tt-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.tt-tab{background:var(--bg3);border:1px solid var(--bd);color:var(--t2);border-radius:20px;padding:6px 14px;font-size:.8rem;font-weight:800;cursor:pointer;font-family:inherit;}
+.tt-tab.on{background:var(--text);color:var(--bg2);border-color:var(--text);}
+.tt-prog{flex:1;height:4px;background:var(--bg3);border-radius:4px;overflow:hidden;min-width:60px;}
+.tt-prog i{display:block;height:100%;background:var(--blue);animation:ttProg linear forwards;}
+@keyframes ttProg{from{width:0}to{width:100%}}
+.tt-aviso{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.4);color:var(--red);border-radius:10px;padding:10px 14px;font-size:1rem;font-weight:800;margin-bottom:12px;}
+.tt-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;}
+.tt-kpi{background:var(--bg3);border-radius:12px;padding:16px;text-align:center;}
+.tt-kpi.tt-ruim{background:rgba(220,38,38,.12);}
+.tt-l{font-size:.8rem;color:var(--t2);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+.tt-v{font-family:var(--font-mono);font-size:3rem;font-weight:800;line-height:1.1;margin-top:4px;}
+.tt-lista{display:flex;flex-direction:column;gap:8px;}
+.tt-item{display:flex;align-items:center;gap:18px;background:var(--bg3);border:1px solid var(--bd);border-radius:12px;padding:12px 18px;}
+.tt-item.tt-ruim{background:rgba(220,38,38,.10);border-color:rgba(220,38,38,.4);}
+.tt-item.tt-crit{background:rgba(220,38,38,.16);border-color:var(--red);animation:ttAlerta 1.6s ease-in-out infinite;}
+.tt-timer{font-family:var(--font-mono);font-size:1.9rem;font-weight:800;min-width:170px;}
+.tt-desc{flex:1;min-width:0;font-size:1.05rem;}
+.tt-desc span{color:var(--blue);font-weight:600;}
+.tt-desc small{display:block;font-size:.78rem;color:var(--t2);margin-top:2px;}
+.tt-fc{font-size:1.2rem;font-weight:800;color:#f79009;}
+.tt-tag{font-size:.7rem;font-weight:800;border:1.5px solid;border-radius:8px;padding:4px 10px;white-space:nowrap;}
+.tt-mais{text-align:center;color:var(--t2);font-weight:700;font-size:.85rem;}
+.tt-vazio{text-align:center;color:var(--t2);font-size:1.1rem;padding:26px;}
+@media(max-width:900px){.tt-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.tt-v{font-size:2.1rem;}.tt-timer{font-size:1.3rem;min-width:110px;}}
+@media(prefers-reduced-motion:reduce){.tt.tt-alerta,.tt-item.tt-crit{animation:none;}}
 
 /* PWA INSTALL */
 .pwa-install-bar{display:none;background:var(--red);color:#fff;padding:8px 16px;text-align:center;font-size:.78rem;font-weight:600;cursor:pointer;align-items:center;justify-content:center;gap:8px;}
@@ -953,6 +1128,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="btn btn-g" onclick="openDuplicarDia()" style="font-size:.74rem">📋 Duplicar Dia</button>
     <button class="btn btn-p" onclick="openNew()">+ Programar</button>
     </div>
+    <div id="plantaPatioWrap" style="margin:0 0 14px"></div>
     <div id="filaCarregamentoWrap" style="margin:0 0 14px"></div>
     <div id="progGrid" style="display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(245px,1fr))"></div>
     <div id="progPalletsWrap" style="margin-top:16px"></div>
@@ -1025,13 +1201,16 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <span style="font-size:.8rem;font-weight:700;color:var(--green)">📦 Banco de CAFs</span>
     <input id="cafBusca" placeholder="🔍 VG, CAF, destino, operação, placa, motorista..." oninput="renderCAFs()" style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 9px;font-size:.75rem;outline:none;width:230px;"/>
     <div class="sp"></div>
-    <span style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
+    <span class="caf-dica-tabela" style="font-size:.65rem;color:var(--t2)">▲▼ clique nos cabeçalhos para ordenar e filtrar</span>
+    <button class="btn btn-g" id="cafModoBtn" onclick="_cafAlternarModo()" style="font-size:.72rem" title="Alternar entre cartões (tablet) e tabela">▦ Cartões</button>
     <button class="btn btn-s" onclick="openNewCAF()">+ Nova CAF</button>
     <button class="btn btn-g" onclick="exportCAFs()" style="font-size:.72rem">📥 CSV</button>
     <button class="btn btn-g" onclick="exportarTempoStatusCAF()" style="font-size:.72rem">⏱ Tempo por Status (CSV)</button>
   </div>
   <div style="padding:10px 16px 20px;overflow-x:auto">
     <div id="cafKPIBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div id="cafChips" class="caf-chips"></div>
+    <div id="cafCards" class="caf-cards"></div>
     <table style="table-layout:auto;border-collapse:collapse">
       <thead><tr>
   <th style="padding:2px;min-width:82px;max-width:88px">
@@ -1924,25 +2103,27 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
    TRK PCP — MAPA DO CÓDIGO (as seções aparecem nesta ordem; busque pelo título)
    ──────────────────────────────────────────────────────────────────────────────────────
    PERMISSÕES POR PERFIL ........ o que cada perfil vê (abas) e pode fazer (ações)
-   SUPABASE ..................... acesso ao banco, datas locais, changelog, checagem de versão
+   SUPABASE ..................... acesso ao banco, tradutores banco→app, datas, changelog, versão
    PWA / AUTH + USUÁRIOS ........ instalar app, login, sessão, boot do app, cadastro de usuários
    CONSTANTES / HELPERS / CONFIG  listas fixas, funções utilitárias, configurações do Admin
-   FILTROS / RENDER ............. Painel (kanban), Lista, Gestão de Doca
+   FILTROS / RENDER ............. Painel (kanban com calor e animação), Lista, Gestão de Doca
    EXTRAÇÃO COMPLETA ............ Excel com uma linha por viagem
    FUP / ALERTAS / OT ........... FUP FC, alerta de 24h, CAF sem baixa, nota On Time
-   DRAG & DROP / MODAL OPERAÇÃO . arrastar cartões, modal da viagem, linha do tempo
+   DRAG & DROP / MODAL OPERAÇÃO . arrastar cartões no Painel, abrir/fechar o modal da viagem
    ASSISTENTE IA ................ perguntas e ações por texto/voz
+   MODAL DA VIAGEM .............. linha do tempo (plano × real) e formulário da viagem
    EXPORT / MASSA ............... CSV/backup e Programação em Massa
    SIDEBAR / TEMA / ATALHOS / NAV gaveta, claro/escuro, teclado, troca de aba (setView)
-   ANÁLISE ...................... aba Análise completa (seções, gráficos, Monte sua Análise)
-   MÓDULO CAF ................... CAFs (tabela, modo tablet, formulário, ruas)
+   ANÁLISE ...................... aba Análise completa (seções, gráficos, mapa dia × horário, Monte sua Análise)
+   MÓDULO CAF ................... tabela de CAFs, CAFs — MODO TABLET (cartões), formulário, ruas
    RETORNO DE PALLETS / INSUMOS . pallets, estoque TZX, insumos e checklist de turno
-   VEÍCULOS / ESTEIRAS / REPORT PCP
-   ALERTA SONORO / TV / TV YARD . telas de TV (torre de controle) e pátio
+   VEÍCULOS / ESTEIRAS / REPORT PCP / TEMPO POR STATUS DA CAF / EXPORTAR RD (PowerPoint)
+   ALERTA SONORO / DASHBOARD TV . TV com TORRE DE CONTROLE (painéis que se revezam e alertas)
    BUSCA GLOBAL / DUPLICAR DIA / OCORRÊNCIAS / METAS DE SLA
-   PREVISÃO DE CHEGADA / FICHA .. previsão de atraso (ETA) e ficha de transportadora/motorista
-   MAPA DE DOCA / PLANTA DO PÁTIO docas, fila e vínculo de doca
+   FICHA DA TRANSPORTADORA/MOTORISTA · PREVISÃO DE CHEGADA (ETA) · TEMPO NO STATUS (calor)
+   TV YARD / PISO / HEAT MAP / CONSOLIDAÇÃO DE CAF / MAPA DE DOCA
    ABLY REALTIME ................ tempo real entre usuários e presença online
+   PLANTA DO PÁTIO / ATRIBUIR DOCA  docas desenhadas, fila de entrada, arrastar/tocar para encostar
    IMPORTADOR DE PLANILHA / FUP AMAZON / BLOQUEIO DE MÚLTIPLAS ABAS
    ══════════════════════════════════════════════════════════════════════════════════════ */
 
@@ -2110,11 +2291,24 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v348';
+const APP_VERSION='v349';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v349:[
+    '🧭 Linha do tempo da viagem: no topo do modal aparece Apresentação → Saída TZX → Chegada FC → Descarga com o horário planejado, o real e a diferença de cada etapa, e quanto tempo cada trecho levou contra o plano. Verde no prazo, amarelo até 30min, vermelho acima; azul pulsando = etapa atual. Atualiza enquanto você digita os horários.',
+    '🔥 Cartão que esquenta: no Painel, o cartão vai ficando âmbar → laranja → vermelho conforme o tempo parado no status (aguardando carregamento, em carregamento, em trânsito comparado ao tempo planejado, aguardando descarga). O "tempo neste status" agora conta a partir do horário real de entrada no status (antes contava da última edição qualquer).',
+    '✨ Cartão que desliza: quando uma viagem muda de coluna (por você ou por outra pessoa), o cartão entra deslizando com um contorno azul por 2 segundos.',
+    '🎯 Previsão de chegada: viagem em trânsito mostra a hora prevista no FC com base no tempo REAL que a rota costuma levar (mediana das viagens dos últimos ~90 dias; com menos de 3 viagens usa o planejado) e avisa "vai atrasar" antes de atrasar. Também aparece na linha do tempo.',
+    '🗺️ Planta do pátio (Gestão de Doca): docas desenhadas como vagas (livre / carregando / retorno de pallets) e a fila de entrada embaixo. Arraste o caminhão até uma doca livre (PC) ou toque no caminhão e depois na doca (tablet) — ele encosta e vai para Em Carregamento, com as mesmas regras de sempre (doca ocupada é bloqueada, histórico e CAFs atualizados). Também dá para trocar um caminhão de doca.',
+    '📋 Modo tablet de CAFs: em tablet/celular a lista de CAFs vira cartões grandes, com filtro por status em um toque e botão de próximo status (→ Produzida, → Processo de Entrega...) respeitando o que cada perfil pode fazer. No PC continua a tabela; o botão Cartões/Tabela troca e fica salvo no aparelho.',
+    '👤 Ficha da transportadora e do motorista: clique no nome (Lista, FUP FC, Análise ou "ficha ›" no modal da viagem) e veja SLA, OT, atraso médio, uso do app, ocorrências, SLA por semana, motoristas/placas e últimas viagens.',
+    '📅 Análise → Pontualidade: novo mapa "dia × horário" mostrando em que dia da semana e faixa de horário os atrasos se concentram, com a janela mais crítica em destaque.',
+    '📺 TV torre de controle: no topo da TV, três painéis se revezam a cada 20s (Operação agora · Fila de descarga · Atrasos) e a moldura pisca em vermelho quando algo estoura (descarga esperando +4h, viagem com atraso previsto +30min, SLA do dia abaixo da meta). O filtro de dia da TV também deixou de voltar sozinho para hoje.',
+    '🧹 Limpeza geral do código: removidas ~200 linhas mortas (funções nunca chamadas, variáveis sem uso, um modal órfão e regras de estilo sem uso), unificados trechos copiados em vários lugares (leitura de viagens/CAFs do banco, nomes de tela, cálculo de semana, nome de doca, regra de encostar na doca), e cada função ganhou um comentário explicando o que faz, com um mapa do código no topo.',
+    '🐛 Corrigido: o estilo novo do Painel (colunas cinza e cartões mais limpos) era anulado por regras antigas — agora aparece de verdade; o carregador do PowerPoint pulava o segundo servidor reserva quando o primeiro falhava; no tema escuro, cartões/colunas/quadros tinham cópias de estilo que atropelavam o visual novo.'
+  ],
   v348:['📱 Celular: saiu o botão ☰ (ficava repetido com a bolha ⋯). Agora a bolha ⋯ é o menu único: abas extras em cima e, embaixo, hora, status de conexão, quem está online, operador/Trocar operador, usuário, tema claro/escuro e Sair.','🟢 A bolha ⋯ ganhou a bolinha de conexão (verde/laranja/vermelha) e aparece sempre no celular, mesmo pra perfil com poucas abas — senão não teria como sair ou trocar o tema.','🖥️ PC e tablet largo continuam com a gaveta ☰ igual.'],
   v347:['🟢 Bolinha no botão ☰ mostra a conexão sem abrir a gaveta: verde = tudo ok, laranja = sem tempo real (atualiza a cada 45s), vermelha piscando = sem banco.','👤 Login compartilhado: o nome de quem está operando aparece de novo no topo (toque nele pra abrir a gaveta e trocar).','🧭 Nome da aba atual aparece no topo, ao lado do logo (PC).','📊 Indicadores do Painel e de CAFs redesenhados: faixa de cor no topo, número maior, sem emoji dentro do número.','🗂️ Painel (kanban): colunas e cartões com visual mais limpo, bordas finas e sombra suave.','📱 Celular/tablet: acabou o espaço vazio enorme embaixo dos indicadores, filtros e cabeçalhos (CAFs, Pallets, Painel...). No Painel, os filtros ficam recolhidos num botão "Filtros ▾" — a busca continua sempre à vista.'],
   v346:['🗂️ Barra do topo mais limpa: hora, status de conexão (Live/banco), quem está online, operador/trocar operador, usuário, tema claro/escuro e Sair foram pra dentro da gaveta lateral (☰), no rodapé dela. No topo ficam só ☰, logo, busca e + nova viagem.','📱 Celular/tablet: a gaveta ☰ agora também abre no celular (com todas as abas + hora, status, usuário e Sair). A barra inferior e a bolha ⋯ continuam iguais.','🚚 Painel de Descarga e Report PCP agora aparecem no celular (barra inferior ou bolha ⋯, conforme o perfil) — antes só existiam no PC.'],
@@ -3827,7 +4021,9 @@ function cardHTML(op){
   // CAFs vinculadas de verdade (cafsDB tem vencimento/pallets — op.cafs é só um snapshot leve sem esses dados)
   const cafsDaOp=cafsDB.filter(c=>c.opId===op.id);
   const totalPalletsCard=cafsDaOp.reduce((s,c)=>s+(Number(c.pallets)||0),0);
-  return `<div class="card ${rc}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
+  const calor=_calorCartao(op).nivel;
+  const chegou=_cardsQueMudaram.has(op.id)?' card-chegou':'';
+  return `<div class="card ${rc}${calor?' heat-'+calor:''}${chegou}" draggable="true" ondragstart="dStart(event,'${esc(op.id)}')" onclick="openEdit('${esc(op.id)}')">
     <div class="card-top"><span class="card-id">${esc(op.codigoCurto||op.id)}${op.sm?' · '+op.sm:''}<span style="font-weight:500;color:var(--t3);font-size:.6rem" title="ID técnico interno"> (${esc(op.id)})</span></span><span class="card-rota-badge">${esc(op.rota)}</span></div>
     <div class="card-badges">
       <span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span>
@@ -3851,6 +4047,7 @@ function cardHTML(op){
       <div class="tb"><div class="tl">FC Real</div><div class="tv ${tvCls(dC)}">${toTime(op.realChegFC)||'—'}</div></div>
     </div>
     ${liveTimer(op)}
+    ${_previsaoChegadaHTML(op)}
     ${countdown(op)}
     ${CFG.alertas&&dS!==null&&dS>0?`<span class="ab">⚠ Saída ${fDiff(dS)}</span>`:''}
     ${CFG.alertas&&dC!==null&&dC>0?`<span class="ab">⚠ FC ${fDiff(dC)}</span>`:''}
@@ -3865,10 +4062,22 @@ function cardHTML(op){
   </div>`;
 }
 
-// Desenha o Painel (kanban): uma coluna por status com os cartões filtrados. Um cartão com dado ruim não
-// derruba a coluna inteira.
+// Status de cada viagem na última vez que o Painel foi desenhado — serve pra saber quais cartões
+// mudaram de coluna (por você ou por outro usuário) e animar a chegada deles na coluna nova.
+let _statusNoUltimoRender=null;
+let _cardsQueMudaram=new Set();
+// Desenha o Painel (kanban): uma coluna por status com os cartões filtrados. Marca os cartões que mudaram de
+// coluna desde o último desenho para animar a chegada. Um cartão com dado ruim não derruba a coluna inteira.
 function renderPainel(){
   const data=getFilt();
+  _cardsQueMudaram=new Set();
+  if(_statusNoUltimoRender){
+    for(const o of data){const antes=_statusNoUltimoRender[o.id];if(antes&&antes!==o.status)_cardsQueMudaram.add(o.id);}
+    // Muita coisa mudando de uma vez (ex.: recarga completa) não anima — viraria bagunça na tela
+    if(_cardsQueMudaram.size>6)_cardsQueMudaram.clear();
+  }
+  _statusNoUltimoRender={};
+  for(const o of ops)_statusNoUltimoRender[o.id]=o.status;
   document.getElementById('painel').innerHTML=COL_ORD.map(sid=>{
     const st=stObj(sid),cards=data.filter(o=>o.status===sid);
     // Cada card montado isoladamente: se UMA viagem tiver dado malformado e cardHTML() estourar,
@@ -4252,7 +4461,7 @@ function renderList(){
       <td>${op.planApres||'—'}</td>
       <td><span class="rota-cell">${esc(op.rota)}</span></td>
       <td><span class="badge ${tCls(op.tipoCarga)}">${esc(op.tipoCarga)}</span></td>
-      <td>${esc(op.transp)}</td><td>${esc(op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
+      <td>${_fichaLink('transp',op.transp)}</td><td>${_fichaLink('mot',op.mot)}</td><td><strong>${esc(op.placa)}</strong></td>
       <td style="color:var(--t2)">${op.sm||'—'}</td><td style="color:var(--t2)">${op.tms||'—'}</td>
       <td>${op.planSaida||'—'}${diaSeguinteTag(op,op.planSaida)}</td><td style="color:${dc(dS)}">${toTime(op.realSaida)||'—'}</td>
       <td>${op.planChegFC||'—'}${diaSeguinteTag(op,op.planChegFC)}</td><td style="color:${dc(dC)}">${toTime(op.realChegFC)||'—'}</td>
@@ -4432,6 +4641,10 @@ function renderProg(){
 
   const agora=new Date();
 
+  // ── Planta do pátio (docas + fila de entrada, com arrastar/tocar para encostar) ──
+  const plantaWrap=document.getElementById('plantaPatioWrap');
+  if(plantaWrap)plantaWrap.innerHTML=_renderPlantaPatio(yardDt);
+
   // ── Fila de Carregamento — quem está esperando pra encostar, desde quando, e a que
   // horário deveria ter encostado. É a mesma informação que já existe espalhada nos
   // cards abaixo (badge "Encosta até" + tempo no status), só que reunida e destacada
@@ -4543,7 +4756,7 @@ function renderProg(){
               style="background:var(--bg2);border:1.5px solid ${op.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
               <option value="">— selecione a doca —</option>
               ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
-                const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+                const nome=_nomeDoca(n);
                 const emUso=ops.find(o=>o.id!==op.id&&o.doca===nome&&o.status==='EMCARR'&&o.dataOp===op.dataOp);
                 const label=emUso?nome+' 🔒 ('+emUso.id+')':nome;
                 return '<option value="'+nome+'"'+(op.doca===nome?' selected':'')+(emUso&&op.doca!==nome?' disabled':'')+'>'+label+'</option>';
@@ -4646,7 +4859,7 @@ function renderProg(){
                     style="background:var(--bg2);border:1.5px solid ${p.doca?'var(--green)':'var(--red)'};border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;width:100%;outline:none;font-weight:700">
                     <option value="">— selecione a doca —</option>
                     ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
-                      const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+                      const nome=_nomeDoca(n);
                       const emUsoOp=ops.find(o=>o.doca===nome&&o.status==='EMCARR'&&o.dataOp===p.dataOp);
                       const emUsoPal=pallets.find(x=>x.id!==p.id&&x.doca===nome&&x.status==='AGU_DESCARGA'&&x.dataOp===p.dataOp);
                       const emUso=emUsoOp||emUsoPal;
@@ -4717,7 +4930,7 @@ function fupRow(op){
   return `<tr class="${fupRowCls(op)}" onclick="openEdit('${esc(op.id)}')" style="cursor:pointer">
     <td><div style="font-weight:700;color:var(--red);font-size:.7rem">${esc(op.codigoCurto||op.id)}</div>${op.sm?`<div style="font-size:.6rem;color:var(--t2)">${esc(op.sm)}</div>`:''}${op.codigoCurto?`<div style="font-size:.55rem;color:var(--t3)">${esc(op.id)}</div>`:''}</td>
     <td><span class="rota-cell">${esc(op.rota)}</span></td>
-    <td>${esc(op.transp)}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${esc(op.mot)}</td>
+    <td>${_fichaLink('transp',op.transp)}</td><td style="max-width:135px;overflow:hidden;text-overflow:ellipsis">${_fichaLink('mot',op.mot)}</td>
     <td><strong>${esc(op.placa)}</strong></td>
     <td class="center">${tpFUP(op.planApres,op.realApres,op.dataOp)}</td>
     <td class="center">${tpFUP(op.planSaida,op.realSaida,op.dataOp)}</td>
@@ -5552,6 +5765,80 @@ document.getElementById('overlayRelatorioTurno').addEventListener('click',functi
 const sl=(opts,cur)=>opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 const slO=(opts,cur)=>opts.map(o=>`<option value="${o.id}"${o.id===cur?' selected':''}>${o.lb}</option>`).join('');
 
+// ══════════════════════════════════════════════════════════════════
+// MODAL DA VIAGEM — linha do tempo (plano × real) e formulário
+// ══════════════════════════════════════════════════════════════════
+// ── LINHA DO TEMPO DA VIAGEM — Apresentação → Saída TZX → Chegada FC → Descarga ──
+// Cada ponto mostra o horário planejado, o real e a diferença; cada trecho mostra quanto
+// tempo levou de verdade contra o planejado. Cores: verde no prazo, amarelo até 30min de
+// atraso, vermelho acima disso, cinza = ainda não aconteceu, azul pulsando = etapa atual.
+function _tlClasse(atrasoMin){
+  if(atrasoMin===null||atrasoMin===undefined)return'vtl-pend';
+  if(atrasoMin<=0)return'vtl-ok';
+  return atrasoMin<=30?'vtl-warn':'vtl-late';
+}
+// Formata uma duração em minutos para a linha do tempo (ex.: 1h05, 45min, -10min).
+function _tlDuracao(min){
+  if(min===null||min===undefined)return'—';
+  const a=Math.abs(min),h=Math.floor(a/60),m=a%60;
+  return (min<0?'-':'')+(h?h+'h'+(m?String(m).padStart(2,'0'):''):m+'min');
+}
+// Monta o HTML da linha do tempo a partir de um objeto de viagem (ou dos campos do formulário)
+function _timelineViagemHTML(o){
+  const cancelada=['CANC','REC'].includes(o.status);
+  const pontos=[
+    {lb:'Apresentação',plan:o.planApres,real:o.realApres},
+    {lb:'Saída TZX',plan:o.planSaida,real:o.realSaida},
+    {lb:'Chegada FC',plan:o.planChegFC,real:o.realChegFC},
+    {lb:'Descarga',plan:'',real:o.realDescarga},
+  ];
+  // Etapa atual = primeiro ponto que ainda não tem horário real
+  const atual=cancelada?-1:pontos.findIndex(p=>!p.real);
+  const prev=o.status==='TRAN'&&o.rota?_previsaoChegada(o):null;
+  const noHTML=(p,i)=>{
+    const d=p.plan&&p.real?dMin(p.plan,p.real):null;
+    let cls=p.real?(p.plan?_tlClasse(d):'vtl-ok'):'vtl-pend';
+    if(i===atual)cls='vtl-now';
+    const pill=d!==null&&d!==0?`<em class="vtl-d">${fDiff(d)}</em>`:'';
+    return `<div class="vtl-node ${cls}"><div class="vtl-dot"></div><div class="vtl-txt">
+      <b>${p.lb}</b>
+      ${p.plan?`<span>plano ${esc(toTime(p.plan))}</span>`:''}
+      <span class="vtl-r">${p.real?'real '+esc(toTime(p.real)):(i===atual?'aguardando':'—')}</span>${pill}
+      ${i===2&&!p.real&&prev?`<span class="vtl-prev">previsão ${prev.eta.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>`:''}
+    </div></div>`;
+  };
+  // Trechos entre os pontos: real × planejado (o último trecho é a espera de descarga)
+  const trechoHTML=(a,b,i)=>{
+    if(i===2){
+      const t=(o.realChegFC&&o.dataOp)?tempoAguardandoDescarga(o):null;
+      if(!t)return'<div class="vtl-seg vtl-pend"><span>espera —</span></div>';
+      const cls=t.mins>240?'vtl-late':t.mins>120?'vtl-warn':'vtl-ok';
+      return `<div class="vtl-seg ${cls}${t.finalizado?'':' vtl-vivo'}"><span>${t.finalizado?'descarga':'esperando'} ${esc(t.txt)}</span></div>`;
+    }
+    const real=a.real&&b.real?dMin(a.real,b.real):null;
+    const plano=a.plan&&b.plan?dMin(a.plan,b.plan):null;
+    if(real===null)return`<div class="vtl-seg vtl-pend"><span>${plano!==null?'plano '+_tlDuracao(plano):'—'}</span></div>`;
+    const cls=plano===null?'vtl-ok':_tlClasse(real-plano);
+    return `<div class="vtl-seg ${cls}"><span>${_tlDuracao(real)}${plano!==null?` <small>plano ${_tlDuracao(plano)}</small>`:''}</span></div>`;
+  };
+  let trilha='';
+  pontos.forEach((p,i)=>{trilha+=noHTML(p,i);if(i<pontos.length-1)trilha+=trechoHTML(p,pontos[i+1],i);});
+  return `<div class="vtl" id="viagemTimeline">
+    <div class="vtl-head"><span>Linha do tempo</span><small>${cancelada?'viagem cancelada/recusada':'plano × real'}</small></div>
+    <div class="vtl-track">${trilha}</div>
+  </div>`;
+}
+// Redesenha a linha do tempo com o que está digitado no formulário (chamado por calcD)
+function _atualizarTimelineDoForm(){
+  const el=document.getElementById('viagemTimeline');if(!el)return;
+  const v=id=>document.getElementById(id)?.value||'';
+  const op=editId?ops.find(x=>x.id===editId):null;
+  el.outerHTML=_timelineViagemHTML({
+    status:op?.status||'PROG',rota:op?.rota||'',dataOp:v('fDO')||op?.dataOp||hojeLocal(),
+    planApres:v('fPA'),planSaida:v('fPS'),planChegFC:v('fPC'),
+    realApres:v('fRA'),realSaida:v('fRS'),realChegFC:v('fRC'),realDescarga:v('fRD')
+  });
+}
 // Monta o formulário do modal da viagem (identificação, horários plano/real, CAFs, ocorrências, observações).
 function buildForm(op){
   const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',doca:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
@@ -5561,6 +5848,7 @@ function buildForm(op){
   const _rt=v=>!v?'':v.includes('T')?v:`${_baseDate}T${v}`;
   const dS=dMin(o.planSaida,o.realSaida),dC=dMin(o.planChegFC,o.realChegFC),dA=dMin(o.planApres,o.realApres),dDoc=dMin(o.realChegFC,o.realDescarga);
   document.getElementById('mBody').innerHTML=`
+${o.id?_timelineViagemHTML(o):''}
 <div class="sec" style="margin-top:0">📋 Identificação</div>
 <div class="fgrid c3">
   <div class="fg"><label>ID</label><input id="fId" value="${o.id}" placeholder="Auto" ${op&&op.id?'readonly':''}></div>
@@ -5577,9 +5865,9 @@ function buildForm(op){
 </div>
 <div class="sec">🚛 Operação</div>
 <div class="fgrid">
-  <div class="fg"><label>Transportadora</label><select id="fTransp"><option value="">Selecione...</option>${sl(TRANSPS,o.transp)}</select></div>
+  <div class="fg"><label>Transportadora <a class="ficha-mini" onclick="abrirFicha('transp',document.getElementById('fTransp')?.value)">ficha ›</a></label><select id="fTransp"><option value="">Selecione...</option>${sl(TRANSPS,o.transp)}</select></div>
   <div class="fg"><label>Tipologia</label><select id="fTipol" onchange="tgPlaca()">${sl(TIPOLS,o.tipologia)}</select></div>
-  <div class="fg"><label>Motorista</label><input id="fMot" value="${o.mot}" placeholder="Nome do motorista"></div>
+  <div class="fg"><label>Motorista <a class="ficha-mini" onclick="abrirFicha('mot',document.getElementById('fMot')?.value)">ficha ›</a></label><input id="fMot" value="${o.mot}" placeholder="Nome do motorista"></div>
   <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX0000" style="text-transform:uppercase"></div>
 </div>
 <div id="wCarreta" style="${o.tipologia!=='CARRETA'?'display:none;':''}margin-top:10px">
@@ -5587,9 +5875,9 @@ function buildForm(op){
 </div>
 <div class="sec">🕐 Horários Planejados</div>
 <div class="fgrid c3">
-  <div class="fg"><label>Apres. Plan.</label><input id="fPA" type="time" value="${o.planApres}"></div>
-  <div class="fg"><label>Saída Plan.</label><input id="fPS" type="time" value="${o.planSaida}"></div>
-  <div class="fg"><label>Cheg. FC Plan.</label><input id="fPC" type="time" value="${o.planChegFC}"></div>
+  <div class="fg"><label>Apres. Plan.</label><input id="fPA" type="time" value="${o.planApres}" oninput="calcD()"></div>
+  <div class="fg"><label>Saída Plan.</label><input id="fPS" type="time" value="${o.planSaida}" oninput="calcD()"></div>
+  <div class="fg"><label>Cheg. FC Plan.</label><input id="fPC" type="time" value="${o.planChegFC}" oninput="calcD()"></div>
 </div>
 <div class="sec">🕐 Horários Reais</div>
 <div style="background:var(--blue2);border:1px solid #93c5fd;border-radius:var(--rs);padding:7px 10px;margin-bottom:8px;font-size:.7rem;color:var(--blue)">
@@ -5622,7 +5910,7 @@ function buildForm(op){
     <select id="fDoca" style="background:var(--bg2);border:1.5px solid #93c5fd;border-radius:var(--rs);color:var(--text);padding:7px 10px;font-size:.85rem;width:100%;outline:none;font-weight:600">
       <option value="">— selecione a doca —</option>
       ${Array.from({length:DOCAS_CONFIG.total||8},(_,i)=>i+1).map(n=>{
-            const nome=(DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);
+            const nome=_nomeDoca(n);
             const emUso=ops.find(x=>x.id!==editId&&x.doca===nome&&x.status==='EMCARR'&&x.dataOp===o.dataOp);
             const label=emUso?nome+' 🔒 ('+emUso.id+')':nome;
             return '<option value="'+nome+'"'+(o.doca===nome?' selected':'')+(emUso&&o.doca!==nome?' disabled':'')+'>'+label+'</option>';
@@ -5715,6 +6003,7 @@ function calcD(){
   upd('ddA','fPA','fRA','Δ Apres');upd('ddS','fPS','fRS','Δ Saída');upd('ddC','fPC','fRC','Δ FC');
   const dDoc=dMin(document.getElementById('fRC')?.value,document.getElementById('fRD')?.value),el=document.getElementById('ddDoc');
   if(el){if(dDoc!==null){el.style.display='inline-block';el.textContent='⏱ Doca: '+fDiff(dDoc);}else el.style.display='none';}
+  _atualizarTimelineDoForm();
 }
 let cafIdx=0;
 // Monta a lista de CAFs a ser exibida no modal da viagem combinando a FONTE DE VERDADE
@@ -6193,6 +6482,7 @@ function setView(name){
     _atualizarBotaoTVKiosk();
   }
   if(name!=='tv'){
+    _tvTorreParar();
     if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
     if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   }
@@ -7562,7 +7852,7 @@ function renderAnalise(){
 </div>
 <div class="an-card" data-wide="1" data-sec="frota">
   <h3>Volume por Transportadora</h3>
-  ${tArr.length?tArr.map(([n,d])=>{const p=Math.round((d.t/maxT)*100);const perf=d.ok/d.t;const bc=perf>=0.8?'#22c55e':perf>=0.5?'#f59e0b':'#ef4444';return`<div class="tr-row"><span class="tr-name" title="${n}">${n}</span><div class="tr-bar-bg"><div class="tr-bar-fill" style="width:${p}%;background:${bc}"></div></div><span class="tr-cnt">${d.t}</span></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
+  ${tArr.length?tArr.map(([n,d])=>{const p=Math.round((d.t/maxT)*100);const perf=d.ok/d.t;const bc=perf>=0.8?'#22c55e':perf>=0.5?'#f59e0b':'#ef4444';return`<div class="tr-row"><span class="tr-name" title="${esc(n)}">${_fichaLink('transp',n)}</span><div class="tr-bar-bg"><div class="tr-bar-fill" style="width:${p}%;background:${bc}"></div></div><span class="tr-cnt">${d.t}</span></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
   <div style="display:flex;gap:14px;margin-top:8px;font-size:.61rem;color:var(--t2)"><span>🟢 ≥80% SLA</span><span>🟡 50–79%</span><span>🔴 &lt;50%</span></div>
 </div>
 <div class="an-card" data-wide="1" data-sec="pontualidade" data-pri="1">
@@ -7597,6 +7887,10 @@ function renderAnalise(){
   <h3>Pareto — Atraso por Rota</h3>
   <p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Barras = quantidade de viagens em atraso por rota, do maior pro menor · Linha laranja = % acumulado (a régua clássica dos 80/20: geralmente poucas rotas concentram a maior parte do problema)</p>
   ${_paretoSVG(rArr.map(([r,d])=>[r,d.t-d.ok]))}
+</div>
+<div class="an-card" data-sec="pontualidade" style="grid-column:1/-1">
+  <h3>Quando os atrasos acontecem — dia × horário</h3>
+  ${_renderMapaHorarioAtrasos(data)}
 </div>
 <div class="an-card" data-sec="frota" style="grid-column:1/-1">
   <h3>Veículos sem Cadastro</h3>
@@ -7884,9 +8178,23 @@ async function _docaMoverParaCarregamento(opId){
   const op=ops.find(o=>o.id===opId);if(!op)return;
   const doca=(document.getElementById('fDoca')?.value||'').trim();
   if(!doca){showToast('⚠ Selecione a doca antes de mover para Em Carregamento','err');return;}
-  // Bloqueio de doca dupla (mesma regra do atribuirDocaRapido)
-  const docaEmUso=ops.find(o=>o.id!==opId&&o.doca===doca&&o.status==='EMCARR'&&o.dataOp===op.dataOp);
-  if(docaEmUso){showToast(`⛔ ${doca} já está ocupada por ${docaEmUso.codigoCurto||docaEmUso.id} (${docaEmUso.placa||'—'})`,'err');return;}
+  if(await _encostarNaDoca(op,doca))closeModal();
+}
+// Nome da doca de número N (nome personalizado do Admin ou prefixo + número, ex.: D3)
+function _nomeDoca(n){return (DOCAS_CONFIG.nomes&&DOCAS_CONFIG.nomes[n])||((DOCAS_CONFIG.prefix||'D')+n);}
+// Quem está usando a doca no dia: viagem em carregamento ou retorno de pallets descarregando (ou null)
+function _ocupanteDaDoca(doca,dataOp,ignorarId){
+  const op=ops.find(o=>o.id!==ignorarId&&o.doca===doca&&o.status==='EMCARR'&&o.dataOp===dataOp);
+  if(op)return{tipo:'op',op,rotulo:`${op.codigoCurto||op.id} (${op.placa||'—'})`};
+  const p=(typeof pallets!=='undefined'?pallets:[]).find(x=>x.doca===doca&&x.status==='AGU_DESCARGA'&&x.dataOp===dataOp);
+  if(p)return{tipo:'pal',p,rotulo:`Retorno ${p.fc} (${p.placa||'—'})`};
+  return null;
+}
+// Encosta a viagem na doca: bloqueia doca ocupada, muda para Em Carregamento, registra no histórico,
+// salva, sincroniza o status das CAFs e avisa. Devolve true se deu certo.
+async function _encostarNaDoca(op,doca){
+  const ocupante=_ocupanteDaDoca(doca,op.dataOp,op.id);
+  if(ocupante){showToast(`⛔ ${doca} já está ocupada por ${ocupante.rotulo}`,'err');return false;}
   const who=currentUser?.nome||'Sistema';
   const prevStatus=op.status;
   op.doca=doca;op.status='EMCARR';op.updatedAt=new Date().toISOString();op.updatedBy=who;
@@ -7895,9 +8203,9 @@ async function _docaMoverParaCarregamento(opId){
   await saveOp(op);
   await syncCAFsStatus(op,'EMCARR',prevStatus);
   loading(false);
-  closeModal();
   showToast(`✅ ${op.codigoCurto||op.id} → Doca ${doca} → Em Carregamento`,'ok');
   addActivityLog(`${op.id}: Doca ${doca} atribuída, movida para Em Carregamento`);
+  return true;
 }
 
 // Modal da viagem (perfil Doca): troca ou remove a doca, bloqueando doca já ocupada.
@@ -8254,18 +8562,17 @@ function _updateCAFBadge(){
   else{el.style.display='none';}
 }
 
-// Desenha a tabela de CAFs com filtros (rota, tipo, status, busca, datas) e indicadores do topo.
-function renderCAFs(){
-  buildCAFSelects();
+// CAFs: monta o teste de filtro com o que está escolhido na tela (busca, rota, tipo, status, datas).
+// ignorarStatus=true serve para contar quantas CAFs existem em cada status (chips do modo tablet).
+function _cafFiltro(ignorarStatus){
   const fRota=document.getElementById('cafFRota')?.value||'';
   const fTipo=document.getElementById('cafFTipo')?.value||'';
-  const fStatusList=_cafStatusSelecionados();
-  _atualizaCafStatusBtnLabel();
+  const fStatusList=ignorarStatus?[]:_cafStatusSelecionados();
   const q=(document.getElementById('cafBusca')?.value||'').toLowerCase();
   const fData=document.getElementById('cafFData')?.value||'';
   const fVenc=document.getElementById('cafFVenc')?.value||'';
   const hojeV=hojeLocal();
-  const data=cafsDB.filter(c=>{
+  return c=>{
     if(fRota&&c.rota!==fRota)return false;
     if(fTipo&&c.tipo!==fTipo)return false;
     if(fStatusList.length&&!fStatusList.includes(c.status))return false;
@@ -8283,7 +8590,13 @@ function renderCAFs(){
       if(!hay.includes(q))return false;
     }
     return true;
-  });
+  };
+}
+// Desenha a tela de CAFs: tabela (PC) ou cartões (modo tablet), com filtros, ordenação e indicadores.
+function renderCAFs(){
+  buildCAFSelects();
+  _atualizaCafStatusBtnLabel();
+  const data=cafsDB.filter(_cafFiltro(false));
   // Ordenação pelo cabeçalho clicado
   const sc=_cafSort.col, sd=_cafSort.dir==='asc'?1:-1;
   data.sort((a,b)=>{
@@ -8336,6 +8649,95 @@ function renderCAFs(){
       <td><button class="btn btn-g" style="font-size:.65rem;padding:2px 7px" onclick="event.stopPropagation();vincularCAFDialog('${c.id}')">🔗</button></td>
     </tr>`;
   }).join(''):`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--t3)">Nenhuma CAF encontrada</td></tr>`;
+  _renderCafCartoes(data);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CAFs — MODO TABLET (cartões)
+// Em tela de tablet/celular a lista de CAFs aparece em cartões grandes, com um botão para levar a
+// CAF ao próximo status em um toque (respeitando o que o perfil pode fazer). No PC continua a
+// tabela; o botão "Cartões/Tabela" troca o modo e a escolha fica salva neste aparelho.
+// A mudança de status usa o mesmo salvamento do formulário da CAF (rua, pallets, histórico).
+// ══════════════════════════════════════════════════════════════════
+const CAF_PROXIMO_STATUS={'Em Agendamento':'Em Produção','Em Produção':'Produzida','Vinculada a Veículo':'Processo de Entrega','Processo de Entrega':'Entrega Realizada'};
+const CAF_STATUS_ORDEM=['Em Agendamento','Em Produção','Produzida','Em Auditoria GRIS','Vinculada a Veículo','Processo de Entrega','Entrega Realizada','cancelada'];
+let _cafLimiteCartoes=120;
+// CAFs: está no modo cartões? Usa a escolha salva no aparelho; sem escolha, cartões em telas de até 1024px
+// (tablet/celular).
+function _cafModoCartoes(){
+  let m=null;try{m=localStorage.getItem('trk_caf_modo');}catch(e){}
+  return m?m==='cartoes':window.matchMedia('(max-width:1024px)').matches;
+}
+// CAFs: troca entre cartões e tabela e lembra a escolha neste aparelho.
+function _cafAlternarModo(){
+  try{localStorage.setItem('trk_caf_modo',_cafModoCartoes()?'tabela':'cartoes');}catch(e){}
+  renderCAFs();
+}
+// Chip de status: marca/desmarca o mesmo filtro de status da tabela
+function _cafChipStatus(st){
+  if(st===''){document.querySelectorAll('.cafFStatusChk').forEach(c=>c.checked=false);}
+  else{const chk=[...document.querySelectorAll('.cafFStatusChk')].find(c=>c.value===st);if(chk)chk.checked=!chk.checked;}
+  _cafLimiteCartoes=120;
+  renderCAFs();
+}
+// CAFs (cartões): mostra mais 120 cartões.
+function _cafMostrarMais(){_cafLimiteCartoes+=120;renderCAFs();}
+// CAFs (cartões): desenha os chips de status com contagem e os cartões com o botão de próximo status.
+function _renderCafCartoes(data){
+  const view=document.getElementById('view-caf');
+  const modo=_cafModoCartoes();
+  if(view)view.classList.toggle('caf-modo-cartoes',modo);
+  const btn=document.getElementById('cafModoBtn');if(btn)btn.textContent=modo?'☰ Tabela':'▦ Cartões';
+  const chipsEl=document.getElementById('cafChips'),cardsEl=document.getElementById('cafCards');
+  if(!modo||!chipsEl||!cardsEl)return;
+  // Chips de status com contagem (contagem ignora o próprio filtro de status)
+  const base=cafsDB.filter(_cafFiltro(true));
+  const marcados=_cafStatusSelecionados();
+  const cont={};base.forEach(c=>{cont[c.status]=(cont[c.status]||0)+1;});
+  const outrosFiltros=['cafFRota','cafFTipo','cafFData','cafFVenc'].some(id=>document.getElementById(id)?.value);
+  chipsEl.innerHTML=`<button class="caf-chip${marcados.length?'':' on'}" onclick="_cafChipStatus('')">Todas <b>${base.length}</b></button>`+
+    CAF_STATUS_ORDEM.filter(st=>cont[st]).map(st=>`<button class="caf-chip${marcados.includes(st)?' on':''}" onclick="_cafChipStatus('${st}')">${st==='cancelada'?'Cancelada':st} <b>${cont[st]}</b></button>`).join('')+
+    (outrosFiltros?`<span class="caf-chip-aviso">Filtros da tabela ativos · <a onclick="['cafFRota','cafFTipo','cafFData','cafFVenc'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});renderCAFs()">limpar</a></span>`:'');
+  const podeStatus=_cafStatusPermitido(currentUser?.perfil);
+  const podeVincular=!isReadOnly()&&(hasPerm('caf_editar')||hasPerm('caf_criar')||hasPerm('viagem_editar'));
+  const hojeV=hojeLocal();
+  const corSt={'Em Agendamento':'#1e3a8a','Em Produção':'var(--t2)','Produzida':'#14b8a6','Em Auditoria GRIS':'var(--red)','Vinculada a Veículo':'var(--green)','Processo de Entrega':'var(--blue)','Entrega Realizada':'var(--orange)','cancelada':'var(--t3)'};
+  const lista=data.slice(0,_cafLimiteCartoes);
+  cardsEl.innerHTML=lista.length?lista.map(c=>{
+    const op=c.opId?ops.find(o=>o.id===c.opId):null;
+    const vencida=c.venc&&c.venc<hojeV&&!['Entrega Realizada','cancelada'].includes(c.status);
+    const prox=CAF_PROXIMO_STATUS[c.status];
+    const acao=prox&&podeStatus.includes(prox)&&!isReadOnly()
+      ?`<button class="caf-acao" onclick="event.stopPropagation();_cafAvancarStatus('${esc(c.id)}','${prox}')">→ ${prox}</button>`
+      :c.status==='Produzida'&&podeVincular
+        ?`<button class="caf-acao caf-acao-vinc" onclick="event.stopPropagation();vincularCAFDialog('${esc(c.id)}')">🔗 Vincular à viagem</button>`:'';
+    return `<div class="caf-card${vencida?' caf-vencida':''}" style="--st:${corSt[c.status]||'var(--t3)'}" onclick="openEditCAF('${esc(c.id)}')">
+      <div class="caf-top"><div><div class="caf-num">${esc(c.num)}</div><div class="caf-sub">${esc(c.rota||'—')} · <span class="badge ${tCls(c.tipo)}">${esc(c.tipo)}</span>${c.codigoCurto?' · '+esc(c.codigoCurto):''}</div></div>
+        <span class="caf-st">${c.status==='cancelada'?'Cancelada':esc(c.status)}</span></div>
+      <div class="caf-info">
+        <div><span>Pallets</span><b>${c.pallets||0}</b></div>
+        <div><span>Volume</span><b>${(Number(c.vol)||0).toLocaleString('pt-BR')}</b></div>
+        <div><span>Vence</span><b style="${vencida?'color:var(--red)':''}">${c.venc?fmtD(c.venc):'—'}</b></div>
+        <div><span>Rua</span><b>${ruaNumeroDe(c.ruaId)||'—'}</b></div>
+      </div>
+      ${op?`<div class="caf-op">🚛 ${esc(op.codigoCurto||op.id)} · ${esc(op.placa||'—')} · ${esc(stObj(op.status).lb)}</div>`:''}
+      ${acao}
+    </div>`;}).join('')+(data.length>lista.length?`<button class="btn btn-g caf-mais" onclick="_cafMostrarMais()">Mostrar mais (${data.length-lista.length} restantes)</button>`:'')
+    :'<div class="caf-vazio">Nenhuma CAF encontrada</div>';
+}
+// Leva a CAF ao próximo status em um toque: confirma, abre o formulário da CAF por baixo, troca o
+// status e salva pelo mesmo caminho do botão Salvar (se faltar algum dado obrigatório, o formulário
+// fica aberto mostrando o que falta).
+function _cafAvancarStatus(cafId,novo){
+  const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  if(!_cafStatusPermitido(currentUser?.perfil).includes(novo)){showToast('⛔ Seu perfil não pode definir este status','err');return;}
+  if(!confirm(`CAF ${c.num}: ${c.status} → ${novo}?`))return;
+  openEditCAF(cafId);
+  setTimeout(async()=>{
+    const sel=document.getElementById('cafStatus');
+    if(sel)sel.value=novo;
+    await saveCAF();
+  },80);
 }
 
 // Popula o <select> de Rua: uma CAF por rua, desabilita ruas ocupadas por outra CAF
@@ -10920,6 +11322,47 @@ function _renderCAFPanel(data){
   '</div>';
 }
 
+// Análise: em que dia da semana e horário (chegada planejada no FC, em faixas de 2h) os atrasos se
+// concentram. Cada célula = % das viagens daquela janela que chegaram com mais de 30min de atraso
+// (mesma tolerância do SLA). Janelas com menos de 3 viagens aparecem apagadas (pouca amostra).
+function _renderMapaHorarioAtrasos(data){
+  const DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const ORDEM=[1,2,3,4,5,6,0]; // começa na segunda
+  const FAIXAS=12;              // 12 faixas de 2h
+  const grade=Array.from({length:7},()=>Array.from({length:FAIXAS},()=>({t:0,late:0})));
+  let total=0;
+  for(const o of data){
+    if(o.status==='CANC'||!o.planChegFC||!o.realChegFC)continue;
+    const quando=resolveDataHoraOp(o,o.planChegFC);if(!quando)continue;
+    const atraso=dMin(o.planChegFC,o.realChegFC);if(atraso===null)continue;
+    const c=grade[quando.getDay()][Math.floor(quando.getHours()/2)];
+    c.t++;if(atraso>30)c.late++;total++;
+  }
+  if(total<5)return'<p style="color:var(--t3);text-align:center;padding:16px">Poucas viagens com chegada registrada no período para montar o mapa.</p>';
+  // Pior janela com amostra mínima de 3 viagens
+  let pior=null;
+  ORDEM.forEach(d=>grade[d].forEach((c,h)=>{if(c.t>=3){const p=c.late/c.t;if(!pior||p>pior.p||(p===pior.p&&c.t>pior.t))pior={d,h,p,t:c.t,late:c.late};}}));
+  const cor=p=>{ // verde (0%) → amarelo (35%) → vermelho (70%+)
+    const x=Math.min(1,p/.7);
+    const hue=Math.round(140-140*x);
+    return `hsl(${hue} 70% 45%)`;
+  };
+  const cab='<div></div>'+Array.from({length:FAIXAS},(_,h)=>`<div class="hm-h">${String(h*2).padStart(2,'0')}h</div>`).join('');
+  const linhas=ORDEM.map(d=>`<div class="hm-d">${DIAS[d]}</div>`+grade[d].map((c,h)=>{
+    if(!c.t)return'<div class="hm-c hm-vazio"></div>';
+    const p=c.late/c.t,poucas=c.t<3;
+    const titulo=`${DIAS[d]} ${String(h*2).padStart(2,'0')}h–${String(h*2+2).padStart(2,'0')}h: ${c.late} de ${c.t} viagens atrasadas (${Math.round(p*100)}%)`;
+    return `<div class="hm-c${poucas?' hm-pouca':''}${pior&&pior.d===d&&pior.h===h?' hm-pior':''}" style="background:${cor(p)}" title="${titulo}">${Math.round(p*100)}</div>`;
+  }).join('')).join('');
+  const resumo=pior&&pior.p>0
+    ?`Janela mais crítica: <b>${DIAS[pior.d]} ${String(pior.h*2).padStart(2,'0')}h–${String(pior.h*2+2).padStart(2,'0')}h</b> — ${pior.late} de ${pior.t} viagens chegaram atrasadas (${Math.round(pior.p*100)}%).`
+    :'Nenhuma janela com atraso relevante no período. 👏';
+  return `<p style="font-size:.72rem;color:var(--t2);margin-bottom:10px">${resumo}</p>
+    <div class="hm-grid">${cab}${linhas}</div>
+    <div class="hm-leg"><span>% de viagens atrasadas (>30min) pela chegada planejada no FC</span>
+      <span class="hm-esc"><i style="background:${cor(0)}"></i>0%<i style="background:${cor(.35)}"></i>35%<i style="background:${cor(.7)}"></i>70%+</span>
+      <span>apagado = menos de 3 viagens</span></div>`;
+}
 // Análise: tempo médio real entre as etapas (apresentação → saída → chegada FC → descarga).
 function _renderEtapas(data){
   const avgM=arr=>{const v=arr.filter(x=>x!==null&&x>=0&&x<720);return v.length?Math.round(v.reduce((a,b)=>a+b)/v.length):null;};
@@ -11110,7 +11553,7 @@ function pararTVKiosk(){
   if(_tvKioskInterval){clearInterval(_tvKioskInterval);_tvKioskInterval=null;}
   _atualizarBotaoTVKiosk();
 }
-// Desenha a tela de TV (pipeline de CAFs e ocupação de ruas).
+// Desenha a tela de TV: torre de controle (revezamento + alertas), pipeline de CAFs e ocupação de ruas.
 function renderTV(){
   const el=document.getElementById('tv-wrap');if(!el)return;
   const hoje=hojeLocal();
@@ -11134,7 +11577,7 @@ function renderTV(){
         ${new Date().toLocaleTimeString('pt-BR')}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-      <input type="date" id="tv-day-filter" value="${hoje}"
+      <input type="date" id="tv-day-filter" value="${tvDt}"
         onchange="renderTV()"
         style="background:var(--bg2);border:1px solid var(--bd);color:var(--t2);border-radius:6px;padding:3px 8px;font-size:.68rem;outline:none"/>
       <div style="display:flex;align-items:center;gap:2px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:1px 2px">
@@ -11146,6 +11589,9 @@ function renderTV(){
     </div>
     </div>
   </div>
+
+  <!-- TORRE DE CONTROLE (painéis que se revezam + alertas) -->
+  ${_tvTorreHTML(opsHoje)}
 
   <!-- PIPELINE DE CAFs (visão operacional) -->
   ${(()=>{
@@ -11281,8 +11727,95 @@ function renderTV(){
   })()}
 </div>`;
 
-  // Inicia clock independente (não re-renderiza tudo)
+  // Inicia clock independente (não re-renderiza tudo) e o revezamento da torre
   _startTVClock();
+  _tvTorreIniciar();
+}
+
+// ── TORRE DE CONTROLE (topo da TV) ──
+// Três painéis que se revezam sozinhos a cada 20s: Operação agora · Fila de descarga · Atrasos.
+// Quando alguma coisa passa do limite (descarga esperando mais de 4h, viagem que vai chegar com
+// mais de 30min de atraso, SLA do dia abaixo da meta) a moldura pisca em vermelho e o aviso aparece
+// em qualquer um dos painéis. Usa só dados em memória; a TV já atualiza os dados a cada 15s.
+const TV_TORRE_TROCA_MS=20000;
+let _tvTorreIdx=0,_tvTorreTimer=null;
+const _TV_TORRE_PAINEIS=['Operação agora','Fila de descarga','Atrasos'];
+// TV: viagens do dia escolhido no filtro de dia da TV (padrão hoje).
+function _tvOpsDoDia(){
+  const dia=document.getElementById('tv-day-filter')?.value||hojeLocal();
+  return ops.filter(o=>o.dataOp===dia);
+}
+// Liga o revezamento (uma vez só) — redesenha apenas a torre, não a TV inteira
+function _tvTorreIniciar(){
+  if(_tvTorreTimer)return;
+  _tvTorreTimer=setInterval(()=>{
+    const el=document.getElementById('tvTorre');
+    if(!el||curPage!=='tv'){clearInterval(_tvTorreTimer);_tvTorreTimer=null;return;}
+    _tvTorreIdx=(_tvTorreIdx+1)%_TV_TORRE_PAINEIS.length;
+    el.outerHTML=_tvTorreHTML(_tvOpsDoDia());
+  },TV_TORRE_TROCA_MS);
+}
+// TV: para o revezamento da torre de controle.
+function _tvTorreParar(){if(_tvTorreTimer){clearInterval(_tvTorreTimer);_tvTorreTimer=null;}}
+// TV: vai direto para um painel da torre (clique nas abas) e recomeça a contagem de 20s.
+function _tvTorreIr(i){_tvTorreIdx=i;_tvTorreParar();const el=document.getElementById('tvTorre');if(el)el.outerHTML=_tvTorreHTML(_tvOpsDoDia());_tvTorreIniciar();}
+// TV: monta a torre de controle (abas, barra de progresso, avisos e o painel atual).
+function _tvTorreHTML(opsDia){
+  const emTransito=ops.filter(o=>o.status==='TRAN');
+  const {lista:fila}=_pdComputeLista();
+  const slaDia=_calcSLAsSeparados(opsDia).chegada;
+  const meta=CFG.slaMeta||92;
+  const previsoes=emTransito.map(o=>({o,p:_previsaoChegada(o)})).filter(x=>x.p&&x.p.atrasoMin!==null&&x.p.atrasoMin>0).sort((a,b)=>b.p.atrasoMin-a.p.atrasoMin);
+  const chegouAtrasado=opsDia.map(o=>({o,d:dMin(o.planChegFC,o.realChegFC)})).filter(x=>x.d!==null&&x.d>30).sort((a,b)=>b.d-a.d);
+  // Alertas que fazem a moldura piscar
+  const descargaLonga=fila.filter(x=>x.ms>4*3600000).length;
+  const vaoAtrasar=previsoes.filter(x=>x.p.atrasoMin>30).length;
+  const slaBaixo=slaDia.pct!==null&&slaDia.total>=5&&slaDia.pct<meta;
+  const alertas=[];
+  if(descargaLonga)alertas.push(`${descargaLonga} descarga${descargaLonga>1?'s':''} esperando há mais de 4h`);
+  if(vaoAtrasar)alertas.push(`${vaoAtrasar} viage${vaoAtrasar>1?'ns':'m'} em trânsito com atraso previsto acima de 30min`);
+  if(slaBaixo)alertas.push(`SLA de chegada do dia em ${slaDia.pct}% (meta ${meta}%)`);
+  const idx=_tvTorreIdx%_TV_TORRE_PAINEIS.length;
+  const hm=d=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  let corpo='';
+  if(idx===0){
+    const fin=opsDia.filter(o=>o.status==='FIN').length;
+    const atr=opsDia.filter(o=>getSLA(o)==='late').length;
+    const k=(v,l,cor,extra)=>`<div class="tt-kpi${extra||''}"><div class="tt-l">${l}</div><div class="tt-v" style="color:${cor}">${v}</div></div>`;
+    corpo=`<div class="tt-kpis">
+      ${k(emTransito.length,'Em trânsito','var(--blue)')}
+      ${k(fila.length,'Ag. descarga','var(--purple)')}
+      ${k(fin,'Finalizadas no dia','var(--green)')}
+      ${k(atr,'Chegaram atrasadas','var(--red)',atr?' tt-ruim':'')}
+      ${k(slaDia.pct===null?'—':slaDia.pct+'%','SLA chegada FC',slaDia.pct===null?'var(--t3)':slaDia.pct>=meta?'var(--green)':'var(--red)',slaBaixo?' tt-ruim':'')}
+    </div>`;
+  }else if(idx===1){
+    corpo=fila.length?`<div class="tt-lista">${fila.slice(0,6).map(x=>{
+      const h=x.ms/3600000;const cls=h>=24?' tt-crit':h>=4?' tt-ruim':'';
+      const cor=h>=4?'var(--red)':h>=2?'#f59e0b':'var(--text)';
+      return `<div class="tt-item${cls}"><div class="tt-timer" style="color:${cor}">${x.chegDt?_fmtHMS(x.ms):'--:--:--'}</div>
+        <div class="tt-desc"><b>${esc(x.op.placa||'—')}</b>${x.op.placaCarreta?` <span>/ ${esc(x.op.placaCarreta)}</span>`:''}<small>${esc(x.op.codigoCurto||x.op.id)} · ${esc(x.op.rota)}</small></div>
+        <div class="tt-fc">${esc(x.fc)}</div></div>`;}).join('')}${fila.length>6?`<div class="tt-mais">+ ${fila.length-6} na fila</div>`:''}</div>`
+      :'<div class="tt-vazio">Nenhum veículo aguardando descarga ✅</div>';
+  }else{
+    const itens=[
+      ...previsoes.slice(0,4).map(x=>({cor:x.p.atrasoMin>30?'var(--red)':'#f59e0b',tag:x.p.jaAtrasada?'ATRASADA EM TRÂNSITO':'VAI ATRASAR',o:x.o,txt:fDiff(x.p.atrasoMin),
+        sub:x.p.jaAtrasada?`deveria ter chegado ${esc(x.o.planChegFC||'—')} · ainda em trânsito`:`previsão ${hm(x.p.eta)} · plano ${esc(x.o.planChegFC||'—')}`})),
+      ...chegouAtrasado.slice(0,4).map(x=>({cor:'var(--red)',tag:'CHEGOU ATRASADA',o:x.o,txt:fDiff(x.d),sub:`chegou ${esc(toTime(x.o.realChegFC))} · plano ${esc(x.o.planChegFC||'—')}`})),
+    ].slice(0,6);
+    corpo=itens.length?`<div class="tt-lista">${itens.map(it=>`<div class="tt-item"><div class="tt-timer" style="color:${it.cor}">${it.txt}</div>
+      <div class="tt-desc"><b>${esc(it.o.codigoCurto||it.o.id)}</b> <span>${esc(it.o.transp||'')}</span><small>${esc(it.o.rota)} · ${it.sub}</small></div>
+      <div class="tt-tag" style="color:${it.cor};border-color:${it.cor}">${it.tag}</div></div>`).join('')}</div>`
+      :'<div class="tt-vazio">Nenhum atraso no momento 👏</div>';
+  }
+  return `<div class="tt${alertas.length?' tt-alerta':''}" id="tvTorre">
+    <div class="tt-top">
+      <div class="tt-tabs">${_TV_TORRE_PAINEIS.map((n,i)=>`<button class="tt-tab${i===idx?' on':''}" onclick="_tvTorreIr(${i})">${n}</button>`).join('')}</div>
+      <div class="tt-prog"><i style="animation-duration:${TV_TORRE_TROCA_MS}ms"></i></div>
+    </div>
+    ${alertas.length?`<div class="tt-aviso">⚠ ${alertas.join(' · ')}</div>`:''}
+    <div class="tt-corpo">${corpo}</div>
+  </div>`;
 }
 
 let _tvClockInterval=null;
@@ -11298,6 +11831,7 @@ function _startTVClock(){
 
 // TV: sai da tela de TV e volta ao Painel.
 function exitTV(){
+  _tvTorreParar();
   if(_tvInterval){clearInterval(_tvInterval);_tvInterval=null;}
   if(_tvClockInterval){clearInterval(_tvClockInterval);_tvClockInterval=null;}
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
@@ -11608,21 +12142,204 @@ async function quickStatus(opId, newStatus, event){
 }
 
 // ══════════════════════════════════════════════════════════════════
+// FICHA DA TRANSPORTADORA / DO MOTORISTA — clique no nome (Lista, FUP FC, Análise, modal da viagem)
+// Tudo calculado com as viagens já carregadas (~90 dias): pontualidade, OT, atraso médio,
+// uso do app, ocorrências, tendência por semana e últimas viagens. Nenhuma consulta nova ao banco.
+// ══════════════════════════════════════════════════════════════════
+// Nome clicável que abre a ficha (o nome vai num data-atributo: nome com aspas não quebra o HTML)
+function _fichaLink(tipo,nome){
+  if(!nome)return'—';
+  return `<span class="ficha-link" data-n="${esc(nome)}" onclick="event.stopPropagation();abrirFicha('${tipo}',this.dataset.n)" title="Ver ficha">${esc(nome)}</span>`;
+}
+const _normNome=v=>String(v||'').trim().toLowerCase();
+// Fecha a ficha da transportadora/motorista.
+function fecharFicha(){document.getElementById('_fichaModal')?.remove();}
+// Abre a ficha da transportadora (tipo 'transp') ou do motorista (tipo 'mot') com os indicadores calculados das
+// viagens carregadas.
+function abrirFicha(tipo,nome){
+  fecharFicha();
+  if(!nome)return;
+  const campo=tipo==='mot'?'mot':'transp';
+  const alvo=_normNome(nome);
+  const lista=ops.filter(o=>_normNome(o[campo])===alvo&&o.status!=='CANC')
+    .sort((a,b)=>(b.dataOp||'').localeCompare(a.dataOp||''));
+  const pct=(a,b)=>b?Math.round(a/b*100):null;
+  const corPct=p=>p===null?'var(--t3)':p>=92?'var(--green)':p>=80?'#d97706':'var(--red)';
+  // Pontualidade (mesma regra do SLA: tolerância de 30min na chegada ao FC)
+  const comCheg=lista.filter(o=>o.planChegFC&&o.realChegFC);
+  const noPrazo=comCheg.filter(o=>getSLA(o)==='ok').length;
+  const sla=pct(noPrazo,comCheg.length);
+  const ot=_calcOT(lista);
+  const media=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const atrasoCheg=media(comCheg.map(o=>dMin(o.planChegFC,o.realChegFC)).filter(v=>v!==null));
+  const atrasoSaida=media(lista.filter(o=>o.planSaida&&o.realSaida).map(o=>dMin(o.planSaida,o.realSaida)).filter(v=>v!==null));
+  const app=lista.filter(o=>['sim','nao'].includes(o.motoristaUsouApp));
+  const usoApp=pct(app.filter(o=>o.motoristaUsouApp==='sim').length,app.length);
+  // Ocorrências por tipo
+  const ocorr={};lista.forEach(o=>(o.ocorr||[]).forEach(oc=>{const t=oc.tipo||'Outros';ocorr[t]=(ocorr[t]||0)+1;}));
+  const ocorrArr=Object.entries(ocorr).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  // Tendência: SLA das últimas 8 semanas com chegada registrada
+  const porSemana={};
+  comCheg.forEach(o=>{const k=isoWeekKey(o.dataOp);if(!k)return;(porSemana[k]=porSemana[k]||{t:0,ok:0}).t++;if(getSLA(o)==='ok')porSemana[k].ok++;});
+  const semanas=Object.keys(porSemana).sort().slice(-8);
+  const tendencia=semanas.length?semanas.map(k=>{const p=pct(porSemana[k].ok,porSemana[k].t);
+    return `<div class="fi-bar" title="Semana ${semanaLabel(k)}: ${porSemana[k].ok}/${porSemana[k].t} no prazo"><i style="height:${Math.max(p,4)}%;background:${corPct(p)}"></i><span>${k.split('-W')[1]}</span></div>`;}).join('')
+    :'<p style="color:var(--t3);font-size:.7rem">Sem chegadas registradas.</p>';
+  // Relacionados: motoristas da transportadora ou transportadoras/placas do motorista
+  const agrupa=(fn)=>{const m={};lista.forEach(o=>{const k=fn(o);if(!k)return;(m[k]=m[k]||{t:0,ok:0,c:0}).t++;if(o.planChegFC&&o.realChegFC){m[k].c++;if(getSLA(o)==='ok')m[k].ok++;}});return Object.entries(m).sort((a,b)=>b[1].t-a[1].t).slice(0,6);};
+  const rel=tipo==='mot'?[['Transportadoras',agrupa(o=>o.transp),'transp'],['Placas',agrupa(o=>o.placa),null]]:[['Motoristas',agrupa(o=>o.mot),'mot']];
+  const relHTML=rel.map(([tit,arr,tp])=>`<div class="fi-sec"><div class="fi-st">${tit}</div>${arr.length?arr.map(([k,v])=>{const p=pct(v.ok,v.c);
+    return `<div class="fi-row"><span>${tp?_fichaLink(tp,k):esc(k)}</span><span class="mono">${v.t} viag.${p!==null?` · <b style="color:${corPct(p)}">${p}%</b>`:''}</span></div>`;}).join(''):'<p style="color:var(--t3);font-size:.7rem">—</p>'}</div>`).join('');
+  const ultimas=lista.slice(0,6).map(o=>{const d=dMin(o.planChegFC,o.realChegFC);
+    return `<div class="fi-row fi-click" onclick="fecharFicha();openEdit('${esc(o.id)}')"><span><b>${esc(o.codigoCurto||o.id)}</b> <small>${fmtD(o.dataOp)} · ${esc(o.rota)}</small></span><span class="mono" style="color:${d===null?'var(--t3)':d>30?'var(--red)':d>0?'#d97706':'var(--green)'}">${d===null?stObj(o.status).lb:fDiff(d)}</span></div>`;}).join('');
+  const datas=lista.map(o=>o.dataOp).filter(Boolean).sort();
+  const kpi=(v,l,cor)=>`<div class="fi-kpi"><div class="v" style="color:${cor||'var(--text)'}">${v}</div><div class="l">${l}</div></div>`;
+  const div=document.createElement('div');
+  div.id='_fichaModal';div.className='fi-back';
+  div.onclick=e=>{if(e.target===div)fecharFicha();};
+  div.innerHTML=`<div class="fi-box" role="dialog" aria-label="Ficha">
+    <div class="fi-hdr">
+      <div><div class="fi-tipo">${tipo==='mot'?'Motorista':'Transportadora'}</div><div class="fi-nome">${esc(nome)}</div>
+        <div class="fi-per">${lista.length} viagens${datas.length?` · ${fmtD(datas[0])} a ${fmtD(datas[datas.length-1])}`:''}</div></div>
+      <button class="mclose" onclick="fecharFicha()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="fi-body">
+      ${lista.length?`
+      <div class="fi-kpis">
+        ${kpi(sla===null?'—':sla+'%','SLA chegada FC',corPct(sla))}
+        ${kpi(ot.otTotal===null?'—':ot.otTotal+'%','OT total',_otCor(ot.otTotal))}
+        ${kpi(atrasoSaida===null?'—':fDiff(atrasoSaida),'Δ médio saída',atrasoSaida>30?'var(--red)':null)}
+        ${kpi(atrasoCheg===null?'—':fDiff(atrasoCheg),'Δ médio chegada',atrasoCheg>30?'var(--red)':null)}
+        ${kpi(usoApp===null?'—':usoApp+'%','Uso do app',corPct(usoApp))}
+        ${kpi(Object.values(ocorr).reduce((a,b)=>a+b,0),'Ocorrências')}
+      </div>
+      <div class="fi-sec"><div class="fi-st">SLA por semana</div><div class="fi-trend">${tendencia}</div></div>
+      <div class="fi-cols">${relHTML}
+        <div class="fi-sec"><div class="fi-st">Ocorrências mais comuns</div>${ocorrArr.length?ocorrArr.map(([t,n])=>`<div class="fi-row"><span>${esc(t)}</span><span class="mono">${n}</span></div>`).join(''):'<p style="color:var(--t3);font-size:.7rem">Nenhuma.</p>'}</div>
+      </div>
+      <div class="fi-sec"><div class="fi-st">Últimas viagens <small>(toque para abrir)</small></div>${ultimas}</div>
+      `:'<p style="color:var(--t3);text-align:center;padding:24px">Nenhuma viagem carregada com esse nome.</p>'}
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('_fichaModal'))fecharFicha();});
+
+// ══════════════════════════════════════════════════════════════════
+// PREVISÃO DE CHEGADA NO FC (ETA) — "vai atrasar?" antes de atrasar
+// Pega o tempo REAL que cada rota costuma levar da saída da TZX até a chegada no FC
+// (mediana das viagens já feitas nos dados carregados, ~90 dias) e soma à saída real
+// da viagem em trânsito. Com menos de 3 viagens de histórico na rota, usa o tempo planejado.
+// Não faz nenhuma consulta nova ao banco: usa só as viagens que já estão na memória.
+// ══════════════════════════════════════════════════════════════════
+// Minutos entre dois horários (aceita data+hora completa ou só HH:MM)
+function _minEntre(a,b){
+  if(!a||!b)return null;
+  if(String(a).length>5&&String(b).length>5){
+    const d=(new Date(b)-new Date(a))/60000;
+    return isNaN(d)?null:Math.round(d);
+  }
+  return dMin(a,b);
+}
+let _cacheTempoRota={chave:'',em:0,mapa:{}};
+// Tempo típico (mediana) de viagem saída→chegada FC por rota. Recalcula no máximo 1x por minuto
+// ou quando as viagens em memória mudam.
+function _tempoTipicoPorRota(){
+  const chave=ops.length+'|'+(typeof _lastSyncAt!=='undefined'?_lastSyncAt:'');
+  if(_cacheTempoRota.chave===chave&&Date.now()-_cacheTempoRota.em<60000)return _cacheTempoRota.mapa;
+  const porRota={};
+  for(const o of ops){
+    if(!o.rota||!o.realSaida||!o.realChegFC)continue;
+    const d=_minEntre(o.realSaida,o.realChegFC);
+    if(d===null||d<20||d>720)continue; // descarta lançamento errado (menos de 20min ou mais de 12h)
+    (porRota[o.rota]=porRota[o.rota]||[]).push(d);
+  }
+  const mapa={};
+  for(const [rota,arr] of Object.entries(porRota)){
+    arr.sort((x,y)=>x-y);
+    const meio=Math.floor(arr.length/2);
+    mapa[rota]={min:arr.length%2?arr[meio]:Math.round((arr[meio-1]+arr[meio])/2),n:arr.length};
+  }
+  _cacheTempoRota={chave,em:Date.now(),mapa};
+  return mapa;
+}
+// Previsão de chegada de uma viagem em trânsito: {eta:Date, atrasoMin, base:'histórico'|'plano', n}
+function _previsaoChegada(op){
+  if(op.status!=='TRAN'||!op.realSaida||op.realChegFC)return null;
+  const saida=String(op.realSaida).length>5?new Date(op.realSaida):resolveDataHoraOp(op,op.realSaida);
+  if(!saida||isNaN(saida.getTime()))return null;
+  const hist=_tempoTipicoPorRota()[op.rota];
+  const plano=dMin(op.planSaida,op.planChegFC);
+  let dur,base,n=0;
+  if(hist&&hist.n>=3){dur=hist.min;base='histórico';n=hist.n;}
+  else if(plano&&plano>0){dur=plano;base='plano';}
+  else return null;
+  const etaCalculada=new Date(saida.getTime()+dur*60000);
+  // Se já passou da previsão e ainda não chegou, a previsão vira "agora" (o atraso continua crescendo)
+  const passou=etaCalculada<new Date();
+  const eta=passou?new Date():etaCalculada;
+  const planejada=op.planChegFC?resolveDataHoraOp(op,op.planChegFC):null;
+  const atrasoMin=planejada?Math.round((eta-planejada)/60000):null;
+  // jaAtrasada: o horário planejado de chegada já passou e a viagem continua em trânsito
+  const jaAtrasada=!!(planejada&&planejada<new Date());
+  return{eta,etaCalculada,passou,jaAtrasada,atrasoMin,base,n};
+}
+// Linha de previsão no cartão do Painel: verde no prazo, amarelo até 30min, vermelho "vai atrasar"
+function _previsaoChegadaHTML(op){
+  const p=_previsaoChegada(op);if(!p)return'';
+  const hhmm=p.eta.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const a=p.atrasoMin;
+  const cor=a===null?'var(--t2)':a<=0?'var(--green)':a<=30?'#d97706':'var(--red)';
+  const dica=p.base==='histórico'?`Baseado no tempo real típico da rota (${p.n} viagens)`:'Sem histórico suficiente da rota — usando o tempo planejado';
+  // Já passou do horário planejado e segue em trânsito: não é "vai atrasar", já está atrasada
+  if(p.jaAtrasada&&a!==null&&a>0)return `<div class="card-eta" style="color:${a>30?'var(--red)':'#d97706'}" title="${dica}">⏳ Atrasada em trânsito · ${fDiff(a)}</div>`;
+  const txt=a===null?'':a<=0?'no prazo':a<=30?`+${a}min`:`vai atrasar +${fDiff(a).replace('+','')}`;
+  return `<div class="card-eta" style="color:${cor}" title="${dica}">🎯 Previsão FC ${hhmm}${txt?' · '+txt:''}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
 // FEATURE: CONTADOR DE TEMPO NO STATUS ATUAL
 // ══════════════════════════════════════════════════════════════════
+// Desde quando a viagem está no status atual. Usa o horário real que marca a entrada no status
+// (apresentação → aguardando carregamento, saída → em trânsito, chegada no FC → aguardando descarga);
+// quando não existe um marco próprio (ex.: em carregamento), usa a última atualização da viagem.
+function _desdeStatusAtual(op){
+  const marco={AGUCARR:op.realApres,TRAN:op.realSaida,AGUDESC:op.realChegFC}[op.status];
+  const txt=marco||op.updatedAt;if(!txt)return null;
+  let d;
+  if(String(txt).length>5)d=new Date(txt); // ISO ou AAAA-MM-DDTHH:MM
+  else{d=resolveDataHoraOp(op,txt);}      // só HH:MM (dado antigo): monta com a data da viagem
+  return d&&!isNaN(d.getTime())?d:null;
+}
+// Nível de "calor" do cartão (0 a 3) pelo tempo parado no status atual. Limites por status:
+// aguardando carregamento 30/60/120min · em carregamento 45/90/150min · aguardando descarga 60/120/240min ·
+// em trânsito compara com o tempo de viagem planejado (80% do plano / passou do plano / plano + 1h).
+function _calorCartao(op){
+  const desde=_desdeStatusAtual(op);if(!desde)return{nivel:0,min:null};
+  const min=Math.floor((Date.now()-desde.getTime())/60000);
+  if(min<0)return{nivel:0,min:null};
+  let lim=null;
+  if(op.status==='AGUCARR')lim=[30,60,120];
+  else if(op.status==='EMCARR')lim=[45,90,150];
+  else if(op.status==='AGUDESC')lim=[60,120,240];
+  else if(op.status==='TRAN'){
+    const plano=dMin(op.planSaida,op.planChegFC);
+    lim=plano&&plano>0?[Math.round(plano*.8),plano,plano+60]:[180,240,360];
+  }
+  if(!lim)return{nivel:0,min};
+  return{nivel:min>=lim[2]?3:min>=lim[1]?2:min>=lim[0]?1:0,min};
+}
+// Linha "há quanto tempo neste status" no cartão do Painel (vermelha no nível mais quente)
 function tempoNoStatus(op){
-  if(!op.updatedAt)return'';
-  const agora=new Date();
-  const desde=new Date(op.updatedAt);
-  const diffMin=Math.floor((agora-desde)/60000);
-  if(diffMin<1)return'';
-  const h=Math.floor(diffMin/60),m=diffMin%60;
+  if(['PROG','FIN','CANC','REC'].includes(op.status))return'';
+  if(op.status==='TRAN'&&CFG.timer&&op.realSaida)return''; // já aparece "Xh em trânsito" no cartão
+  const {nivel,min}=_calorCartao(op);
+  if(min===null||min<1)return'';
+  const h=Math.floor(min/60),m=min%60;
   const txt=h?`${h}h${m.toString().padStart(2,'0')}min`:`${m}min`;
-  // Alerta vermelho se em TRAN ou AGUDESC há muito tempo
-  const alerta=(['TRAN','AGUDESC'].includes(op.status)&&diffMin>180)||
-               (['AGUCARR','EMCARR'].includes(op.status)&&diffMin>60);
-  return`<div style="font-size:.6rem;color:${alerta?'var(--red)':'var(--t3)'};margin-top:2px;display:flex;align-items:center;gap:3px">
-    <span>🕐</span><span>${txt} neste status${alerta?' ⚠':''}</span>
+  const cor=nivel>=3?'var(--red)':nivel===2?'#ea580c':nivel===1?'#d97706':'var(--t3)';
+  return`<div class="card-tempo" style="color:${cor}">
+    <span>${nivel>=2?'🔥':'🕐'}</span><span>${txt} neste status${nivel>=3?' — verificar':''}</span>
   </div>`;
 }
 
@@ -12374,7 +13091,7 @@ function _renderMapaDoca(){
   // Monta lista de docas
   const docas=[];
   for(let i=1;i<=totalDocas;i++){
-    const nome=DOCAS_CONFIG.nomes?.[i]||(DOCAS_CONFIG.prefix||'D')+i;
+    const nome=_nomeDoca(i);
     // Só aparece na doca a viagem Em Carregamento que tem exatamente esta doca vinculada
     const opEmCarr=opsEmCarr.find(o=>o.doca===nome);
     const op=opEmCarr||null; // mostra só os vinculados no mapa
@@ -12912,6 +13629,105 @@ async function _renderOnlinePresence(){
   if(!lista.length){el.innerHTML='';return;}
   el.innerHTML=lista.slice(0,8).map(u=>`<div class="ob-item" title="${esc(u.nome||u.user)} · ${pgL[u.pagina]||'Sistema'}"><div class="ob-av" style="background:${u.cor||'#666'}">${esc(u.av||'?')}<div class="ob-dot"></div></div><div><div class="ob-name">${esc((u.nome||u.user||'').split(' ')[0])}</div><div class="ob-pg">${pgL[u.pagina]||'Sistema'}</div></div></div>`).join('')+
     (lista.length>8?`<span style="font-size:.62rem;color:var(--t2);margin-left:4px">+${lista.length-8}</span>`:'');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PLANTA DO PÁTIO — topo da Gestão de Doca
+// Docas desenhadas como vagas (livre / carregando / retorno de pallets) e, embaixo, a fila de
+// entrada com os caminhões que já se apresentaram. Para encostar: arraste o caminhão até uma
+// doca livre (PC) ou toque no caminhão e depois na doca (tablet). Um caminhão que já está numa
+// doca também pode ser arrastado/tocado para trocar de doca. As regras são as mesmas do resto do
+// app (_encostarNaDoca / atribuirDocaRapido): doca ocupada é bloqueada e tudo fica no histórico.
+// ══════════════════════════════════════════════════════════════════
+let _patioSelecionado=null; // viagem escolhida por toque, esperando o toque na doca
+// Planta do pátio: o usuário pode encostar/trocar caminhão de doca? (não é só leitura e tem permissão de doca
+// ou de status).
+function _podeMexerNoPatio(){return !isReadOnly()&&(hasPerm('doca_atrelar')||hasPerm('viagem_status'));}
+// Planta do pátio: dia escolhido na Gestão de Doca (padrão hoje).
+function _patioDia(){return document.getElementById('yardData')?.value||hojeLocal();}
+// Planta do pátio: monta as vagas das docas e a fila de entrada do dia.
+function _renderPlantaPatio(dia){
+  const pode=_podeMexerNoPatio();
+  const total=DOCAS_CONFIG.total||8;
+  const fila=ops.filter(o=>o.dataOp===dia&&o.status==='AGUCARR')
+    .sort((a,b)=>(resolveDataHoraOp(a,a.planApres)?.getTime()??Infinity)-(resolveDataHoraOp(b,b.planApres)?.getTime()??Infinity));
+  const agora=new Date();
+  const fmt=m=>{if(m===null||m<0)return'—';const h=Math.floor(m/60),mm=m%60;return h?`${h}h${String(mm).padStart(2,'0')}`:`${mm}min`;};
+  let livres=0;
+  const vagas=Array.from({length:total},(_,i)=>_nomeDoca(i+1)).map(doca=>{
+    const oc=_ocupanteDaDoca(doca,dia,null);
+    if(!oc){livres++;
+      return `<div class="pp-doca pp-livre${_patioSelecionado?' pp-alvo':''}" data-doca="${esc(doca)}"
+        ondragover="event.preventDefault();this.classList.add('pp-over')" ondragleave="this.classList.remove('pp-over')"
+        ondrop="_patioDrop(event,this.dataset.doca)" onclick="_patioTocarDoca(this.dataset.doca)">
+        <div class="pp-nome">${esc(doca)}</div><div class="pp-livre-txt">LIVRE</div></div>`;}
+    if(oc.tipo==='pal')return `<div class="pp-doca pp-pal"><div class="pp-nome">${esc(doca)}</div>
+      <div class="pp-cam-na-doca"><b>Retorno ${esc(oc.p.fc)}</b><span>${esc(oc.p.placa||'—')}</span><small>descarregando pallets</small></div></div>`;
+    const op=oc.op;const calor=_calorCartao(op);
+    const sel=_patioSelecionado===op.id?' pp-sel':'';
+    return `<div class="pp-doca pp-ocupada heat-${calor.nivel}${sel}"><div class="pp-nome">${esc(doca)}</div>
+      <div class="pp-cam-na-doca" draggable="${pode}" ondragstart="_patioDragStart(event,'${esc(op.id)}')" onclick="_patioTocarCaminhao('${esc(op.id)}')">
+        <b>${esc(op.codigoCurto||op.id)}</b><span>${esc(op.placa||'—')}</span><small>${esc(op.rota)} · carregando há ${fmt(calor.min)}</small></div></div>`;
+  }).join('');
+  const chips=fila.length?fila.map(op=>{
+    const prev=op.planApres?resolveDataHoraOp(op,op.planApres):null;
+    const passou=prev&&prev<agora;
+    return `<div class="pp-cam${_patioSelecionado===op.id?' pp-sel':''}${passou?' pp-atras':''}" draggable="${pode}"
+      ondragstart="_patioDragStart(event,'${esc(op.id)}')" onclick="_patioTocarCaminhao('${esc(op.id)}')" title="${esc(op.rota)} · ${esc(op.transp||'')} · ${esc(op.mot||'')}">
+      <b>${esc(op.placa||'—')}</b><span>${esc(op.codigoCurto||op.id)}</span><small>encosta ${esc(op.planApres||'—')}${passou?' · passou':''}</small></div>`;}).join('')
+    :'<div class="pp-vazia">Ninguém aguardando para encostar</div>';
+  return `<div class="an-card pp" style="margin:0">
+    <h3 style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+      <span>Planta do pátio — docas de carregamento</span>
+      <small class="pp-dica">${pode?(_patioSelecionado?'Agora toque numa doca LIVRE (ou no mesmo caminhão para cancelar)':'Arraste um caminhão até uma doca livre — no tablet, toque no caminhão e depois na doca'):'Somente visualização'}</small>
+    </h3>
+    <div class="pp-docas">${vagas}</div>
+    <div class="pp-entrada"><div class="pp-rot">Fila de entrada <span>${fila.length} aguardando · ${livres} doca${livres===1?'':'s'} livre${livres===1?'':'s'}</span></div>
+      <div class="pp-fila">${chips}</div></div>
+  </div>`;
+}
+// Planta do pátio: redesenha só a planta (sem redesenhar a Gestão de Doca inteira).
+function _atualizarPlantaPatio(){const w=document.getElementById('plantaPatioWrap');if(w)w.innerHTML=_renderPlantaPatio(_patioDia());}
+// Planta do pátio: começou a arrastar um caminhão (só se tiver permissão).
+function _patioDragStart(e,opId){
+  if(!_podeMexerNoPatio()){e.preventDefault();return;}
+  _patioSelecionado=opId;
+  try{e.dataTransfer.setData('text/plain',opId);e.dataTransfer.effectAllowed='move';}catch(err){}
+}
+// Planta do pátio: soltou o caminhão numa doca livre.
+function _patioDrop(e,doca){
+  e.preventDefault();
+  const id=(e.dataTransfer&&e.dataTransfer.getData('text/plain'))||_patioSelecionado;
+  _patioSelecionado=null;
+  if(id)_patioEncostar(id,doca);else _atualizarPlantaPatio();
+}
+// Planta do pátio (toque): seleciona/desseleciona o caminhão; sem permissão, abre a viagem.
+function _patioTocarCaminhao(opId){
+  if(!_podeMexerNoPatio()){openEdit(opId);return;}
+  _patioSelecionado=_patioSelecionado===opId?null:opId;
+  _atualizarPlantaPatio();
+}
+// Planta do pátio (toque): com um caminhão selecionado, toca na doca livre para encostar.
+function _patioTocarDoca(doca){
+  if(!_patioSelecionado)return;
+  const id=_patioSelecionado;_patioSelecionado=null;
+  _patioEncostar(id,doca);
+}
+// Executa a ação: caminhão da fila → encosta (vira Em Carregamento); caminhão numa doca → troca de doca
+async function _patioEncostar(opId,doca){
+  _patioSelecionado=null; // qualquer que seja o caminho (arrastar ou tocar), a seleção termina aqui
+  const op=ops.find(o=>o.id===opId);
+  if(!op||!_podeMexerNoPatio()){_atualizarPlantaPatio();return;}
+  const nome=`${op.codigoCurto||op.id} (${op.placa||'—'})`;
+  if(op.status==='AGUCARR'){
+    if(!confirm(`Encostar ${nome} na ${doca}?\nA viagem passa para Em Carregamento.`)){_atualizarPlantaPatio();return;}
+    await _encostarNaDoca(op,doca);
+    renderProg();
+  }else if(op.status==='EMCARR'){
+    if(op.doca===doca){_atualizarPlantaPatio();return;}
+    if(!confirm(`Trocar ${nome} da ${op.doca||'—'} para a ${doca}?`)){_atualizarPlantaPatio();return;}
+    await atribuirDocaRapido(op.id,doca);
+  }else _atualizarPlantaPatio();
 }
 
 // ══════════════════════════════════════════════════════════════════
