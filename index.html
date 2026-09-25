@@ -284,6 +284,33 @@ body.sidebar-open #sidebarBackdrop{display:block;}
 .c-red .v{color:var(--red);}.c-or .v{color:var(--orange);}.c-ye .v{color:var(--yellow);}
 .c-gr .v{color:var(--green);}.c-bl .v{color:var(--blue);}.c-pu .v{color:var(--purple);}.c-gy .v{color:var(--gray);}
 
+/* KPI v347 — cartão com faixa de cor no topo, número em destaque */
+.kpi-bar{gap:8px;padding:10px 16px;}
+.kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:9px 12px 8px;text-align:left;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;left:0;top:0;right:0;height:3px;background:currentColor;opacity:.9;}
+.kpi .v{font-size:1.45rem;}
+.kpi .l{font-size:.56rem;margin-top:4px;line-height:1.2;}
+.kpi:hover{border-color:var(--bd);box-shadow:var(--sh2);}
+.kpi.c-red{color:var(--red);}.kpi.c-or{color:var(--orange);}.kpi.c-ye{color:var(--yellow);}.kpi.c-gr{color:var(--green);}.kpi.c-bl{color:var(--blue);}.kpi.c-pu{color:var(--purple);}.kpi.c-gy{color:var(--gray);}
+body.dark .kpi{background:var(--bg2);}
+/* Topo: bolinha de conexão, aba atual e selo do operador */
+.sidebar-toggle-btn{position:relative;}
+.conn-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--t3);border:2px solid var(--bg2);}
+.conn-dot.ok{background:#22c55e;}
+.conn-dot.warn{background:#f59e0b;}
+.conn-dot.err{background:#ef4444;animation:pulse 1s infinite;}
+.tb-page{font-family:var(--font-h);font-weight:800;font-size:.9rem;color:var(--t2);margin-left:14px;padding-left:14px;border-left:1px solid var(--bd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+.topbar{border-bottom-width:2px;}
+.tb-oper{background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:4px 10px;font-size:.7rem;font-weight:700;color:var(--text);cursor:pointer;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis;font-family:inherit;}
+/* Kanban: colunas e cartões mais limpos */
+.col{border-width:1px;border-radius:12px;box-shadow:none;background:var(--bg3);}
+.col-hdr{background:var(--bg3);padding:10px 12px;}
+.col-body{padding:8px;gap:8px;}
+.card{border-width:1px;border-radius:10px;padding:10px 11px;box-shadow:0 1px 2px rgba(16,24,40,.05);}
+.card:hover,.card:active{border-color:var(--bd);box-shadow:0 6px 16px rgba(16,24,40,.10);}
+.card.r-late{border-left:3px solid var(--red);}
+.card.r-warn{border-left:3px solid #f59e0b;}
+.f-toggle{display:none;}
 /* TOOLBAR */
 .toolbar{padding:7px 16px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--bg2);border-bottom:1px solid var(--bd);}
 .toolbar input,.toolbar select{background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:4px 8px;font-size:.75rem;outline:none;transition:.15s;}
@@ -626,7 +653,16 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   .logo-txt small{display:none;}
   .painel-wrap{padding:8px 10px;padding-bottom:70px;}
   .lt-wrap{padding:8px 10px;padding-bottom:70px;}
-  .view>div{padding-bottom:70px!important;}
+  /* respiro pra barra inferior fica no fim da tela (antes cada bloco ganhava 70px e sobrava vão embaixo de filtros/cabeçalhos) */
+  .view{padding-bottom:74px;}
+  .kpi{flex:0 0 auto;min-width:96px;}
+  .tb-page{display:none;}
+  .tb-oper{max-width:92px;font-size:.66rem;padding:4px 8px;}
+  .topbar-r{gap:4px;}
+  .topbar .logo-txt{font-size:.85rem;}
+  .f-toggle{display:inline-flex;align-items:center;}
+  #view-painel .toolbar:not(.f-open) select,#view-painel .toolbar:not(.f-open) input[type="date"],#view-painel .toolbar:not(.f-open) .btn-s{display:none;}
+  #view-painel .toolbar #sQ{flex:1 1 auto;}
   .admin-grid{padding:10px;padding-bottom:70px;}
   .fgrid.c3{grid-template-columns:1fr 1fr;}
   .col{width:240px;}
@@ -758,10 +794,12 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:8px">
-    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Menu">☰<span class="conn-dot" id="connDot"></span></button>
     <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v287</span></div></div>
   </div>
+  <span class="tb-page" id="tbPage"></span>
   <div class="topbar-r">
+    <button class="tb-oper" id="tbOper" onclick="toggleSidebar()" style="display:none" title="Operador atual — toque para trocar"></button>
     <button class="btn btn-g" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)" style="font-size:.85rem">🔍</button>
     <button class="btn btn-p" onclick="openNew()" id="newOpBtn">+</button>
   </div>
@@ -775,6 +813,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div class="kpi-bar" id="kpiBar"></div>
   <div class="toolbar">
     <input id="sQ" placeholder="🔍 VG, ID, placa, motorista, SM..."/>
+    <button class="btn btn-g f-toggle" onclick="this.parentElement.classList.toggle('f-open')" title="Mostrar/ocultar filtros">Filtros ▾</button>
     <select id="fRo" onchange="render()"><option value="">Todas as Rotas</option></select>
     <select id="fSt" onchange="render()"><option value="">Todos os Status</option></select>
     <select id="fTr" onchange="render()"><option value="">Todas as Transportadoras</option></select>
@@ -2065,11 +2104,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v346';
+const APP_VERSION='v347';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v347:['🟢 Bolinha no botão ☰ mostra a conexão sem abrir a gaveta: verde = tudo ok, laranja = sem tempo real (atualiza a cada 45s), vermelha piscando = sem banco.','👤 Login compartilhado: o nome de quem está operando aparece de novo no topo (toque nele pra abrir a gaveta e trocar).','🧭 Nome da aba atual aparece no topo, ao lado do logo (PC).','📊 Indicadores do Painel e de CAFs redesenhados: faixa de cor no topo, número maior, sem emoji dentro do número.','🗂️ Painel (kanban): colunas e cartões com visual mais limpo, bordas finas e sombra suave.','📱 Celular/tablet: acabou o espaço vazio enorme embaixo dos indicadores, filtros e cabeçalhos (CAFs, Pallets, Painel...). No Painel, os filtros ficam recolhidos num botão "Filtros ▾" — a busca continua sempre à vista.'],
   v346:['🗂️ Barra do topo mais limpa: hora, status de conexão (Live/banco), quem está online, operador/trocar operador, usuário, tema claro/escuro e Sair foram pra dentro da gaveta lateral (☰), no rodapé dela. No topo ficam só ☰, logo, busca e + nova viagem.','📱 Celular/tablet: a gaveta ☰ agora também abre no celular (com todas as abas + hora, status, usuário e Sair). A barra inferior e a bolha ⋯ continuam iguais.','🚚 Painel de Descarga e Report PCP agora aparecem no celular (barra inferior ou bolha ⋯, conforme o perfil) — antes só existiam no PC.'],
   v345:['📈 Aba Análise reestruturada: em vez de 27 quadros num scroll só, agora tem um resumo fixo no topo (SLA de chegada no FC em destaque + total, finalizadas, fora do prazo, Δ saída, Δ chegada e tempo de doca) e os quadros foram separados em seções — Visão Geral, Pontualidade, Descarga & Doca, CAFs, Operação & Frota e Monte sua Análise. Gráficos repaginados: medidores em anel nos SLAs e OT, rosca com total no centro na distribuição por status/tipo, barras mais finas e legíveis, SLA por Rota com barra de progresso e farol em bolinha, Últimos 7 dias com o dia de hoje destacado, listas longas (motoristas, veículos sem cadastro) com rolagem própria. Corrigido "++1h" duplicado no Top Atrasos no FC e o NaN no Comparativo Semanal. Nenhum quadro foi removido, todos continuam calculando igual; a seção escolhida fica lembrada na próxima vez.',
     '🚪 Gestão de Doca ganhou o painel "Fila de Carregamento": quem está aguardando encostar, horário previsto e há quanto tempo espera, em vermelho quando já passou do horário.',
@@ -2475,7 +2515,26 @@ async function checkSupabase(){
   try{await sbFetch(`${TABELA}?limit=1`);setDbStatus('ok','Online ✓');supabaseOK=true;return true;}
   catch(e){setDbStatus('off','Offline');supabaseOK=false;return false;}
 }
-function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.getElementById('dbLbl');if(d)d.className='dbd '+t;if(lb)lb.textContent=l;supabaseOK=(t==='ok');}
+function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.getElementById('dbLbl');if(d)d.className='dbd '+t;if(lb)lb.textContent=l;supabaseOK=(t==='ok');_atualizarConnDot();}
+// Bolinha no botão ☰: verde = banco + tempo real ok · laranja = só banco (sync a cada 45s) · vermelha = banco fora
+function _atualizarConnDot(){
+  const el=document.getElementById('connDot');if(!el)return;
+  let rt=false;try{rt=_ablyOK;}catch(e){}
+  const st=!supabaseOK?'err':rt?'ok':'warn';
+  el.className='conn-dot '+st;
+  const b=el.parentElement;if(b)b.title=st==='ok'?'Menu · conectado (tempo real)':st==='warn'?'Menu · conectado sem tempo real (atualiza a cada 45s)':'Menu · SEM conexão com o banco';
+}
+// Espelha "Operando: Fulano" (login compartilhado) num selo no topo, visível sem abrir a gaveta
+(function(){
+  const sync=()=>{const src=document.getElementById('statusOperador'),dst=document.getElementById('tbOper');if(!src||!dst)return;
+    const txt=(src.textContent||'').trim();const vis=src.style.display!=='none'&&txt;
+    dst.style.display=vis?'':'none';
+    const nome=vis?txt.replace(/^Operando:\s*/,'').split(' (')[0]:'';
+    dst.textContent=vis?'👤 '+nome:'';dst.title=vis?txt+' — toque para trocar':'';};
+  const init=()=>{const src=document.getElementById('statusOperador');if(!src)return;
+    new MutationObserver(sync).observe(src,{attributes:true,childList:true,characterData:true,subtree:true});sync();};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 
 // Timestamp da última sincronização com o banco
 let _lastSyncAt=null;
@@ -3610,9 +3669,9 @@ function renderKPIs(){
     {cl:'c-bl',v:c('TRAN'),l:'Em Trânsito'},{cl:'c-pu',v:c('AGUDESC'),l:'Ag.Descarga'},
     {cl:'c-gr',v:c('FIN'),l:'Finalizado'},{cl:'c-red',v:c('CANC')+c('REC'),l:'Canc/Recusado'},
   ].map(k=>`<div class="kpi ${k.cl}"><div class="v">${k.v}</div><div class="l">${k.l}</div></div>`).join('')
-  +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">🔄 ${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`
-  +`<div class="kpi ${insAlertas?'c-red':'c-gy'}" onclick="setView('insumos')" style="cursor:pointer" title="Ir para Insumos HUB"><div class="v">🧰 ${insAlertas}</div><div class="l">Insumos no Limite</div></div>`
-  +`<div class="kpi ${placasSemCadastro.size?'c-red':'c-gy'}" onclick="setView('analise')" style="cursor:pointer" title="Ver quais placas faltam cadastrar"><div class="v">🚛 ${placasSemCadastro.size}</div><div class="l">Veículos s/ Cadastro</div></div>`;
+  +`<div class="kpi ${palDivergencia?'c-red':'c-or'}" onclick="setView('pallets')" style="cursor:pointer" title="Ir para Retorno de Pallets"><div class="v">${palPendentes}</div><div class="l">Retorno Pallets${palDivergencia?' · '+palDivergencia+' diverg.':''}</div></div>`
+  +`<div class="kpi ${insAlertas?'c-red':'c-gy'}" onclick="setView('insumos')" style="cursor:pointer" title="Ir para Insumos HUB"><div class="v">${insAlertas}</div><div class="l">Insumos no Limite</div></div>`
+  +`<div class="kpi ${placasSemCadastro.size?'c-red':'c-gy'}" onclick="setView('analise')" style="cursor:pointer" title="Ver quais placas faltam cadastrar"><div class="v">${placasSemCadastro.size}</div><div class="l">Veículos s/ Cadastro</div></div>`;
 }
 
 function _quickStatusBtns(op){
@@ -5870,6 +5929,7 @@ document.addEventListener('keydown',e=>{
 // NAV
 // ══════════════════════════════════════════════════════════════════
 function setView(name){
+  try{const t=document.getElementById('tb-'+name),el=document.getElementById('tbPage');if(el)el.textContent=t?t.textContent.replace(/^[^A-Za-zÀ-ú0-9]+/,'').trim():'';}catch(e){}
   _setFiltrosHoje(); // garante data de hoje nos filtros vazios
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.tab,.mnav-btn,.tab-drop-btn').forEach(b=>b.classList.remove('active'));
@@ -12608,6 +12668,7 @@ function _publishAbly(event,data={}){
 }
 
 function _updateRTIndicator(){
+  _atualizarConnDot();
   const el=document.getElementById('rtIndicator');
   if(!el)return;
   // Verde: Ably conectado (melhor) ou WS Supabase ativo (fallback)
