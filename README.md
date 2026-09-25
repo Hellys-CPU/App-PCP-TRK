@@ -2,7 +2,7 @@
 
 Sistema de gestão de PCP (Planejamento e Controle de Produção) logística do hub **TZX**, usado pelo time de Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF e Liderança.
 
-> **Versão atual: v349** · Aplicativo single-file (HTML/CSS/JS), sem build step, sem framework.
+> **Versão atual: v351** · Aplicativo single-file (HTML/CSS/JS), sem build step, sem framework.
 >
 > **Onde está cada coisa:** o `<script>` principal do `index.html` começa com um **MAPA DO CÓDIGO** listando as seções na ordem em que aparecem; cada função tem um comentário curto explicando o que faz.
 

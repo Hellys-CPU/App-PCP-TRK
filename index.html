@@ -330,6 +330,18 @@ body.sidebar-open #sidebarBackdrop{display:block;}
 .card.heat-3{background:linear-gradient(180deg,rgba(239,68,68,.20),var(--bg2) 65%);border-color:rgba(239,68,68,.55);animation:heatPulse 2.4s ease-in-out infinite;}
 @keyframes heatPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 0 4px rgba(239,68,68,.18)}}
 .card-tempo{font-size:.62rem;font-weight:700;margin-top:4px;display:flex;align-items:center;gap:4px;}
+/* Faixa "Conferir dados" (viagem esquecida / placa repetida) no topo do Painel */
+.adq{background:rgba(124,58,237,.07);border-bottom:1px solid rgba(124,58,237,.3);}
+.adq-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background:none;border:none;padding:9px 16px;font-family:inherit;font-size:.76rem;font-weight:700;color:#6d28d9;cursor:pointer;text-align:left;}
+.adq-head b{white-space:nowrap;}
+.adq-body{padding:0 16px 12px;display:flex;flex-direction:column;gap:4px;max-height:320px;overflow-y:auto;}
+.adq-st{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin:8px 0 2px;}
+.adq-item{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:.74rem;}
+.adq-item:hover{border-color:#7c3aed;}
+.adq-item span{font-family:var(--font-mono);color:var(--blue);font-weight:700;}
+.adq-item small{color:var(--t2);flex:1 1 220px;}
+body.dark .adq-head{color:#c4b5fd;}
+.ab.ab-motivo{background:rgba(124,58,237,.10);color:#7c3aed;border:1px dashed rgba(124,58,237,.5);}
 .card-eta{font-size:.64rem;font-weight:800;margin-top:3px;font-family:var(--font-mono);}
 /* Chegada: cartão que acabou de mudar de coluna entra deslizando com um contorno azul que some */
 .card.card-chegou{animation:cardChegou .55s cubic-bezier(.2,.8,.2,1),cardRealce 1.8s ease-out;}
@@ -458,6 +470,17 @@ body.dark .countdown{color:#58a6ff;}
 .fi-tipo{font-size:.6rem;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:1px;}
 .fi-nome{font-family:var(--font-h);font-size:1.25rem;font-weight:800;color:var(--text);}
 .fi-per{font-size:.68rem;color:var(--t2);margin-top:2px;}
+.fi-nota{text-align:center;background:var(--bg3);border-radius:10px;padding:6px 10px;}
+.fi-nota b{display:block;font-family:var(--font-h);font-size:1.5rem;line-height:1;}
+.fi-nota span{font-size:.55rem;color:var(--t3);text-transform:uppercase;font-weight:700;}
+.fi-acoes{padding:10px 18px 0;}
+.nt-lista{display:flex;flex-direction:column;gap:6px;}
+.nt-row{display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:10px;padding:8px 12px;}
+.nt-pos{font-weight:800;color:var(--t3);width:26px;}
+.nt-nome{flex:1;min-width:0;font-weight:700;font-size:.85rem;}
+.nt-nome small{display:block;font-weight:500;font-size:.62rem;color:var(--t2);margin-top:2px;}
+.nt-nota{font-family:var(--font-h);font-size:1.6rem;font-weight:800;width:52px;text-align:right;}
+.nt-tend{font-family:var(--font-mono);font-size:.72rem;font-weight:800;width:44px;}
 .fi-body{padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
 .fi-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;}
 .fi-kpi{background:var(--bg3);border-radius:10px;padding:10px 12px;}
@@ -501,6 +524,18 @@ body.dark .countdown{color:#58a6ff;}
 .pp-cam span{font-size:.68rem;font-weight:700;color:var(--red);}
 .pp-cam small{font-size:.6rem;color:var(--t2);}
 .pp-cam.pp-atras{border-left-color:var(--red);background:var(--red3);}
+.sug{background:var(--blue2);border:1px solid rgba(37,99,235,.3);color:var(--text);border-radius:8px;padding:8px 10px;font-size:.72rem;margin:4px 0 8px;line-height:1.5;}
+.sug.ok{background:var(--green2);border-color:rgba(22,163,74,.3);}
+.sug .btn{margin-left:6px;font-size:.68rem;padding:3px 8px;}
+.pd-prev{margin-top:14px;}
+.pd-aviso{font-size:.72rem;color:var(--t2);margin-bottom:8px;}
+.pd-barras{display:flex;gap:4px;align-items:flex-end;overflow-x:auto;padding-bottom:2px;}
+.pd-col{flex:1 0 30px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.pd-bar{position:relative;width:100%;max-width:34px;height:70px;background:var(--bg3);border-radius:6px;display:flex;align-items:flex-end;overflow:hidden;}
+.pd-bar i{display:block;width:100%;border-radius:6px 6px 0 0;}
+.pd-bar s{position:absolute;left:0;right:0;height:2px;background:var(--text);opacity:.6;}
+.pd-col b{font-family:var(--font-mono);font-size:.66rem;}
+.pd-col span{font-size:.56rem;color:var(--t3);font-family:var(--font-mono);}
 .pp-vazia{font-size:.72rem;color:var(--t3);padding:10px 4px;}
 @media(max-width:768px){.pp-docas{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));}.pp-doca{min-height:100px;}}
 
@@ -682,6 +717,17 @@ body.dark .an-card h3{color:var(--gray2);}
 #analiseGrid .pizza-pct{font-family:var(--font-mono);}
 @media(max-width:768px){.an-ring{width:92px;height:92px;}.an-gauge.on .an-ring{width:104px;height:104px;}.an-gauges{grid-template-columns:repeat(2,minmax(0,1fr));}.an-gauges.g3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.an-gauges.g3 .an-ring{width:80px;height:80px;}.an-gauges.g3 .an-gauge{padding:12px 4px 10px;}#analiseGrid .bar7-wrap{gap:4px;}}
 
+/* Análise — meta por rota no mês e comparação de períodos */
+.mr-lista{display:flex;flex-direction:column;gap:8px;}
+.mr-row{display:grid;grid-template-columns:90px minmax(120px,1fr) 48px minmax(180px,1.2fr);gap:10px;align-items:center;font-size:.74rem;}
+.mr-bar{position:relative;height:10px;background:var(--bg3);border-radius:99px;}
+.mr-bar div{height:100%;border-radius:99px;}
+.mr-bar i{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);border-radius:2px;}
+.mr-num{font-family:var(--font-mono);font-weight:800;text-align:right;}
+.mr-txt{color:var(--t2);font-size:.7rem;}
+@media(max-width:700px){.mr-row{grid-template-columns:80px 1fr 44px;}.mr-txt{grid-column:1/-1;margin-top:-4px;}}
+.cmp-datas{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:10px;font-size:.72rem;font-weight:700;color:var(--t2);}
+.cmp-datas input{background:var(--bg3);border:1px solid var(--bd);border-radius:6px;color:var(--text);padding:4px 6px;font-size:.72rem;}
 /* Análise — mapa dia × horário dos atrasos */
 .hm-grid{display:grid;grid-template-columns:38px repeat(12,minmax(26px,1fr));gap:3px;min-width:420px;}
 .hm-h{font-size:.56rem;color:var(--t3);text-align:center;font-family:var(--font-mono);}
@@ -944,6 +990,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="sb-user">
       <div class="uav" id="uAv">?</div>
       <div class="sb-user-txt"><div class="uname" id="uName">...</div><div class="sb-perfil" id="uPerfil"></div></div>
+      <button class="theme-toggle" id="notifBtn" onclick="toggleNotificacoes()" title="Avisos do navegador quando a aba está em segundo plano">🔕</button>
       <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Tema claro/escuro">🌙</button>
       <button class="sb-sair" onclick="doLogout()" title="Sair do sistema">Sair</button>
     </div>
@@ -969,6 +1016,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- PAINEL -->
 <div class="view active" id="view-painel">
+  <div id="alertasDados"></div>
   <div class="kpi-bar" id="kpiBar"></div>
   <div class="toolbar">
     <input id="sQ" placeholder="🔍 VG, ID, placa, motorista, SM..."/>
@@ -1169,6 +1217,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
         <div class="fg"><label>Saída</label><input type="time" id="mhSaida" class="mi" style="width:90px"></div>
         <div class="fg"><label>Cheg. FC</label><input type="time" id="mhFC" class="mi" style="width:90px"></div>
         <button class="btn btn-p" style="font-size:.73rem" onclick="aplicarHorariosMassa()">▶ Aplicar em todas</button>
+        <button class="btn btn-g" style="font-size:.73rem" onclick="sugerirHorariosMassa()" title="Recalcula saída e apresentação de cada linha pelo tempo real que a rota costuma levar">💡 Ajustar pelo tempo real da rota</button>
         <span style="font-size:.68rem;color:var(--t2)">Preenche todas as linhas com os mesmos horários planejados</span>
       </div>
     </div>
@@ -2291,11 +2340,23 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v350';
+const APP_VERSION='v351';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v351:[
+    '🚦 Checagem antes da saída: ao marcar Em Trânsito (botão, arrastar ou salvar), o app lista o que falta — motorista, placa, carreta, horário real de saída, CAF sem pallets ou ainda em produção — e pergunta se quer seguir mesmo assim.',
+    '📝 Motivo de atraso: cartão com atraso de 30min+ sem motivo ganha o selo "sem motivo"; ao salvar a viagem o app lembra e já leva ao campo, que aparece sozinho assim que o atraso é digitado.',
+    '🔎 Faixa "Conferir dados" no topo do Painel: viagem esquecida (em trânsito muito depois da chegada prevista, ou programada de dia que já passou) e placa repetida em duas viagens ativas. Toque para abrir a viagem; dá pra recolher.',
+    '⭐ Nota da transportadora (0–100) em Análise → Operação & Frota: SLA, OT, uso do app, ocorrências e atraso médio dos últimos 30 dias, com a variação contra os 30 anteriores. A nota também aparece na ficha.',
+    '📄 Ficha da transportadora/motorista: botão "Relatório da semana (PDF)" com os números dos últimos 7 dias e a lista das viagens.',
+    '🎯 Pontualidade: "Meta de SLA por rota — mês atual", mostrando quanto falta (em viagens seguidas no prazo) para cada rota bater a meta.',
+    '⚖️ Visão Geral: "Comparar dois períodos" — escolha as datas de A e B e veja viagens, SLA, OT, atraso médio e descarga lado a lado, com a diferença.',
+    '💡 Sugestão de horário: no formulário da viagem, com rota e chegada no FC preenchidas, o app sugere apresentação e saída pelo tempo real da rota (botão "Usar"). Na Programação em Massa, botão "Ajustar pelo tempo real da rota".',
+    '🅿️ Planta do pátio: previsão de docas lotadas por hora do dia, a partir das viagens programadas.',
+    '🔔 Avisos do navegador (opcional, por aparelho): no 🔕 da conta. Com a aba em segundo plano, avisa descarga parada há mais de 4h, chegada no FC que vai atrasar 30min+ e saída 30min+ atrasada. Tocar no aviso abre a viagem.'
+  ],
   v350:['🚚 Análise → Operação & Frota: novo quadro "Transportadoras × Rotas — quem mais atua". Ranking das transportadoras por número de viagens no período, % do total, quantas rotas cada uma atende, rota principal e SLA de chegada; embaixo, a matriz transportadora × rota (mais escuro = mais viagens) e a transportadora dominante de cada rota. Nome clicável abre a ficha. Respeita o filtro de período e transportadora da Análise.'],
   v349:[
     '🧭 Linha do tempo da viagem: no topo do modal aparece Apresentação → Saída TZX → Chegada FC → Descarga com o horário planejado, o real e a diferença de cada etapa, e quanto tempo cada trecho levou contra o plano. Verde no prazo, amarelo até 30min, vermelho acima; azul pulsando = etapa atual. Atualiza enquanto você digita os horários.',
@@ -3377,6 +3438,7 @@ async function bootApp(){
     try{
       if(CFG.timer||CFG.countdown)renderPainel();
       checkAlertas();
+      checkNotificacoes();
       checkCAFsSemBaixa();
     }catch(e){console.warn('timerTick:',e);}
   },60000);
@@ -3922,7 +3984,7 @@ function clrF(){['fRo','fSt','fTr','fTp','fData'].forEach(i=>{const e=document.g
 // a atualização das outras (ex: um erro no Report PCP não pode deixar o Painel travado
 // mostrando dado velho até o próximo F5).
 function render(){
-  const steps=[buildSels,renderKPIs,renderPainel,renderList,renderListaPallets,renderProg,renderDayBanner];
+  const steps=[buildSels,renderKPIs,renderAlertasDados,renderPainel,renderList,renderListaPallets,renderProg,renderDayBanner];
   if(curPage==='analise')steps.push(renderAnalise);
   steps.forEach(fn=>{try{fn();}catch(e){console.error('render() falhou em',fn.name,e);}});
 }
@@ -4058,6 +4120,7 @@ function cardHTML(op){
       const otV=(otS!==null&&otC!==null)?Math.round((otS+otC)/2):(otS??otC);
       return otV!==null?`<span class="ab" style="background:${_otCor(otV)}22;color:${_otCor(otV)};border:1px solid ${_otCor(otV)}66">OT ${otV}%</span>`:'';
     })()}
+    ${_seloSemMotivo(op)}
     ${tempoNoStatus(op)}
     ${_quickStatusBtns(op)}
   </div>`;
@@ -5203,6 +5266,7 @@ async function onDrop(e,sid){
     if(sid==='TRAN'&&(!op.cafs||!op.cafs.length)){
       showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');dragged=null;return;
     }
+    if(sid==='TRAN'&&!_confirmarSaida(op,(op.cafs||[]).map(c=>c.num))){dragged=null;return;}
     const prevStatus=op.status;
     if(sid==='TRAN'){alertaCAFsTransito(op);_liberarDoca(op);}
     const p=stObj(op.status).lb,who=currentUser?currentUser.nome:'Sistema';
@@ -5840,6 +5904,51 @@ function _atualizarTimelineDoForm(){
     realApres:v('fRA'),realSaida:v('fRS'),realChegFC:v('fRC'),realDescarga:v('fRD')
   });
 }
+// ── SUGESTÃO DE HORÁRIO — usa o tempo REAL da rota em vez da regra fixa (saída = FC − 1h, apresentação = FC − 3h)
+// Tempo típico (mediana) entre apresentação e saída real, nas viagens já feitas (qualquer rota)
+function _tempoTipicoCarregamento(){
+  const arr=ops.map(o=>_minEntre(o.realApres,o.realSaida)).filter(v=>v!==null&&v>=10&&v<=600).sort((a,b)=>a-b);
+  if(arr.length<5)return null;
+  const m=Math.floor(arr.length/2);return arr.length%2?arr[m]:Math.round((arr[m-1]+arr[m])/2);
+}
+// Para chegar no FC no horário pedido: {saida, apres, viagem(min), carreg(min), n} ou null sem histórico suficiente
+function _sugestaoHorario(rota,planChegFC){
+  if(!rota||!planChegFC)return null;
+  const t=_tempoTipicoPorRota()[rota];
+  if(!t||t.n<3)return null;
+  const carreg=_tempoTipicoCarregamento()||120;
+  const saida=subMin(planChegFC,t.min);
+  return{saida,apres:subMin(saida,carreg),viagem:t.min,carreg,n:t.n};
+}
+// Modal da viagem: dica embaixo dos horários planejados (atualiza enquanto digita)
+function _atualizarSugestaoHorario(){
+  const el=document.getElementById('sugestaoHorario');if(!el)return;
+  const v=id=>document.getElementById(id)?.value||'';
+  const sug=_sugestaoHorario(v('fRota'),v('fPC'));
+  if(!sug){el.innerHTML='';return;}
+  const atual=v('fPS');
+  const dif=atual?dMin(sug.saida,atual):null; // positivo = saída planejada depois da sugerida (vai chegar tarde)
+  if(dif!==null&&Math.abs(dif)<15){el.innerHTML=`<div class="sug ok">✓ Saída planejada compatível com o tempo real da rota (${_tlDuracao(sug.viagem)}, ${sug.n} viagens).</div>`;return;}
+  el.innerHTML=`<div class="sug">💡 Pelo tempo real da rota (${_tlDuracao(sug.viagem)} de viagem, mediana de ${sug.n} viagens) e ${_tlDuracao(sug.carreg)} de carregamento,
+    para chegar no FC às <b>${esc(v('fPC'))}</b> o ideal é <b>apresentação ${sug.apres}</b> e <b>saída ${sug.saida}</b>${dif!==null&&dif>0?` — com a saída às ${esc(atual)} a viagem deve chegar ~${dif}min atrasada`:''}.
+    <button type="button" class="btn btn-g" onclick="_usarSugestaoHorario()">Usar sugestão</button></div>`;
+}
+// Preenche apresentação e saída planejadas com a sugestão mostrada.
+function _usarSugestaoHorario(){
+  const v=id=>document.getElementById(id)?.value||'';
+  const sug=_sugestaoHorario(v('fRota'),v('fPC'));if(!sug)return;
+  document.getElementById('fPS').value=sug.saida;document.getElementById('fPA').value=sug.apres;
+  calcD();showToast('Horários ajustados pelo tempo real da rota','ok');
+}
+// Programação em Massa: recalcula saída e apresentação de todas as linhas pelo tempo real de cada rota
+function sugerirHorariosMassa(){
+  let n=0,sem=0;
+  mRows.forEach(r=>{const sug=_sugestaoHorario(r.rota,r.planChegFC);if(sug){r.planSaida=sug.saida;r.planApres=sug.apres;n++;}else if(r.planChegFC)sem++;});
+  if(!n){showToast('Sem histórico suficiente das rotas (ou chegada no FC em branco) — mantida a regra padrão','err');return;}
+  renderMassa();
+  showToast(`✅ ${n} linha(s) ajustada(s) pelo tempo real da rota${sem?` · ${sem} sem histórico ficaram na regra padrão`:''}`,'ok');
+}
+
 // Monta o formulário do modal da viagem (identificação, horários plano/real, CAFs, ocorrências, observações).
 function buildForm(op){
   const o=op||{id:'',dataProg:'',dataOp:'',rota:ROTAS[1]||'',tipoCarga:'LTL',tipologia:'CARRETA',transp:'',mot:'',placa:'',placaCarreta:'',sm:'',tms:'',isa:'',planApres:'',planSaida:'',planChegFC:'',realApres:'',realSaida:'',realChegFC:'',realDescarga:'',status:'PROG',obs:'',doca:'',ocorr:[],cafs:[],hist:[],updatedBy:''};
@@ -5861,7 +5970,7 @@ ${o.id?_timelineViagemHTML(o):''}
 </div>
 <div class="sec">🗺️ Rota & Carga</div>
 <div class="fgrid">
-  <div class="fg"><label>Rota</label><select id="fRota">${sl(ROTAS,o.rota)}</select></div>
+  <div class="fg"><label>Rota</label><select id="fRota" onchange="calcD()">${sl(ROTAS,o.rota)}</select></div>
   <div class="fg"><label>Tipo de Carga</label><select id="fTipo">${sl(TIPOS,o.tipoCarga)}</select></div>
 </div>
 <div class="sec">🚛 Operação</div>
@@ -5880,6 +5989,7 @@ ${o.id?_timelineViagemHTML(o):''}
   <div class="fg"><label>Saída Plan.</label><input id="fPS" type="time" value="${o.planSaida}" oninput="calcD()"></div>
   <div class="fg"><label>Cheg. FC Plan.</label><input id="fPC" type="time" value="${o.planChegFC}" oninput="calcD()"></div>
 </div>
+<div id="sugestaoHorario"></div>
 <div class="sec">🕐 Horários Reais</div>
 <div style="background:var(--blue2);border:1px solid #93c5fd;border-radius:var(--rs);padding:7px 10px;margin-bottom:8px;font-size:.7rem;color:var(--blue)">
   📅 Data padrão: <strong>${_baseDate}</strong>. Para viagens que cruzam o dia (pernoite/2 dias), altere a data no campo.
@@ -5949,14 +6059,14 @@ ${o.id?_timelineViagemHTML(o):''}
   </div>
 </div>
 ${(()=>{
+  // Os dois campos sempre existem; só aparecem quando o atraso passa de 30min (calcD mostra/esconde ao digitar)
   const dS=dMin(o.planSaida,o.realSaida), dC=dMin(o.planChegFC,o.realChegFC);
   const showS=dS!==null&&dS>30, showC=dC!==null&&dC>30;
-  if(!showS&&!showC)return'';
-  return`<div class="sec">⏱️ Motivo do Atraso</div>
+  return`<div id="wMotivoAtraso" style="${showS||showC?'':'display:none'}"><div class="sec">⏱️ Motivo do Atraso</div>
   <div class="fgrid c2">
-    ${showS?`<div class="fg"><label style="color:var(--red)">Motivo — Atraso na Saída (+${dS}min)</label><input id="fMotivoSaida" value="${esc(o.motivoAtrasoSaida||'')}" placeholder="Ex: trânsito, fila na doca..."></div>`:'<div></div>'}
-    ${showC?`<div class="fg"><label style="color:var(--red)">Motivo — Atraso na Chegada FC (+${dC}min)</label><input id="fMotivoChegada" value="${esc(o.motivoAtrasoChegada||'')}" placeholder="Ex: trânsito, fila no FC..."></div>`:'<div></div>'}
-  </div>`;
+    <div class="fg" id="wMotivoS" style="${showS?'':'display:none'}"><label style="color:var(--red)">Motivo — Atraso na Saída <span id="lbMotivoS">${showS?'(+'+dS+'min)':''}</span></label><input id="fMotivoSaida" value="${esc(o.motivoAtrasoSaida||'')}" placeholder="Ex: trânsito, fila na doca..."></div>
+    <div class="fg" id="wMotivoC" style="${showC?'':'display:none'}"><label style="color:var(--red)">Motivo — Atraso na Chegada FC <span id="lbMotivoC">${showC?'(+'+dC+'min)':''}</span></label><input id="fMotivoChegada" value="${esc(o.motivoAtrasoChegada||'')}" placeholder="Ex: trânsito, fila no FC..."></div>
+  </div></div>`;
 })()}
 <div class="sec">📝 Observações</div>
 <div class="fgrid c1"><div class="fg"><textarea id="fObs" rows="2">${o.obs||''}</textarea></div></div>
@@ -5993,8 +6103,9 @@ ${o.justificativaAtrasoDescarga?`<div class="sec">📋 Justificativa de Atraso n
   <div class="fg" style="flex:1;min-width:120px"><label>Descrição</label><input id="fOcorrDesc" placeholder="Detalhe da ocorrência"></div>
   <button class="btn btn-g" style="font-size:.72rem" type="button" onclick="addOcorr()">+ Registrar</button>
 </div>
-${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${esc(h.txt)}</div>`).join('')}</div>`:''}`;}
-
+${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${esc(h.txt)}</div>`).join('')}</div>`:''}`;
+  _atualizarSugestaoHorario(); // dica de horário pelo tempo real da rota já ao abrir
+}
 // Modal da viagem: mostra o campo de placa da carreta só quando a tipologia é CARRETA.
 function tgPlaca(){const v=document.getElementById('fTipol').value,w=document.getElementById('wCarreta');if(w)w.style.display=v==='CARRETA'?'':'none';}
 // Modal da viagem: recalcula na hora os Δ (apresentação, saída, chegada FC) e o tempo de doca enquanto os
@@ -6004,7 +6115,16 @@ function calcD(){
   upd('ddA','fPA','fRA','Δ Apres');upd('ddS','fPS','fRS','Δ Saída');upd('ddC','fPC','fRC','Δ FC');
   const dDoc=dMin(document.getElementById('fRC')?.value,document.getElementById('fRD')?.value),el=document.getElementById('ddDoc');
   if(el){if(dDoc!==null){el.style.display='inline-block';el.textContent='⏱ Doca: '+fDiff(dDoc);}else el.style.display='none';}
+  // Campos de motivo aparecem assim que o atraso digitado passa de 30min
+  const v=id=>document.getElementById(id)?.value;
+  const aS=dMin(v('fPS'),v('fRS')),aC=dMin(v('fPC'),v('fRC'));
+  const mS=aS!==null&&aS>30,mC=aC!==null&&aC>30;
+  const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'':'none';};
+  show('wMotivoAtraso',mS||mC);show('wMotivoS',mS);show('wMotivoC',mC);
+  const lS=document.getElementById('lbMotivoS');if(lS)lS.textContent=mS?`(+${aS}min)`:'';
+  const lC=document.getElementById('lbMotivoC');if(lC)lC.textContent=mC?`(+${aC}min)`:'';
   _atualizarTimelineDoForm();
+  _atualizarSugestaoHorario();
 }
 let cafIdx=0;
 // Monta a lista de CAFs a ser exibida no modal da viagem combinando a FONTE DE VERDADE
@@ -6112,6 +6232,21 @@ async function saveCard(){
   if(!g('fRota')){showToast('⚠ Selecione a Rota','err');return;}
   if(!g('fDO')){showToast('⚠ Informe a Data da Operação','err');return;}
   const cafs=[...document.querySelectorAll('#cafList .caf-row')].map(row=>({num:row.querySelector('.cn')?.value||'',tipo:row.querySelector('.ct2')?.value||'LTL',qtd:row.querySelector('.cq')?.value||''})).filter(c=>c.num.trim());
+  // Checagens de qualidade do dado com o que está no formulário (avisos — a pessoa decide se segue)
+  {
+    const opAtual=editId?ops.find(o=>o.id===editId):null;
+    const form={id:editId||'',codigoCurto:opAtual?.codigoCurto,mot:g('fMot'),placa:g('fPlaca'),placaCarreta:g('fPlacaC'),tipologia:g('fTipol'),
+      realSaida:g('fRS'),planSaida:g('fPS'),planChegFC:g('fPC'),realChegFC:g('fRC'),
+      motivoAtrasoSaida:g('fMotivoSaida'),motivoAtrasoChegada:g('fMotivoChegada')};
+    if(g('fStatus')==='TRAN'&&opAtual?.status!=='TRAN'&&!_confirmarSaida(form,cafs.map(c=>c.num)))return;
+    const sm=_atrasosSemMotivo(form);
+    if(sm.saida!==null||sm.chegada!==null){
+      const partes=[sm.saida!==null?`saída (+${sm.saida}min)`:'',sm.chegada!==null?`chegada no FC (+${sm.chegada}min)`:''].filter(Boolean).join(' e ');
+      if(!confirm(`Atraso na ${partes} sem motivo preenchido.\n\nO motivo ajuda a explicar o atraso para o cliente e aparece na Análise.\nSalvar mesmo assim, sem motivo?`)){
+        document.getElementById(sm.saida!==null?'fMotivoSaida':'fMotivoChegada')?.focus();return;
+      }
+    }
+  }
   const who=currentUser?currentUser.nome:g('fResp')||'Usuário';
   loading(true);
   if(editId){
@@ -6383,6 +6518,7 @@ function toggleTheme(){
 function loadTheme(){
   const t=localStorage.getItem('trk_theme')||'light';
   if(t==='dark'){document.body.classList.add('dark');const btn=document.getElementById('themeBtn');if(btn)btn.textContent='☀️';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content='#0d1117';}
+  _atualizarBotaoNotif();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -7852,6 +7988,10 @@ function renderAnalise(){
   })()}
 </div>
 <div class="an-card" data-sec="frota" data-pri="1" style="grid-column:1/-1">
+  <h3>Nota das transportadoras (0–100)</h3>
+  ${_renderNotasTransp()}
+</div>
+<div class="an-card" data-sec="frota" data-pri="1" style="grid-column:1/-1">
   <h3>Transportadoras × Rotas — quem mais atua</h3>
   ${_renderTranspRotas(data)}
 </div>
@@ -7859,6 +7999,10 @@ function renderAnalise(){
   <h3>Volume por Transportadora</h3>
   ${tArr.length?tArr.map(([n,d])=>{const p=Math.round((d.t/maxT)*100);const perf=d.ok/d.t;const bc=perf>=0.8?'#22c55e':perf>=0.5?'#f59e0b':'#ef4444';return`<div class="tr-row"><span class="tr-name" title="${esc(n)}">${_fichaLink('transp',n)}</span><div class="tr-bar-bg"><div class="tr-bar-fill" style="width:${p}%;background:${bc}"></div></div><span class="tr-cnt">${d.t}</span></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
   <div style="display:flex;gap:14px;margin-top:8px;font-size:.61rem;color:var(--t2)"><span>🟢 ≥80% SLA</span><span>🟡 50–79%</span><span>🔴 &lt;50%</span></div>
+</div>
+<div class="an-card" data-sec="pontualidade" data-pri="1" style="grid-column:1/-1">
+  <h3>Meta de SLA por rota — mês atual</h3>
+  ${_renderMetaRotaMes()}
 </div>
 <div class="an-card" data-wide="1" data-sec="pontualidade" data-pri="1">
   <h3>SLA por Rota</h3>
@@ -7970,6 +8114,10 @@ function renderAnalise(){
 <div class="an-card" data-wide="1" data-sec="geral">
   <h3>Comparativo Semanal</h3>
   ${_renderComparativoSemanas()}
+</div>
+<div class="an-card" data-sec="geral" style="grid-column:1/-1">
+  <h3>Comparar dois períodos</h3>
+  ${_renderCompararPeriodos(false)}
 </div>
 <div class="an-card" data-sec="geral" style="grid-column:1/-1">
   <h3>Últimos 7 dias</h3>
@@ -11414,6 +11562,82 @@ function _renderTranspRotas(data){
       <thead><tr><th></th><th style="text-align:left">Transportadora</th><th style="text-align:left">Viagens</th><th>% do total</th><th>Rotas atendidas</th><th style="text-align:left">Rota principal</th><th>SLA chegada</th></tr></thead>
       <tbody>${linhas}</tbody></table></div>${matriz}`;
 }
+// Análise: SLA de chegada de cada rota no MÊS ATUAL contra a meta da rota (Admin → metas de SLA).
+// Mostra quanto falta: quantas viagens seguidas no prazo seriam necessárias para chegar na meta.
+// Sempre olha o mês corrente (não depende do filtro de período da Análise); respeita o filtro de transportadora.
+function _renderMetaRotaMes(){
+  const hoje=new Date();const mes=hojeLocal().slice(0,7);
+  const transp=document.getElementById('aFiltroTransp')?.value||'';
+  const doMes=ops.filter(o=>(o.dataOp||'').startsWith(mes)&&o.planChegFC&&o.realChegFC&&(!transp||o.transp===transp));
+  const porRota={};doMes.forEach(o=>{const r=porRota[o.rota]=porRota[o.rota]||{t:0,ok:0};r.t++;if(getSLA(o)==='ok')r.ok++;});
+  const rotas=Object.keys(porRota).sort();
+  if(!rotas.length)return'<p style="color:var(--t3);text-align:center;padding:16px">Nenhuma chegada registrada neste mês ainda.</p>';
+  const ultimoDia=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
+  const restam=ultimoDia-hoje.getDate();
+  return `<p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">${hoje.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})} · faltam ${restam} dia${restam===1?'':'s'} para fechar o mês. A marca na barra é a meta da rota.</p>
+  <div class="mr-lista">${rotas.map(r=>{
+    const d=porRota[r],p=Math.round(d.ok/d.t*100),meta=getSLAMeta(r),m=meta/100;
+    const falta=p>=meta?0:Math.ceil((m*d.t-d.ok)/(1-m));
+    const cor=p>=meta?'var(--green)':p>=meta-7?'#d97706':'var(--red)';
+    return `<div class="mr-row"><div class="mr-rota rota-cell">${esc(r)}</div>
+      <div class="mr-bar"><div style="width:${p}%;background:${cor}"></div><i style="left:${meta}%" title="Meta ${meta}%"></i></div>
+      <div class="mr-num" style="color:${cor}">${p}%</div>
+      <div class="mr-txt">${p>=meta?`<b style="color:var(--green)">✓ na meta</b> (${meta}%) · ${d.ok}/${d.t}`:`meta ${meta}% · ${d.ok}/${d.t} · faltam <b>${falta}</b> viage${falta===1?'m':'ns'} seguida${falta===1?'':'s'} no prazo`}</div></div>`;
+  }).join('')}</div>`;
+}
+// ── Comparar dois períodos lado a lado (Visão Geral) ──
+// Padrão: últimos 7 dias × os 7 dias anteriores. As datas ficam guardadas só nesta sessão.
+let _cmpPeriodos=null;
+// Períodos padrão: A = 7 dias anteriores, B = últimos 7 dias.
+function _cmpPadrao(){
+  const d=n=>dateLocal(new Date(Date.now()-n*86400000));
+  return{aDe:d(13),aAte:d(7),bDe:d(6),bAte:d(0)};
+}
+// Troca uma data de A ou B e redesenha só o corpo do quadro.
+function _cmpMudar(campo,valor){_cmpPeriodos=_cmpPeriodos||_cmpPadrao();_cmpPeriodos[campo]=valor;const el=document.getElementById('cmpPeriodos');if(el)el.innerHTML=_renderCompararPeriodos(true);}
+// Indicadores de um conjunto de viagens (mesmas regras do resto da Análise)
+function _indicadoresPeriodo(lista){
+  const val=lista.filter(o=>o.status!=='CANC');
+  const media=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const cheg=val.filter(o=>o.planChegFC&&o.realChegFC);
+  const app=val.filter(o=>['sim','nao'].includes(o.motoristaUsouApp));
+  const doca=val.map(o=>dMin(o.realChegFC,o.realDescarga)).filter(v=>v!==null&&v>=0&&v<1440);
+  return{
+    viagens:val.length,
+    fin:val.filter(o=>o.status==='FIN').length,
+    sla:cheg.length?Math.round(cheg.filter(o=>getSLA(o)==='ok').length/cheg.length*100):null,
+    ot:_calcOT(val).otTotal,
+    dS:media(val.map(o=>dMin(o.planSaida,o.realSaida)).filter(v=>v!==null)),
+    dC:media(cheg.map(o=>dMin(o.planChegFC,o.realChegFC)).filter(v=>v!==null)),
+    doca:media(doca),
+    app:app.length?Math.round(app.filter(o=>o.motoristaUsouApp==='sim').length/app.length*100):null,
+    ocorr:val.reduce((a,o)=>a+(o.ocorr||[]).length,0),
+  };
+}
+// Quadro "Comparar dois períodos": datas de A e B + tabela de indicadores com a diferença.
+function _renderCompararPeriodos(soCorpo){
+  const p=_cmpPeriodos=_cmpPeriodos||_cmpPadrao();
+  const transp=document.getElementById('aFiltroTransp')?.value||'';
+  const pega=(de,ate)=>ops.filter(o=>o.dataOp>=de&&o.dataOp<=ate&&(!transp||o.transp===transp));
+  const A=_indicadoresPeriodo(pega(p.aDe,p.aAte)),B=_indicadoresPeriodo(pega(p.bDe,p.bAte));
+  // melhor: 'mais' = maior é melhor, 'menos' = menor é melhor, null = neutro
+  const linhas=[['Viagens','viagens',null,''],['Finalizadas','fin',null,''],['SLA chegada FC','sla','mais','%'],['OT total','ot','mais','%'],
+    ['Δ médio saída','dS','menos','Δmin'],['Δ médio chegada','dC','menos','Δmin'],['Tempo médio de doca','doca','menos','min'],['Uso do app','app','mais','%'],['Ocorrências','ocorr','menos','']];
+  const fmt=(v,u)=>v===null?'—':u==='Δmin'?(v>0?'+':'')+v+'min':v+u;
+  const corpo=`<div class="cmp-datas">
+      <label>Período A <input type="date" value="${p.aDe}" onchange="_cmpMudar('aDe',this.value)"> a <input type="date" value="${p.aAte}" onchange="_cmpMudar('aAte',this.value)"></label>
+      <label>Período B <input type="date" value="${p.bDe}" onchange="_cmpMudar('bDe',this.value)"> a <input type="date" value="${p.bAte}" onchange="_cmpMudar('bAte',this.value)"></label>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.76rem">
+      <thead><tr><th style="text-align:left">Indicador</th><th>A · ${fmtD(p.aDe)}–${fmtD(p.aAte)}</th><th>B · ${fmtD(p.bDe)}–${fmtD(p.bAte)}</th><th>B − A</th></tr></thead>
+      <tbody>${linhas.map(([lb,k,melhor,u])=>{
+        const a=A[k],b=B[k];const dif=a===null||b===null?null:b-a;
+        const bom=dif===null||!melhor||dif===0?null:(melhor==='mais'?dif>0:dif<0);
+        return `<tr><td style="font-weight:700">${lb}</td><td class="mono" style="text-align:center">${fmt(a,u)}</td><td class="mono" style="text-align:center">${fmt(b,u)}</td>
+          <td class="mono" style="text-align:center;font-weight:800;color:${bom===null?'var(--t2)':bom?'var(--green)':'var(--red)'}">${dif===null?'—':(dif>0?'+':'')+dif+(u==='%'?' p.p.':u==='Δmin'?'min':u)}</td></tr>`;}).join('')}</tbody>
+    </table></div>`;
+  return soCorpo?corpo:`<div id="cmpPeriodos">${corpo}</div>`;
+}
 // Análise: tempo médio real entre as etapas (apresentação → saída → chegada FC → descarga).
 function _renderEtapas(data){
   const avgM=arr=>{const v=arr.filter(x=>x!==null&&x>=0&&x<720);return v.length?Math.round(v.reduce((a,b)=>a+b)/v.length):null;};
@@ -11522,6 +11746,85 @@ function checkAlertas(){
     const op=ops.find(o=>o.id===id);
     if(!op||['TRAN','AGUDESC','FIN','CANC'].includes(op.status))delete _lastAlertTs[id];
   });
+}
+
+// ── Notificação do navegador ──
+// Com a aba em segundo plano (outra aba/janela na frente), avisa pelo sistema quando algo estoura o limite:
+// descarga esperando mais de 4h, viagem em trânsito que vai chegar 30min+ atrasada e saída 30min+ atrasada.
+// É opcional e por aparelho (liga no 🔕 da conta). Usa só o que já está em memória — não consulta o banco.
+const NOTIF_KEY='trk_notif_on';
+const NOTIF_DESCARGA_MIN=240, NOTIF_ATRASO_MIN=30;
+let _notifAvisadas={}; // "id|tipo" → já avisado (não repete o mesmo aviso)
+// O navegador tem notificação? (iPhone só tem com o app instalado na tela inicial)
+function _notifSuportada(){return typeof window.Notification!=='undefined';}
+// Avisos ligados neste aparelho e com permissão concedida?
+function _notifLigada(){
+  if(!_notifSuportada()||Notification.permission!=='granted')return false;
+  try{return localStorage.getItem(NOTIF_KEY)==='1';}catch(e){return false;}
+}
+// Ícone do botão: 🔔 ligado, 🔕 desligado. Some se o navegador não suporta.
+function _atualizarBotaoNotif(){
+  const b=document.getElementById('notifBtn');if(!b)return;
+  if(!_notifSuportada()){b.style.display='none';return;}
+  const on=_notifLigada();
+  b.textContent=on?'🔔':'🔕';
+  b.title=on?'Avisos do navegador ligados (toque para desligar)':'Ligar avisos do navegador quando a aba está em segundo plano';
+}
+// Liga/desliga os avisos. Ao ligar pede a permissão do navegador (só funciona a partir de um clique).
+async function toggleNotificacoes(){
+  if(!_notifSuportada()){showToast('Este navegador não mostra notificações','err');return;}
+  if(_notifLigada()){
+    try{localStorage.setItem(NOTIF_KEY,'0');}catch(e){}
+    _atualizarBotaoNotif();showToast('🔕 Avisos do navegador desligados');return;
+  }
+  let perm=Notification.permission;
+  if(perm==='default'){try{perm=await Notification.requestPermission();}catch(e){perm='denied';}}
+  if(perm!=='granted'){
+    showToast('O navegador bloqueou as notificações — libere no cadeado ao lado do endereço','err');
+    _atualizarBotaoNotif();return;
+  }
+  try{localStorage.setItem(NOTIF_KEY,'1');}catch(e){}
+  _notifAvisadas={};_coletarAlertasNotif().forEach(a=>{_notifAvisadas[a.chave]=1;}); // o que já está aberto não vira aviso
+  _atualizarBotaoNotif();
+  showToast('🔔 Avisos ligados: descarga +4h, chegada ou saída 30min+ atrasada (com a aba em segundo plano)','ok');
+}
+// Lista os alertas que valem aviso agora: [{chave, id, titulo, corpo}]
+function _coletarAlertasNotif(){
+  const lista=[];
+  const agora=new Date(), hoje=hojeLocal();
+  ops.forEach(o=>{
+    if(o.status==='AGUDESC'){
+      const t=tempoAguardandoDescarga(o);
+      if(t&&!t.finalizado&&t.mins>NOTIF_DESCARGA_MIN)lista.push({chave:o.id+'|desc',id:o.id,
+        titulo:'Descarga parada há '+t.txt,corpo:o.id+' · '+(o.rota||'')+' · '+(o.transp||'')});
+    }else if(o.status==='TRAN'){
+      const p=_previsaoChegada(o);
+      if(p&&p.atrasoMin!==null&&p.atrasoMin>NOTIF_ATRASO_MIN)lista.push({chave:o.id+'|cheg',id:o.id,
+        titulo:(p.jaAtrasada?'Chegada no FC atrasada':'Vai chegar atrasada')+' (+'+fDiff(p.atrasoMin).replace(/^\+/,'')+')',
+        corpo:o.id+' · '+(o.rota||'')+' · previsão '+p.eta.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})});
+    }else if(['PROG','AGUCARR','EMCARR'].includes(o.status)&&o.dataOp===hoje&&o.planSaida){
+      const plan=resolveDataHoraOp(o,o.planSaida);
+      const atraso=plan?Math.round((agora-plan)/60000):null;
+      if(atraso!==null&&atraso>NOTIF_ATRASO_MIN&&atraso<12*60)lista.push({chave:o.id+'|saida',id:o.id,
+        titulo:'Saída atrasada ('+fDiff(atraso).replace(/^\+/,'')+')',corpo:o.id+' · '+(o.rota||'')+' · planejada '+o.planSaida});
+    }
+  });
+  return lista;
+}
+// Roda a cada minuto (timerTick). Só dispara com a aba escondida; com a aba na frente, só marca como visto
+// (quem está olhando a tela já vê os selos e toasts). No máximo 3 avisos por vez; o resto vira um resumo.
+function checkNotificacoes(){
+  if(!_notifLigada())return;
+  const novos=_coletarAlertasNotif().filter(a=>!_notifAvisadas[a.chave]);
+  novos.forEach(a=>{_notifAvisadas[a.chave]=1;});
+  if(!document.hidden||!novos.length)return;
+  const abrir=id=>()=>{try{window.focus();}catch(e){} if(id&&typeof openEdit==='function')openEdit(id);};
+  novos.slice(0,3).forEach(a=>{
+    try{const n=new Notification(a.titulo,{body:a.corpo,tag:a.chave,icon:'icon-192.png'});n.onclick=abrir(a.id);}catch(e){}
+  });
+  if(novos.length>3){
+    try{const n=new Notification('+'+(novos.length-3)+' alertas no TRK PCP',{body:'Abra o app para ver todos.',tag:'trk-resumo'});n.onclick=abrir(null);}catch(e){}
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -12169,6 +12472,182 @@ function saveSLAMetas(){
 }
 
 // ══════════════════════════════════════════════════════════════════
+// QUALIDADE DO DADO — checagem antes da saída e motivo de atraso
+// ══════════════════════════════════════════════════════════════════
+// O que falta para a viagem sair (ir para Em Trânsito). A CAF vinculada continua sendo bloqueio (regra
+// antiga); os itens daqui são AVISOS: a pessoa vê a lista e decide se segue mesmo assim.
+// Recebe a viagem (ou os campos do formulário) e a lista de números de CAF.
+function _pendenciasSaida(o,numsCaf){
+  const falta=[];
+  if(!String(o.mot||'').trim())falta.push('Motorista não informado');
+  if(!String(o.placa||'').trim())falta.push('Placa do cavalo não informada');
+  if(o.tipologia==='CARRETA'&&!String(o.placaCarreta||'').trim())falta.push('Placa da carreta não informada');
+  if(!o.realSaida)falta.push('Horário de saída real não registrado (sem ele não dá para prever a chegada)');
+  const nums=(numsCaf||[]).map(n=>String(n).trim()).filter(Boolean);
+  cafsDB.filter(c=>nums.includes(c.num)||(o.id&&c.opId===o.id)).forEach(c=>{
+    if(!Number(c.pallets))falta.push(`CAF ${c.num} sem quantidade de pallets`);
+    if(['Em Agendamento','Em Produção'].includes(c.status))falta.push(`CAF ${c.num} ainda está "${c.status}"`);
+  });
+  return [...new Set(falta)];
+}
+// Mostra as pendências (se houver) e pergunta se segue. Devolve true para seguir.
+function _confirmarSaida(o,numsCaf){
+  const falta=_pendenciasSaida(o,numsCaf);
+  if(!falta.length)return true;
+  return confirm(`Checagem antes da saída — ${o.codigoCurto||o.id||'viagem'}\n\n• ${falta.join('\n• ')}\n\nSeguir para Em Trânsito mesmo assim?`);
+}
+// Atrasos acima da tolerância (30min) que ainda estão sem motivo: {saida:min|null, chegada:min|null}
+function _atrasosSemMotivo(o){
+  const dS=dMin(o.planSaida,o.realSaida),dC=dMin(o.planChegFC,o.realChegFC);
+  return{saida:dS!==null&&dS>30&&!String(o.motivoAtrasoSaida||'').trim()?dS:null,
+         chegada:dC!==null&&dC>30&&!String(o.motivoAtrasoChegada||'').trim()?dC:null};
+}
+// Selo "sem motivo" no cartão do Painel
+function _seloSemMotivo(op){
+  if(['CANC','REC'].includes(op.status))return'';
+  const a=_atrasosSemMotivo(op);
+  if(a.saida===null&&a.chegada===null)return'';
+  const txt=[a.saida!==null?'saída':'',a.chegada!==null?'chegada':''].filter(Boolean).join(' e ');
+  return `<span class="ab ab-motivo" title="Atraso de ${txt} acima de 30min sem motivo — abra a viagem e preencha">✎ sem motivo (${txt})</span>`;
+}
+
+// Viagens que provavelmente alguém esqueceu de atualizar:
+// • em trânsito e já passou 6h do horário planejado de chegada (ou 18h da saída, se não houver plano);
+// • programada / aguardando / em carregamento de um dia que já passou.
+// (Aguardando descarga há muito tempo já tem o alerta próprio de 24h.)
+function _viagensEsquecidas(){
+  const agora=Date.now(),hoje=hojeLocal(),lista=[];
+  for(const o of ops){
+    if(o.status==='TRAN'){
+      const plan=o.planChegFC?resolveDataHoraOp(o,o.planChegFC):null;
+      const saida=o.realSaida?(String(o.realSaida).length>5?new Date(o.realSaida):resolveDataHoraOp(o,o.realSaida)):null;
+      const limite=plan?plan.getTime()+6*3600000:(saida?saida.getTime()+18*3600000:null);
+      if(limite&&agora>limite)lista.push({o,motivo:`em trânsito desde ${saida?saida.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):fmtD(o.dataOp)} — já devia ter chegado`});
+    }else if(['PROG','AGUCARR','EMCARR'].includes(o.status)&&o.dataOp&&o.dataOp<hoje){
+      lista.push({o,motivo:`"${stObj(o.status).lb}" desde ${fmtD(o.dataOp)} — atualizar ou cancelar`});
+    }
+  }
+  return lista;
+}
+// Mesma placa em mais de uma viagem ativa ao mesmo tempo (erro de digitação ou viagem lançada duas vezes)
+function _placasRepetidas(){
+  const ativos=ops.filter(o=>['AGUCARR','EMCARR','TRAN','AGUDESC'].includes(o.status));
+  const por={};
+  ativos.forEach(o=>{
+    [['cavalo',o.placa],['carreta',o.placaCarreta]].forEach(([tipo,p])=>{
+      const k=normPlaca(p||'');if(!k)return;(por[k]=por[k]||[]).push({o,tipo});
+    });
+  });
+  return Object.entries(por).filter(([,arr])=>new Set(arr.map(x=>x.o.id)).size>1).map(([placa,arr])=>({placa,arr}));
+}
+let _alertasDadosAberto=false;
+// Faixa de alertas de dados no topo do Painel (recolhida por padrão; toque para ver a lista)
+function renderAlertasDados(){
+  const el=document.getElementById('alertasDados');if(!el)return;
+  const esq=_viagensEsquecidas(),rep=_placasRepetidas();
+  if(!esq.length&&!rep.length){el.innerHTML='';return;}
+  const resumo=[esq.length?`${esq.length} viage${esq.length>1?'ns':'m'} possivelmente esquecida${esq.length>1?'s':''}`:'',
+    rep.length?`${rep.length} placa${rep.length>1?'s':''} em mais de uma viagem ativa`:''].filter(Boolean).join(' · ');
+  const item=(o,txt)=>`<div class="adq-item" onclick="openEdit('${esc(o.id)}')"><b>${esc(o.codigoCurto||o.id)}</b><span>${esc(o.rota)} · ${esc(o.placa||'—')}</span><small>${txt}</small></div>`;
+  el.innerHTML=`<div class="adq">
+    <button class="adq-head" onclick="_alertasDadosAberto=!_alertasDadosAberto;renderAlertasDados()"><span>⚠ Conferir dados: ${resumo}</span><b>${_alertasDadosAberto?'fechar ▴':'ver ▾'}</b></button>
+    ${_alertasDadosAberto?`<div class="adq-body">
+      ${esq.length?`<div class="adq-st">Possivelmente esquecidas</div>${esq.slice(0,30).map(x=>item(x.o,esc(x.motivo))).join('')}`:''}
+      ${rep.length?`<div class="adq-st">Placa repetida em viagens ativas</div>${rep.map(r=>r.arr.map(x=>item(x.o,`placa ${esc(r.placa)} (${x.tipo}) também está em outra viagem ativa`)).join('')).join('')}`:''}
+    </div>`:''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTA DA TRANSPORTADORA (0–100) e RELATÓRIO SEMANAL EM PDF
+// Nota = média ponderada de 5 partes (cada uma vai de 0 a 100):
+//   SLA de chegada no FC 40% · OT (On Time) 25% · uso do app pelo motorista 15% ·
+//   viagens sem ocorrência 10% · atraso médio na chegada 10% (perde 1 ponto por minuto de atraso médio).
+// Parte sem dado no período (ex.: nenhuma chegada registrada) fica de fora e os pesos se ajustam.
+// Tendência: nota dos últimos 30 dias contra os 30 dias anteriores.
+// ══════════════════════════════════════════════════════════════════
+function _notaTransportadora(lista){
+  const val=lista.filter(o=>o.status!=='CANC');
+  if(!val.length)return{nota:null,partes:[],n:0};
+  const comCheg=val.filter(o=>o.planChegFC&&o.realChegFC);
+  const partes=[];
+  if(comCheg.length)partes.push({nome:'SLA chegada',peso:40,v:Math.round(comCheg.filter(o=>getSLA(o)==='ok').length/comCheg.length*100)});
+  const ot=_calcOT(val).otTotal;if(ot!==null)partes.push({nome:'OT',peso:25,v:ot});
+  const app=val.filter(o=>['sim','nao'].includes(o.motoristaUsouApp));
+  if(app.length)partes.push({nome:'Uso do app',peso:15,v:Math.round(app.filter(o=>o.motoristaUsouApp==='sim').length/app.length*100)});
+  partes.push({nome:'Sem ocorrência',peso:10,v:Math.round(val.filter(o=>!(o.ocorr||[]).length).length/val.length*100)});
+  if(comCheg.length){
+    const media=comCheg.reduce((a,o)=>a+(dMin(o.planChegFC,o.realChegFC)||0),0)/comCheg.length;
+    partes.push({nome:'Atraso médio',peso:10,v:Math.max(0,Math.min(100,Math.round(100-Math.max(0,media))))});
+  }
+  const pesos=partes.reduce((a,p)=>a+p.peso,0);
+  return{nota:Math.round(partes.reduce((a,p)=>a+p.v*p.peso,0)/pesos),partes,n:val.length};
+}
+const _corNota=n=>n===null?'var(--t3)':n>=85?'var(--green)':n>=70?'#d97706':'var(--red)';
+// Nota atual (últimos 30 dias) e a do período anterior (30 dias antes) de cada transportadora
+function _notasTransportadoras(){
+  const d=n=>dateLocal(new Date(Date.now()-n*86400000));
+  const ini=d(30),iniAnt=d(60);
+  const nomes=[...new Set(ops.map(o=>o.transp).filter(Boolean))];
+  return nomes.map(nome=>{
+    const doT=ops.filter(o=>o.transp===nome);
+    const atual=_notaTransportadora(doT.filter(o=>o.dataOp>=ini));
+    const ant=_notaTransportadora(doT.filter(o=>o.dataOp>=iniAnt&&o.dataOp<ini));
+    return{nome,...atual,ant:ant.nota};
+  }).filter(x=>x.nota!==null).sort((a,b)=>b.nota-a.nota);
+}
+// Análise: ranking das notas com tendência e composição
+function _renderNotasTransp(){
+  const lista=_notasTransportadoras();
+  if(!lista.length)return'<p style="color:var(--t3);text-align:center;padding:16px">Sem viagens nos últimos 30 dias.</p>';
+  return `<p style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Últimos 30 dias · SLA chegada 40% · OT 25% · uso do app 15% · sem ocorrência 10% · atraso médio 10%. Seta = comparação com os 30 dias anteriores.</p>
+  <div class="nt-lista">${lista.map((t,i)=>{
+    const dif=t.ant===null?null:t.nota-t.ant;
+    const seta=dif===null?'<span class="nt-tend" style="color:var(--t3)">novo</span>':dif>0?`<span class="nt-tend" style="color:var(--green)">▲ ${dif}</span>`:dif<0?`<span class="nt-tend" style="color:var(--red)">▼ ${Math.abs(dif)}</span>`:'<span class="nt-tend" style="color:var(--t3)">= 0</span>';
+    return `<div class="nt-row">
+      <div class="nt-pos">${i+1}º</div>
+      <div class="nt-nome">${_fichaLink('transp',t.nome)}<small>${t.n} viagens · ${t.partes.map(p=>p.nome+' '+p.v).join(' · ')}</small></div>
+      <div class="nt-nota" style="color:${_corNota(t.nota)}">${t.nota}</div>${seta}
+    </div>`;}).join('')}</div>`;
+}
+// Relatório semanal (últimos 7 dias) da transportadora ou do motorista, pronto para imprimir/salvar em PDF
+function relatorioSemanalPDF(tipo,nome){
+  const campo=tipo==='mot'?'mot':'transp';
+  const ini=dateLocal(new Date(Date.now()-6*86400000)),fim=hojeLocal();
+  const lista=ops.filter(o=>_normNome(o[campo])===_normNome(nome)&&o.dataOp>=ini&&o.dataOp<=fim&&o.status!=='CANC')
+    .sort((a,b)=>(a.dataOp||'').localeCompare(b.dataOp||'')||(a.planSaida||'').localeCompare(b.planSaida||''));
+  if(!lista.length){showToast('Nenhuma viagem nos últimos 7 dias','err');return;}
+  const nota=_notaTransportadora(lista);
+  const comCheg=lista.filter(o=>o.planChegFC&&o.realChegFC);
+  const noPrazo=comCheg.filter(o=>getSLA(o)==='ok').length;
+  const ocorr=[];lista.forEach(o=>(o.ocorr||[]).forEach(oc=>ocorr.push({o,oc})));
+  const win=window.open('','_blank','width=900,height=800');
+  if(!win){showToast('O navegador bloqueou a janela — libere pop-ups para este site','err');return;}
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório semanal — ${esc(nome)}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;color:#111;font-size:12px}h1{margin:0;font-size:20px}h2{font-size:13px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.5px;color:#555}
+  .sub{color:#666;margin:2px 0 14px}.kpis{display:flex;gap:10px;flex-wrap:wrap}.k{border:1px solid #ddd;border-radius:8px;padding:8px 12px;min-width:110px}.k b{display:block;font-size:20px}.k span{font-size:10px;color:#666;text-transform:uppercase}
+  table{width:100%;border-collapse:collapse}th{background:#f2f2f2;text-align:left;font-size:10px;text-transform:uppercase;padding:5px 6px}td{padding:5px 6px;border-bottom:1px solid #eee}.late{color:#c00;font-weight:700}.ok{color:#16a34a;font-weight:700}
+  @media print{body{padding:8px}}</style></head><body>
+  <h1>${tipo==='mot'?'Motorista':'Transportadora'}: ${esc(nome)}</h1>
+  <div class="sub">Relatório semanal · ${fmtD(ini)} a ${fmtD(fim)} · TRK PCP</div>
+  <div class="kpis">
+    <div class="k"><b>${nota.nota??'—'}</b><span>Nota (0–100)</span></div>
+    <div class="k"><b>${lista.length}</b><span>Viagens</span></div>
+    <div class="k"><b>${comCheg.length?Math.round(noPrazo/comCheg.length*100)+'%':'—'}</b><span>SLA chegada (${noPrazo}/${comCheg.length})</span></div>
+    ${nota.partes.map(p=>`<div class="k"><b>${p.v}</b><span>${p.nome}</span></div>`).join('')}
+  </div>
+  <h2>Viagens</h2>
+  <table><tr><th>Viagem</th><th>Data</th><th>Rota</th><th>Placa</th><th>Motorista</th><th>Saída plan/real</th><th>Chegada FC plan/real</th><th>Δ chegada</th><th>Motivo</th></tr>
+  ${lista.map(o=>{const d=dMin(o.planChegFC,o.realChegFC);return `<tr><td>${esc(o.codigoCurto||o.id)}</td><td>${fmtD(o.dataOp)}</td><td>${esc(o.rota)}</td><td>${esc(o.placa||'')}</td><td>${esc(o.mot||'')}</td>
+    <td>${esc(o.planSaida||'—')} / ${esc(toTime(o.realSaida)||'—')}</td><td>${esc(o.planChegFC||'—')} / ${esc(toTime(o.realChegFC)||'—')}</td>
+    <td class="${d===null?'':d>30?'late':'ok'}">${d===null?'—':fDiff(d)}</td><td>${esc(o.motivoAtrasoChegada||o.motivoAtrasoSaida||'')}</td></tr>`;}).join('')}</table>
+  ${ocorr.length?`<h2>Ocorrências</h2><table><tr><th>Viagem</th><th>Tipo</th><th>Descrição</th><th>Quando</th></tr>${ocorr.map(x=>`<tr><td>${esc(x.o.codigoCurto||x.o.id)}</td><td>${esc(x.oc.tipo||'')}</td><td>${esc(x.oc.desc||'')}</td><td>${esc(x.oc.ts||'')}</td></tr>`).join('')}</table>`:''}
+  <div style="font-size:9px;color:#999;margin-top:14px">Gerado em ${ts()} por ${esc(currentUser?.nome||'—')} · Para salvar em PDF, escolha "Salvar como PDF" na janela de impressão.</div>
+  <script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════════
 // FEATURE: ATALHO RÁPIDO DE STATUS NO CARD (hover)
 // ══════════════════════════════════════════════════════════════════
 async function quickStatus(opId, newStatus, event){
@@ -12179,6 +12658,7 @@ async function quickStatus(opId, newStatus, event){
   if(newStatus==='TRAN'&&(!op.cafs||!op.cafs.length)){
     showToast('⛔ Viagem não pode seguir para Em Trânsito sem CAF vinculada','err');return;
   }
+  if(newStatus==='TRAN'&&!_confirmarSaida(op,(op.cafs||[]).map(c=>c.num)))return;
   const prev=op.status;
   const who=currentUser?.nome||'Sistema';
   op.status=newStatus;op.updatedAt=new Date().toISOString();op.updatedBy=who;
@@ -12252,8 +12732,13 @@ function abrirFicha(tipo,nome){
     <div class="fi-hdr">
       <div><div class="fi-tipo">${tipo==='mot'?'Motorista':'Transportadora'}</div><div class="fi-nome">${esc(nome)}</div>
         <div class="fi-per">${lista.length} viagens${datas.length?` · ${fmtD(datas[0])} a ${fmtD(datas[datas.length-1])}`:''}</div></div>
-      <button class="mclose" onclick="fecharFicha()" aria-label="Fechar">✕</button>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${(()=>{const nt=_notaTransportadora(lista.filter(o=>o.dataOp>=dateLocal(new Date(Date.now()-30*86400000))));
+          return nt.nota===null?'':`<div class="fi-nota" title="Nota dos últimos 30 dias (0–100)"><b style="color:${_corNota(nt.nota)}">${nt.nota}</b><span>nota 30d</span></div>`;})()}
+        <button class="mclose" onclick="fecharFicha()" aria-label="Fechar">✕</button>
+      </div>
     </div>
+    <div class="fi-acoes"><button class="btn btn-g" data-n="${esc(nome)}" onclick="relatorioSemanalPDF('${tipo}',this.dataset.n)">📄 Relatório da semana (PDF)</button></div>
     <div class="fi-body">
       ${lista.length?`
       <div class="fi-kpis">
@@ -13735,9 +14220,46 @@ function _renderPlantaPatio(dia){
     <div class="pp-docas">${vagas}</div>
     <div class="pp-entrada"><div class="pp-rot">Fila de entrada <span>${fila.length} aguardando · ${livres} doca${livres===1?'':'s'} livre${livres===1?'':'s'}</span></div>
       <div class="pp-fila">${chips}</div></div>
+    ${_renderPrevisaoDocas(dia)}
   </div>`;
 }
 // Planta do pátio: redesenha só a planta (sem redesenhar a Gestão de Doca inteira).
+// Planta do pátio: previsão de ocupação das docas nas próximas horas do dia.
+// Cada viagem ainda não saída ocupa uma doca da apresentação planejada até a saída planejada
+// (quem já está em carregamento ocupa de agora até a saída planejada). Faixas de 1h; vermelho = mais
+// caminhões que docas no mesmo horário.
+function _previsaoDocas(dia){
+  const total=DOCAS_CONFIG.total||8;
+  const agora=new Date();
+  const ehHoje=dia===hojeLocal();
+  const ini=ehHoje?agora.getHours():5;
+  const janelas=ops.filter(o=>o.dataOp===dia&&['PROG','AGUCARR','EMCARR'].includes(o.status)).map(o=>{
+    const a=o.status==='EMCARR'?agora:(o.planApres?resolveDataHoraOp(o,o.planApres):null);
+    const b=o.planSaida?resolveDataHoraOp(o,o.planSaida):null;
+    return a&&b&&b>a?{a:a.getTime(),b:b.getTime()}:null;
+  }).filter(Boolean);
+  const base=new Date(dia+'T00:00:00').getTime();
+  const horas=[];
+  for(let h=ini;h<24;h++){
+    const h0=base+h*3600000,h1=h0+3600000;
+    horas.push({h,n:janelas.filter(j=>j.a<h1&&j.b>h0).length});
+  }
+  return{total,horas};
+}
+// Planta do pátio: barras de docas ocupadas por hora, com alerta das horas lotadas.
+function _renderPrevisaoDocas(dia){
+  const {total,horas}=_previsaoDocas(dia);
+  if(!horas.length||!horas.some(x=>x.n))return'';
+  const max=Math.max(total,...horas.map(x=>x.n));
+  const lot=horas.filter(x=>x.n>total);
+  const aviso=lot.length?`<b style="color:var(--red)">⚠ Docas lotadas previstas: ${lot.map(x=>`${String(x.h).padStart(2,'0')}h (${x.n} caminhões)`).join(', ')} — ${total} docas.</b>`:`Sem previsão de docas lotadas no restante do dia (${total} docas).`;
+  return `<div class="pd-prev"><div class="pp-rot">Previsão de ocupação das docas <span>pelos horários planejados de encosto e saída</span></div>
+    <div class="pd-aviso">${aviso}</div>
+    <div class="pd-barras">${horas.map(x=>`<div class="pd-col" title="${String(x.h).padStart(2,'0')}h: ${x.n} caminhão(ões) para ${total} docas">
+      <div class="pd-bar"><i style="height:${Math.round(x.n/max*100)}%;background:${x.n>total?'var(--red)':x.n>=total*.8?'#f59e0b':'var(--blue)'}"></i><s style="bottom:${Math.round(total/max*100)}%"></s></div>
+      <b>${x.n}</b><span>${String(x.h).padStart(2,'0')}h</span></div>`).join('')}</div></div>`;
+}
+// Redesenha só a planta do pátio (após encostar/liberar caminhão).
 function _atualizarPlantaPatio(){const w=document.getElementById('plantaPatioWrap');if(w)w.innerHTML=_renderPlantaPatio(_patioDia());}
 // Planta do pátio: começou a arrastar um caminhão (só se tiver permissão).
 function _patioDragStart(e,opId){
