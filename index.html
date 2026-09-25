@@ -205,8 +205,35 @@ body.sidebar-open #sidebar{transform:translateX(0);}
 #sidebarBackdrop{display:none;position:fixed;inset:0;background:rgba(10,12,18,.5);z-index:290;}
 body.sidebar-open #sidebarBackdrop{display:block;}
 .sidebar-toggle-btn{background:none;border:1.5px solid var(--bd);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--text);flex-shrink:0;}
+.sb-foot{flex-shrink:0;border-top:1px solid #23262f;margin-top:10px;padding-top:12px;display:flex;flex-direction:column;gap:10px;}
+.sb-status{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+#sidebar .dbs{background:#1c1f2a;border-color:#23262f;color:#a8acbd;}
+#sidebar .clock{background:#1c1f2a;border-color:#23262f;color:#e5e7eb;font-family:var(--font-mono);font-weight:600;margin-left:auto;}
+#sidebar .rt-badge{background:rgba(34,197,94,.1);}
+.sb-lbl{font-size:10px;font-weight:700;letter-spacing:1px;color:#5b5f6f;text-transform:uppercase;margin-bottom:6px;}
+.sb-online-wrap:has(#onlineBar:empty){display:none;}
+#onlineBar{display:flex;flex-direction:column;gap:4px;max-height:132px;overflow-y:auto;}
+#sidebar .ob-item{background:none;border:none;box-shadow:none;padding:2px 0;gap:8px;}
+#sidebar .ob-av{width:24px;height:24px;font-size:.62rem;}
+#sidebar .ob-dot{border-color:#14161f;}
+#sidebar .ob-name{display:block;color:#e5e7eb;font-size:.72rem;}
+#sidebar .ob-pg{display:block;color:#8b8fa3;font-size:.62rem;}
+#statusOperador{font-size:.7rem;color:#a8acbd;}
+#statusOperador:empty{display:none!important;}
+#btnTrocarOperador{width:100%;background:#1c1f2a;border-color:#23262f;color:#e5e7eb;font-size:.72rem;padding:7px;}
+.sb-user{display:flex;align-items:center;gap:10px;padding:10px 4px 2px;border-top:1px solid #23262f;}
+#sidebar .uav{width:32px;height:32px;font-size:.75rem;}
+.sb-user-txt{flex:1;min-width:0;}
+#sidebar .uname{display:block;color:#fff;font-weight:700;font-size:.8rem;max-width:none;}
+.sb-perfil{font-size:.65rem;color:#8b8fa3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#sidebar .theme-toggle{border-color:#2d3140;color:#e5e7eb;padding:5px 8px;}
+.sb-sair{background:none;border:1px solid #3a1f24;color:#ff7b86;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.sb-sair:hover{background:#3a1f24;}
 @media(max-width:768px){
-  #sidebar,#sidebarBackdrop,.sidebar-toggle-btn{display:none!important;}
+  #sidebar{width:280px;max-width:86vw;padding-bottom:max(16px,env(safe-area-inset-bottom));z-index:400;}
+  #sidebarBackdrop{z-index:390;}
+  #sidebar .tab{padding:11px 10px;font-size:.86rem;}
+  .sidebar-toggle-btn{width:36px;height:36px;}
 }
 .topbar-r{display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .clock{font-size:.68rem;color:var(--t2);background:var(--bg3);padding:3px 7px;border-radius:var(--rs);border:1px solid var(--bd);white-space:nowrap;}
@@ -707,6 +734,25 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     </div>
     <button class="tab adm-tab" id="tb-admin" onclick="setView('admin')" style="display:none">⚙️ Admin</button>
   </div>
+  <div class="sb-foot">
+    <div class="sb-status">
+      <div id="rtIndicator" style="display:none" class="rt-badge"><div class="rt-dot"></div><span>Live</span></div>
+      <div class="dbs"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
+      <span class="clock" id="clock"></span>
+    </div>
+    <div class="sb-online-wrap">
+      <div class="sb-lbl">Online agora</div>
+      <div id="onlineBar"></div>
+    </div>
+    <span id="statusOperador" style="display:none"></span>
+    <button class="btn btn-g" id="btnTrocarOperador" onclick="trocarOperador()" style="display:none">🔄 Trocar operador</button>
+    <div class="sb-user">
+      <div class="uav" id="uAv">?</div>
+      <div class="sb-user-txt"><div class="uname" id="uName">...</div><div class="sb-perfil" id="uPerfil"></div></div>
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Tema claro/escuro">🌙</button>
+      <button class="sb-sair" onclick="doLogout()" title="Sair do sistema">Sair</button>
+    </div>
+  </div>
 </div>
 <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 
@@ -716,14 +762,6 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <div class="logo"><div class="logo-ico">🚛</div><div class="logo-txt">TRK PCP <small>2026</small> <span id="appVersionBadge" style="font-size:.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle;font-weight:700;cursor:pointer" onclick="abrirNovidades(true)" title="Ver novidades desta versão">v287</span></div></div>
   </div>
   <div class="topbar-r">
-    <div id="onlineBar" style="display:none" style="display:flex;gap:4px;align-items:center;margin-right:4px"></div>
-    <div id="rtIndicator" style="display:none;margin-right:6px" class="rt-badge"><div class="rt-dot"></div><span>Live</span></div>
-    <div class="dbs" style="margin-right:4px"><div class="dbd loading" id="dbDot"></div><span id="dbLbl">...</span></div>
-    <span class="clock" id="clock"></span>
-    <span id="statusOperador" style="display:none;font-size:.68rem;color:var(--t2);margin-right:6px;white-space:nowrap"></span>
-    <button class="btn btn-g" id="btnTrocarOperador" onclick="trocarOperador()" style="display:none;font-size:.65rem;padding:3px 8px;margin-right:4px">🔄 Trocar operador</button>
-    <div class="uchip" onclick="doLogout()"><div class="uav" id="uAv">?</div><span class="uname" id="uName">...</span><span class="uout">sair</span></div>
-    <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙</button>
     <button class="btn btn-g" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)" style="font-size:.85rem">🔍</button>
     <button class="btn btn-p" onclick="openNew()" id="newOpBtn">+</button>
   </div>
@@ -1694,6 +1732,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
     <button class="mnav-btn" id="mn-insumos" onclick="setView('insumos')"><span class="mni">🧰</span>Insumos</button>
     <button class="mnav-btn" id="mn-veiculos" onclick="setView('veiculos')"><span class="mni">🚛</span>Veículos</button>
     <button class="mnav-btn" id="mn-analise" onclick="setView('analise')"><span class="mni">📈</span>Análise</button>
+    <button class="mnav-btn" id="mn-reportpcp" onclick="setView('reportpcp')"><span class="mni">📋</span>Report PCP</button>
+    <button class="mnav-btn" id="mn-descarga" onclick="setView('descarga')"><span class="mni">🚚</span>Descarga</button>
     <button class="mnav-btn" id="mn-tv" onclick="setView('tv')"><span class="mni">📺</span>TV</button>
     <button class="mnav-btn" id="mn-tv-yard" onclick="setView('tv-yard')"><span class="mni">🏭</span>TV Yard</button>
     <button class="mnav-btn" id="mn-admin" onclick="setView('admin')" style="display:none"><span class="mni">⚙️</span>Admin</button>
@@ -2025,11 +2065,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v345';
+const APP_VERSION='v346';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v346:['🗂️ Barra do topo mais limpa: hora, status de conexão (Live/banco), quem está online, operador/trocar operador, usuário, tema claro/escuro e Sair foram pra dentro da gaveta lateral (☰), no rodapé dela. No topo ficam só ☰, logo, busca e + nova viagem.','📱 Celular/tablet: a gaveta ☰ agora também abre no celular (com todas as abas + hora, status, usuário e Sair). A barra inferior e a bolha ⋯ continuam iguais.','🚚 Painel de Descarga e Report PCP agora aparecem no celular (barra inferior ou bolha ⋯, conforme o perfil) — antes só existiam no PC.'],
   v345:['📈 Aba Análise reestruturada: em vez de 27 quadros num scroll só, agora tem um resumo fixo no topo (SLA de chegada no FC em destaque + total, finalizadas, fora do prazo, Δ saída, Δ chegada e tempo de doca) e os quadros foram separados em seções — Visão Geral, Pontualidade, Descarga & Doca, CAFs, Operação & Frota e Monte sua Análise. Gráficos repaginados: medidores em anel nos SLAs e OT, rosca com total no centro na distribuição por status/tipo, barras mais finas e legíveis, SLA por Rota com barra de progresso e farol em bolinha, Últimos 7 dias com o dia de hoje destacado, listas longas (motoristas, veículos sem cadastro) com rolagem própria. Corrigido "++1h" duplicado no Top Atrasos no FC e o NaN no Comparativo Semanal. Nenhum quadro foi removido, todos continuam calculando igual; a seção escolhida fica lembrada na próxima vez.',
     '🚪 Gestão de Doca ganhou o painel "Fila de Carregamento": quem está aguardando encostar, horário previsto e há quanto tempo espera, em vermelho quando já passou do horário.',
     '🗂️ Sidebar agora é sempre uma gaveta sobreposta (PC e tablet): abre pelo ☰, fecha clicando fora ou trocando de aba. Celular continua igual, com a barra inferior e a bolha.',
@@ -2880,6 +2921,7 @@ async function bootApp(){
   document.getElementById('uAv').textContent=currentUser.av;
   document.getElementById('uAv').style.background=currentUser.cor;
   document.getElementById('uName').textContent=currentUser.nome;
+  {const _up=document.getElementById('uPerfil');if(_up)_up.textContent=(typeof _perfilLabelCurto==='function'&&_perfilLabelCurto(currentUser.perfil))||currentUser.perfil||'';}
   // ═══ VISIBILIDADE POR PERFIL + OVERRIDE POR USUÁRIO ═══
   _refreshPerms();
   const _uRef=USERS.find(x=>x.user===currentUser.user);
@@ -7636,11 +7678,11 @@ function _tempoNoStatusAtualCAF(c){
 const ABAS_INFO = {
   painel:{ic:'📊',lb:'Painel'}, lista:{ic:'☰',lb:'Lista'}, prog:{ic:'🚪',lb:'Doca'},
   massa:{ic:'⚡',lb:'Em Massa'}, fup:{ic:'📋',lb:'FUP FC'}, amazon:{ic:'📦',lb:'FUP Amazon'},
-  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, veiculos:{ic:'🚛',lb:'Veículos'}, analise:{ic:'📈',lb:'Análise'}, reportpcp:{ic:'📋',lb:'Report PCP'}, tv:{ic:'📺',lb:'TV'},
+  caf:{ic:'📦',lb:'CAFs'}, pallets:{ic:'🔄',lb:'Pallets'}, insumos:{ic:'🧰',lb:'Insumos'}, veiculos:{ic:'🚛',lb:'Veículos'}, analise:{ic:'📈',lb:'Análise'}, reportpcp:{ic:'📋',lb:'Report PCP'}, descarga:{ic:'🚚',lb:'Painel de Descarga'}, tv:{ic:'📺',lb:'TV'},
   'tv-yard':{ic:'🏭',lb:'TV Yard'}, admin:{ic:'⚙️',lb:'Admin'},
 };
 // Ordem de prioridade — as primeiras 4 que o usuário tiver acesso ficam fixas na barra
-const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','veiculos','massa','fup','amazon','analise','tv','tv-yard','admin'];
+const ABAS_PRIORIDADE = ['painel','lista','prog','caf','pallets','insumos','veiculos','massa','fup','amazon','analise','descarga','reportpcp','tv','tv-yard','admin'];
 
 // Organiza a navegação mobile: se o perfil tem mais de 4 abas, fixa só as 4 prioritárias
 // na barra e joga o resto pro painel "Mais" + mostra a bolha flutuante.
