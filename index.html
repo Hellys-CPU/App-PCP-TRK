@@ -2291,11 +2291,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v349';
+const APP_VERSION='v350';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v350:['🚚 Análise → Operação & Frota: novo quadro "Transportadoras × Rotas — quem mais atua". Ranking das transportadoras por número de viagens no período, % do total, quantas rotas cada uma atende, rota principal e SLA de chegada; embaixo, a matriz transportadora × rota (mais escuro = mais viagens) e a transportadora dominante de cada rota. Nome clicável abre a ficha. Respeita o filtro de período e transportadora da Análise.'],
   v349:[
     '🧭 Linha do tempo da viagem: no topo do modal aparece Apresentação → Saída TZX → Chegada FC → Descarga com o horário planejado, o real e a diferença de cada etapa, e quanto tempo cada trecho levou contra o plano. Verde no prazo, amarelo até 30min, vermelho acima; azul pulsando = etapa atual. Atualiza enquanto você digita os horários.',
     '🔥 Cartão que esquenta: no Painel, o cartão vai ficando âmbar → laranja → vermelho conforme o tempo parado no status (aguardando carregamento, em carregamento, em trânsito comparado ao tempo planejado, aguardando descarga). O "tempo neste status" agora conta a partir do horário real de entrada no status (antes contava da última edição qualquer).',
@@ -7850,6 +7851,10 @@ function renderAnalise(){
     <div style="font-size:.58rem;color:var(--t3);margin-top:8px">Viagens ordenadas da maior pra menor tempo de descarga no período selecionado.</div>`;
   })()}
 </div>
+<div class="an-card" data-sec="frota" data-pri="1" style="grid-column:1/-1">
+  <h3>Transportadoras × Rotas — quem mais atua</h3>
+  ${_renderTranspRotas(data)}
+</div>
 <div class="an-card" data-wide="1" data-sec="frota">
   <h3>Volume por Transportadora</h3>
   ${tArr.length?tArr.map(([n,d])=>{const p=Math.round((d.t/maxT)*100);const perf=d.ok/d.t;const bc=perf>=0.8?'#22c55e':perf>=0.5?'#f59e0b':'#ef4444';return`<div class="tr-row"><span class="tr-name" title="${esc(n)}">${_fichaLink('transp',n)}</span><div class="tr-bar-bg"><div class="tr-bar-fill" style="width:${p}%;background:${bc}"></div></div><span class="tr-cnt">${d.t}</span></div>`;}).join(''):'<p style="color:var(--t3);text-align:center;padding:16px">Sem dados</p>'}
@@ -11362,6 +11367,52 @@ function _renderMapaHorarioAtrasos(data){
     <div class="hm-leg"><span>% de viagens atrasadas (>30min) pela chegada planejada no FC</span>
       <span class="hm-esc"><i style="background:${cor(0)}"></i>0%<i style="background:${cor(.35)}"></i>35%<i style="background:${cor(.7)}"></i>70%+</span>
       <span>apagado = menos de 3 viagens</span></div>`;
+}
+// Análise: quais transportadoras mais atuam e em quais rotas. Ranking por número de viagens no período,
+// quantas rotas diferentes cada uma atende, participação no total, rota principal e SLA de chegada;
+// embaixo, a matriz transportadora × rota (cada célula = viagens; cor mais forte = mais viagens) e,
+// por rota, quem é a transportadora dominante. Canceladas não entram.
+function _renderTranspRotas(data){
+  const val=data.filter(o=>o.status!=='CANC'&&o.transp&&o.rota);
+  if(!val.length)return'<p style="color:var(--t3);text-align:center;padding:16px">Sem viagens com transportadora e rota no período.</p>';
+  const porT={},rotasSet=new Set();
+  val.forEach(o=>{
+    rotasSet.add(o.rota);
+    const t=porT[o.transp]=porT[o.transp]||{t:0,rotas:{},cheg:0,ok:0};
+    t.t++;t.rotas[o.rota]=(t.rotas[o.rota]||0)+1;
+    if(o.planChegFC&&o.realChegFC){t.cheg++;if(getSLA(o)==='ok')t.ok++;}
+  });
+  const rotas=[...rotasSet].sort();
+  const ranking=Object.entries(porT).sort((a,b)=>b[1].t-a[1].t);
+  const total=val.length,max=ranking[0][1].t;
+  const corSla=p=>p===null?'var(--t3)':p>=92?'var(--green)':p>=80?'#d97706':'var(--red)';
+  const linhas=ranking.map(([n,d],i)=>{
+    const principal=Object.entries(d.rotas).sort((a,b)=>b[1]-a[1])[0];
+    const sla=d.cheg?Math.round(d.ok/d.cheg*100):null;
+    return `<tr>
+      <td style="font-weight:800;color:var(--t3)">${i+1}º</td>
+      <td style="font-weight:700">${_fichaLink('transp',n)}</td>
+      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="an-hbar" style="height:8px"><div style="width:${Math.round(d.t/max*100)}%;background:var(--blue)"></div></div><b class="mono">${d.t}</b></div></td>
+      <td class="mono" style="text-align:center">${Math.round(d.t/total*100)}%</td>
+      <td style="text-align:center"><b class="mono">${Object.keys(d.rotas).length}</b><span style="color:var(--t3)">/${rotas.length}</span></td>
+      <td><span class="rota-cell">${esc(principal[0])}</span> <span style="color:var(--t3);font-size:.66rem">(${principal[1]} viag.)</span></td>
+      <td class="mono" style="text-align:center;font-weight:800;color:${corSla(sla)}">${sla===null?'—':sla+'%'}</td>
+    </tr>`;}).join('');
+  // Matriz transportadora × rota
+  const maxCel=Math.max(...ranking.flatMap(([,d])=>Object.values(d.rotas)));
+  const matriz=`<div style="overflow-x:auto;margin-top:14px"><table style="width:100%;border-collapse:collapse;font-size:.7rem">
+    <thead><tr><th style="text-align:left">Transportadora</th>${rotas.map(r=>`<th style="text-align:center">${esc(r)}</th>`).join('')}</tr></thead>
+    <tbody>${ranking.map(([n,d])=>`<tr><td style="font-weight:700;white-space:nowrap">${esc(n)}</td>${rotas.map(r=>{const v=d.rotas[r]||0;
+      return `<td style="text-align:center;padding:4px"><div class="mono" title="${esc(n)} · ${esc(r)}: ${v} viagens" style="border-radius:6px;padding:5px 0;font-weight:800;${v?`background:rgba(37,99,235,${(.12+.7*v/maxCel).toFixed(2)});color:${v/maxCel>.55?'#fff':'var(--text)'}`:'color:var(--t3)'}">${v||'·'}</div></td>`;}).join('')}</tr>`).join('')}
+    <tr><td style="font-weight:700;color:var(--t2)">Dominante</td>${rotas.map(r=>{let best=null;ranking.forEach(([n,d])=>{const v=d.rotas[r]||0;if(v&&(!best||v>best.v))best={n,v};});
+      const tot=ranking.reduce((s,[,d])=>s+(d.rotas[r]||0),0);
+      return `<td style="text-align:center;font-size:.62rem;color:var(--t2)">${best?`<b>${esc(best.n)}</b><br>${Math.round(best.v/tot*100)}%`:'—'}</td>`;}).join('')}</tr>
+    </tbody></table></div>`;
+  const lider=ranking[0];
+  return `<p style="font-size:.72rem;color:var(--t2);margin-bottom:10px">Mais ativa no período: <b>${esc(lider[0])}</b> — ${lider[1].t} viagens (${Math.round(lider[1].t/total*100)}% do total) em ${Object.keys(lider[1].rotas).length} rota(s). Clique no nome para abrir a ficha.</p>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.74rem">
+      <thead><tr><th></th><th style="text-align:left">Transportadora</th><th style="text-align:left">Viagens</th><th>% do total</th><th>Rotas atendidas</th><th style="text-align:left">Rota principal</th><th>SLA chegada</th></tr></thead>
+      <tbody>${linhas}</tbody></table></div>${matriz}`;
 }
 // Análise: tempo médio real entre as etapas (apresentação → saída → chegada FC → descarga).
 function _renderEtapas(data){
