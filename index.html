@@ -219,8 +219,9 @@ body.sidebar-open #sidebarBackdrop{display:block;}
 #sidebar .ob-name{display:block;color:#e5e7eb;font-size:.72rem;}
 #sidebar .ob-pg{display:block;color:#8b8fa3;font-size:.62rem;}
 #statusOperador{font-size:.7rem;color:#a8acbd;}
+#mobileMoreConta #statusOperador{font-size:.78rem;}
 #statusOperador:empty{display:none!important;}
-#btnTrocarOperador{width:100%;background:#1c1f2a;border-color:#23262f;color:#e5e7eb;font-size:.72rem;padding:7px;}
+#sidebar #btnTrocarOperador{width:100%;background:#1c1f2a;border-color:#23262f;color:#e5e7eb;font-size:.72rem;padding:7px;}
 .sb-user{display:flex;align-items:center;gap:10px;padding:10px 4px 2px;border-top:1px solid #23262f;}
 #sidebar .uav{width:32px;height:32px;font-size:.75rem;}
 .sb-user-txt{flex:1;min-width:0;}
@@ -230,11 +231,26 @@ body.sidebar-open #sidebarBackdrop{display:block;}
 .sb-sair{background:none;border:1px solid #3a1f24;color:#ff7b86;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;}
 .sb-sair:hover{background:#3a1f24;}
 @media(max-width:768px){
-  #sidebar{width:280px;max-width:86vw;padding-bottom:max(16px,env(safe-area-inset-bottom));z-index:400;}
-  #sidebarBackdrop{z-index:390;}
-  #sidebar .tab{padding:11px 10px;font-size:.86rem;}
-  .sidebar-toggle-btn{width:36px;height:36px;}
+  /* no celular a bolha ⋯ já é o menu — ☰ e gaveta ficariam repetidos */
+  #sidebar,#sidebarBackdrop,.sidebar-toggle-btn{display:none!important;}
 }
+/* Rodapé da conta dentro do painel ⋯ (celular) — mesmas peças da gaveta, com as cores do tema */
+#mobileMoreConta .sb-foot{border-top:1px solid var(--bd);margin-top:14px;padding-top:12px;}
+#mobileMoreConta .sb-lbl{color:var(--t3);}
+#mobileMoreConta #onlineBar{flex-direction:row;flex-wrap:wrap;gap:6px 14px;max-height:none;}
+#mobileMoreConta .ob-item{background:none;border:none;box-shadow:none;padding:0;gap:6px;}
+#mobileMoreConta .ob-name,#mobileMoreConta .ob-pg{display:block;}
+#mobileMoreConta .clock{display:inline-block;margin-left:auto;font-family:var(--font-mono);font-weight:600;}
+#mobileMoreConta .dbs span{display:inline;}
+#mobileMoreConta #statusOperador{color:var(--t2);}
+#mobileMoreConta #btnTrocarOperador{width:100%;padding:9px;font-size:.8rem;}
+#mobileMoreConta .sb-user{border-top:1px solid var(--bd);padding:12px 2px 0;}
+#mobileMoreConta .uav{width:36px;height:36px;font-size:.8rem;}
+#mobileMoreConta .uname{display:block;color:var(--text);font-weight:700;font-size:.88rem;max-width:none;}
+#mobileMoreConta .sb-perfil{color:var(--t2);}
+#mobileMoreConta .theme-toggle{padding:7px 10px;font-size:.9rem;}
+#mobileMoreConta .sb-sair{border-color:var(--red4);color:var(--red);padding:8px 14px;font-size:.8rem;}
+#btnMobileMaisFlutuante .conn-dot{top:4px;right:4px;width:11px;height:11px;border-color:rgba(0,0,0,.25);}
 .topbar-r{display:flex;align-items:center;gap:5px;flex-shrink:0;}
 .clock{font-size:.68rem;color:var(--t2);background:var(--bg3);padding:3px 7px;border-radius:var(--rs);border:1px solid var(--bd);white-space:nowrap;}
 .btn{padding:5px 10px;border-radius:var(--rs);border:none;cursor:pointer;font-size:.74rem;font-weight:600;transition:.15s;white-space:nowrap;}
@@ -799,7 +815,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
   <span class="tb-page" id="tbPage"></span>
   <div class="topbar-r">
-    <button class="tb-oper" id="tbOper" onclick="toggleSidebar()" style="display:none" title="Operador atual — toque para trocar"></button>
+    <button class="tb-oper" id="tbOper" onclick="_abrirMenuConta()" style="display:none" title="Operador atual — toque para trocar"></button>
     <button class="btn btn-g" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)" style="font-size:.85rem">🔍</button>
     <button class="btn btn-p" onclick="openNew()" id="newOpBtn">+</button>
   </div>
@@ -1780,14 +1796,15 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 </div>
 
 <!-- Bolha flutuante "Mais" — só aparece se o perfil tiver mais de 4 abas -->
-<button id="btnMobileMaisFlutuante" onclick="toggleMobileMore()" style="display:none;position:fixed;bottom:70px;right:14px;z-index:155;width:52px;height:52px;border-radius:50%;background:rgba(204,0,0,.72);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:1.4rem;box-shadow:0 4px 14px rgba(0,0,0,.35);align-items:center;justify-content:center">⋯</button>
+<button id="btnMobileMaisFlutuante" onclick="toggleMobileMore()" aria-label="Mais abas e conta" style="display:none;position:fixed;bottom:70px;right:14px;z-index:155;width:52px;height:52px;border-radius:50%;background:rgba(204,0,0,.72);backdrop-filter:blur(4px);border:1.5px solid rgba(255,255,255,.25);color:#fff;font-size:1.4rem;box-shadow:0 4px 14px rgba(0,0,0,.35);align-items:center;justify-content:center">⋯<span class="conn-dot"></span></button>
 
 <!-- PAINEL "MAIS" — populado dinamicamente via JS conforme as abas que não couberam na barra -->
 <div id="mobileMorePanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:160" onclick="if(event.target===this)toggleMobileMore()">
-  <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);border-radius:16px 16px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.3)">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-height:88vh;overflow-y:auto;background:var(--bg2);border-top:1px solid var(--bd);border-radius:16px 16px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(0,0,0,.3)">
     <div style="width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px"></div>
     <button class="btn btn-s" style="width:100%;margin-bottom:14px;font-size:.85rem;padding:10px" onclick="toggleMobileMore();openNew()">➕ Nova Operação</button>
     <div id="mobileMoreGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div>
+    <div id="mobileMoreConta"></div>
   </div>
 </div>
 
@@ -2104,11 +2121,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v347';
+const APP_VERSION='v348';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v348:['📱 Celular: saiu o botão ☰ (ficava repetido com a bolha ⋯). Agora a bolha ⋯ é o menu único: abas extras em cima e, embaixo, hora, status de conexão, quem está online, operador/Trocar operador, usuário, tema claro/escuro e Sair.','🟢 A bolha ⋯ ganhou a bolinha de conexão (verde/laranja/vermelha) e aparece sempre no celular, mesmo pra perfil com poucas abas — senão não teria como sair ou trocar o tema.','🖥️ PC e tablet largo continuam com a gaveta ☰ igual.'],
   v347:['🟢 Bolinha no botão ☰ mostra a conexão sem abrir a gaveta: verde = tudo ok, laranja = sem tempo real (atualiza a cada 45s), vermelha piscando = sem banco.','👤 Login compartilhado: o nome de quem está operando aparece de novo no topo (toque nele pra abrir a gaveta e trocar).','🧭 Nome da aba atual aparece no topo, ao lado do logo (PC).','📊 Indicadores do Painel e de CAFs redesenhados: faixa de cor no topo, número maior, sem emoji dentro do número.','🗂️ Painel (kanban): colunas e cartões com visual mais limpo, bordas finas e sombra suave.','📱 Celular/tablet: acabou o espaço vazio enorme embaixo dos indicadores, filtros e cabeçalhos (CAFs, Pallets, Painel...). No Painel, os filtros ficam recolhidos num botão "Filtros ▾" — a busca continua sempre à vista.'],
   v346:['🗂️ Barra do topo mais limpa: hora, status de conexão (Live/banco), quem está online, operador/trocar operador, usuário, tema claro/escuro e Sair foram pra dentro da gaveta lateral (☰), no rodapé dela. No topo ficam só ☰, logo, busca e + nova viagem.','📱 Celular/tablet: a gaveta ☰ agora também abre no celular (com todas as abas + hora, status, usuário e Sair). A barra inferior e a bolha ⋯ continuam iguais.','🚚 Painel de Descarga e Report PCP agora aparecem no celular (barra inferior ou bolha ⋯, conforme o perfil) — antes só existiam no PC.'],
   v345:['📈 Aba Análise reestruturada: em vez de 27 quadros num scroll só, agora tem um resumo fixo no topo (SLA de chegada no FC em destaque + total, finalizadas, fora do prazo, Δ saída, Δ chegada e tempo de doca) e os quadros foram separados em seções — Visão Geral, Pontualidade, Descarga & Doca, CAFs, Operação & Frota e Monte sua Análise. Gráficos repaginados: medidores em anel nos SLAs e OT, rosca com total no centro na distribuição por status/tipo, barras mais finas e legíveis, SLA por Rota com barra de progresso e farol em bolinha, Últimos 7 dias com o dia de hoje destacado, listas longas (motoristas, veículos sem cadastro) com rolagem própria. Corrigido "++1h" duplicado no Top Atrasos no FC e o NaN no Comparativo Semanal. Nenhum quadro foi removido, todos continuam calculando igual; a seção escolhida fica lembrada na próxima vez.',
@@ -2516,12 +2534,22 @@ async function checkSupabase(){
   catch(e){setDbStatus('off','Offline');supabaseOK=false;return false;}
 }
 function setDbStatus(t,l){const d=document.getElementById('dbDot'),lb=document.getElementById('dbLbl');if(d)d.className='dbd '+t;if(lb)lb.textContent=l;supabaseOK=(t==='ok');_atualizarConnDot();}
+// Conta/status: na gaveta (PC/tablet largo) ou dentro do painel ⋯ (celular) — é o mesmo bloco, só muda de lugar
+const _mqMobile=window.matchMedia('(max-width:768px)');
+function _posicionarContaMobile(){
+  const foot=document.querySelector('.sb-foot');if(!foot)return;
+  const dest=_mqMobile.matches?document.getElementById('mobileMoreConta'):document.getElementById('sidebar');
+  if(dest&&foot.parentElement!==dest)dest.appendChild(foot);
+}
+function _abrirMenuConta(){ if(_mqMobile.matches)toggleMobileMore(); else toggleSidebar(); }
+try{_mqMobile.addEventListener('change',_posicionarContaMobile);}catch(e){try{_mqMobile.addListener(_posicionarContaMobile);}catch(e2){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_posicionarContaMobile);else _posicionarContaMobile();
 // Bolinha no botão ☰: verde = banco + tempo real ok · laranja = só banco (sync a cada 45s) · vermelha = banco fora
 function _atualizarConnDot(){
-  const el=document.getElementById('connDot');if(!el)return;
   let rt=false;try{rt=_ablyOK;}catch(e){}
   const st=!supabaseOK?'err':rt?'ok':'warn';
-  el.className='conn-dot '+st;
+  document.querySelectorAll('.conn-dot').forEach(d=>d.className='conn-dot '+st);
+  const el=document.getElementById('connDot');if(!el)return;
   const b=el.parentElement;if(b)b.title=st==='ok'?'Menu · conectado (tempo real)':st==='warn'?'Menu · conectado sem tempo real (atualiza a cada 45s)':'Menu · SEM conexão com o banco';
 }
 // Espelha "Operando: Fulano" (login compartilhado) num selo no topo, visível sem abrir a gaveta
@@ -7754,8 +7782,8 @@ function _organizarNavMobile(abasVisiveis){
   const grid=document.getElementById('mobileMoreGrid');
 
   if(ordenadas.length<=4){
-    // Cabe tudo na barra — sem bolha, sem "Mais"
-    if(bolha)bolha.style.display='none';
+    // Cabe tudo na barra — sem abas extras, mas a bolha fica: ela também guarda conta, tema e Sair
+    if(bolha)bolha.style.display='flex';
     if(grid)grid.innerHTML='';
     return;
   }
