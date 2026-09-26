@@ -2,7 +2,9 @@
 
 Sistema de gestão de PCP (Planejamento e Controle de Produção) logística do hub **TZX**, usado pelo time de Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF e Liderança.
 
-> **Versão atual: v293** · Aplicativo single-file (HTML/CSS/JS), sem build step, sem framework.
+> **Versão atual: v351** · Aplicativo single-file (HTML/CSS/JS), sem build step, sem framework.
+>
+> **Onde está cada coisa:** o `<script>` principal do `index.html` começa com um **MAPA DO CÓDIGO** listando as seções na ordem em que aparecem; cada função tem um comentário curto explicando o que faz.
 
 ---
 
@@ -63,16 +65,17 @@ Permissões finas (por ação: criar CAF, editar viagem, exportar, etc.) ficam e
 
 ## 🧩 Módulos principais
 
-- **Painel / Lista** — visão geral e lista completa de viagens (operações)
-- **Gestão de Doca** — atribuição de doca às viagens, ocupação de piso (CAFs/pallets/docas)
+- **Painel / Lista** — visão geral e lista completa de viagens (operações); no Painel o cartão "esquenta" com o tempo parado no status, desliza ao mudar de coluna e mostra a previsão de chegada no FC para quem está em trânsito
+- **Gestão de Doca** — planta do pátio (docas + fila de entrada, arrastar/tocar para encostar), atribuição de doca, ocupação de piso (CAFs/pallets/docas)
 - **Programação em Massa** — cria várias viagens de uma vez a partir de uma grade
-- **CAFs** — produção, vinculação a rua física, status (Em Produção → Produzida → Em Auditoria GRIS → Vinculada a Veículo → Processo de Entrega → Entrega Realizada)
+- **CAFs** — tabela no PC e cartões com botão de próximo status no tablet; produção, vinculação a rua física, status (Em Produção → Produzida → Em Auditoria GRIS → Vinculada a Veículo → Processo de Entrega → Entrega Realizada)
 - **Retorno de Pallets** — controle de pallets retornando das FCs, inventário por FC
 - **Insumos HUB** — catálogo de equipamentos, checklist de turno, controle de tablets
 - **Veículos** — cadastro com capacidade de pallets (PBR)
 - **Report PCP** — CAFs prontas/produzindo, expedição por FC, backlog manual do turno (preenchimento por horário), exportável em PDF/print
-- **Análise** — KPIs de SLA, OT, uso do app pelo motorista, Pareto de CAFs sem baixa por FC, consolidação de CAF
-- **TV / TV Yard** — modo kiosk com grid tabular de ruas, ciclo automático
+- **Análise** — resumo fixo + seções (Visão Geral, Pontualidade, Descarga & Doca, CAFs, Operação & Frota, Monte sua Análise): SLA, OT, Pareto, mapa dia × horário dos atrasos, uso do app, consolidação de CAF
+- **Ficha da transportadora / do motorista** — clique no nome em Lista, FUP FC, Análise ou no modal da viagem
+- **TV / TV Yard** — modo kiosk; a TV tem torre de controle (painéis que se revezam e piscam em alerta), grid de ruas e ciclo automático
 - **Admin** — usuários, permissões, monitoramento dos dois bancos (detecção de split-brain), histórico de turnos (com botão de desconectar sessão presa)
 
 ---
