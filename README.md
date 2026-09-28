@@ -3,6 +3,7 @@
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
 > **Versão atual: v354** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
+> **Versão atual: v351** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
 

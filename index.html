@@ -7184,6 +7184,13 @@ function semanaLabel(k){
   const{w,seg,dom}=_semanaSegDom(k);
   return `${w}w · ${seg}–${dom}`;
 }
+}
+// Texto da semana para os filtros (ex.: '39w · 21/09–27/09').
+function semanaLabel(k){
+  if(!k||typeof k!=='string'||!k.includes('-W'))return '—';
+  const{w,seg,dom}=_semanaSegDom(k);
+  return `${w}w · ${seg}–${dom}`;
+}
 // Análise: preenche a lista de semanas que têm viagens.
 function populateSemanasSel(){
   const sel=document.getElementById('aSemanaSel');if(!sel)return;
