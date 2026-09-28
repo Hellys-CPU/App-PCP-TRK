@@ -2,7 +2,7 @@
 
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
-> **Versão atual: v352** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
+> **Versão atual: v353** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
 
@@ -311,6 +311,7 @@ O histórico completo fica **dentro do app**: clique no badge da versão, no top
 
 Últimas versões:
 
+- **v353**: leitor da lista de motoristas aceita mais formatos (WhatsApp, tudo numa linha, rótulo sem ":" etc.).
 - **v352**: Distribuir motoristas na Programação em Massa, com rotas por transportadora.
 - **v351**
   - checagem antes da saída;

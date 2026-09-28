@@ -2406,11 +2406,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v352';
+const APP_VERSION='v353';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v353:['🧩 Distribuir motoristas lê mais formatos: rótulo sem ":" (ex.: "Motorista João"), cavalo e carreta na mesma linha ("DMI-2H97 / FXD-0E18"), tudo numa linha só ("07:00 João Pereira DMI2H97"), nome com CPF junto, "Livre a partir das 07:30", "7h"/"9h30", mensagens copiadas do WhatsApp e emojis. Linhas de Telefone, RG, Obs etc. são ignoradas. Transportadora fora do cadastro aparece com aviso em vez de virar nome de motorista.'],
   v352:[
     '🧩 Programação em Massa → Passo 2: botão "Distribuir motoristas". Cole a lista das transportadoras como vem (Notion, WhatsApp ou Excel — com ou sem "MOTORISTA:", "CAVALO:", "CARRETA:", ":" ou "-", ou uma linha por motorista). O horário é a partir de quando o motorista está livre.',
     '🚛 O app confere quem ainda está aguardando descarga ou em trânsito e calcula quando ele realmente fica livre (espera que ainda falta pelo histórico do FC + volta até a TZX). Se a transportadora disser um horário antes disso, avisa.',
@@ -6611,50 +6612,108 @@ function abrirDistribuirMotoristas(){
 function fecharDistribuirMotoristas(){document.getElementById('overlayDistribuir').classList.remove('open');}
 
 // ── Leitura do texto colado ──
-// Aceita blocos (transportadora como título, horário, MOTORISTA:, CPF:, CAVALO:, CARRETA:, com ":" ou "-",
-// com ou sem os rótulos) e linhas separadas por ; | ou tab. Transportadora é reconhecida pelo cadastro.
+// Cada linha é desmontada em pedaços: CPF, placas (padrão antigo ou Mercosul, com ou sem hífen), horário
+// (07:00, 7h, 07h30, "livre a partir das 7:30") e o que sobra de letras vira nome. Rótulos (MOTORISTA,
+// CAVALO, CARRETA, PLACAS, CPF, LIVRE, TRANSPORTADORA…) valem com ":", "-", "=" ou só espaço. Também aceita
+// linhas separadas por ; | ou tab (Excel) e mensagens copiadas do WhatsApp (tira o "[data hora] Fulano:").
+// Transportadora é reconhecida pelo cadastro; um título que não está no cadastro é lido e vira aviso.
 function _dmLerTexto(txt){
   const lista=[];
-  let transpAtual='',cur=null;
-  const novo=()=>({transp:transpAtual,livreTxt:'',nome:'',cpf:'',placa:'',carreta:'',avisos:[]});
+  let transpAtual='',transpFora='',cur=null;
+  const novo=()=>({transp:transpAtual,transpFora,livreTxt:'',nome:'',cpf:'',placa:'',carreta:'',avisos:[]});
   const fechar=()=>{if(cur&&(cur.nome||cur.placa))lista.push(cur);cur=null;};
-  const acharTransp=v=>{const n=_dmNorm(String(v).replace(/^\s*transportadora\s*[:\-–]?/i,''));return n?TRANSPS.find(t=>_dmNorm(t)===n)||'':'';};
-  const lerHora=v=>{const m=String(v).trim().match(/^(?:livre|dispon[ií]vel|a partir d[ae]s?|hor[aá]rio|hr|[àa]s)?\s*[:\-–]?\s*([01]?\d|2[0-3])\s*(?:[:hH]\s*([0-5]\d)?)\s*(?:hs?|hrs)?\.?$/i);return m?String(m[1]).padStart(2,'0')+':'+(m[2]||'00'):'';};
-  const ehCPF=v=>/^\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}$/.test(String(v).trim());
-  const ehPlaca=v=>_DM_PLACA.test(normPlaca(v));
-  const guardarPlaca=(p)=>{if(!cur.placa)cur.placa=normPlaca(p);else if(!cur.carreta)cur.carreta=normPlaca(p);};
-  String(txt||'').split(/\r?\n/).forEach(bruta=>{
-    const linha=bruta.replace(/^[\s*•·>\-–]+/,'').replace(/\*+/g,'').trim();
+  const vazio=()=>!cur||(!cur.nome&&!cur.placa&&!cur.cpf);
+  const acharTransp=v=>{const n=_dmNorm(String(v).replace(/^\s*transportadora\s*[:\-–=]?/i,''));return n?TRANSPS.find(t=>_dmNorm(t)===n)||'':'';};
+  const RE_ROT=/^(motorista|mot|nome|condutor|cpf|cavalo(?:\s+mec[aâ]nico)?|trator|placas?(?:\s+d[oa])?(?:\s+cavalo|\s+carreta)?|ve[ií]culo|carreta|reboque|semi[\s-]?r?reboque|transportadora|hor[aá]rio|livre(?:\s+a\s+partir\s+d[ae]s?)?|dispon[ií]vel(?:\s+a\s+partir\s+d[ae]s?)?)(?![a-zà-ú])\s*[:\-–=.]?\s*/i;
+  const PALAVRAS_HORA=/(^|\s)(livre|dispon[ií]vel|a partir d[ae]s?|[àa]s|hor[aá]rio|hs?|hrs)(?=\s|$)/gi;
+  // Desmonta uma linha (ou o valor depois do rótulo) em cpf, placas, hora e palavras de nome.
+  const desmontar=v=>{
+    let r=' '+v+' ';
+    const cpfs=[];r=r.replace(/\d{3}\.?\d{3}\.?\d{3}[-.\s]?\d{2}/g,m=>{cpfs.push(m.replace(/\D/g,''));return' ';});
+    const placas=[];
+    r=r.split(/([\s\/,;|:()\[\]]+)/).map(tk=>{const p=normPlaca(tk);if(p.length===7&&_DM_PLACA.test(p)){placas.push(p);return' ';}return tk;}).join('');
+    let hora='';
+    const mh=r.match(/(?:^|[^\d])([01]?\d|2[0-3])\s*(?::\s*([0-5]\d)|[hH]\s*([0-5]\d)?)(?!\d)/);
+    if(mh){hora=String(mh[1]).padStart(2,'0')+':'+(mh[2]||mh[3]||'00');r=r.replace(mh[0],' ');}
+    // Palavras de horário só saem quando a linha tinha horário (senão "das"/"às" podem ser do nome)
+    const palavras=(hora?r.replace(PALAVRAS_HORA,' '):r).replace(/[^A-Za-zÀ-ÿ' ]/g,' ').split(/\s+/).filter(w=>w.length>1); // letra solta (abreviação) é ignorada
+    return{cpfs,placas,hora,nome:palavras.join(' ').trim()};
+  };
+  const linhas=String(txt||'').split(/\r?\n/).map(bruta=>bruta
+    .replace(/^\s*\[?\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s+\d{1,2}:\d{2}(?::\d{2})?\]?\s*(?:-\s*)?[^:\n]{1,40}:\s*/,'') // WhatsApp
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'')                                                // emojis
+    .replace(/^[\s*•·>\-–]+/,'').replace(/\*+/g,'').trim());
+  // A próxima linha não vazia começa um motorista (horário sozinho ou rótulo de motorista)?
+  const proxAbreBloco=i=>{
+    for(let j=i+1;j<linhas.length;j++){
+      if(!linhas[j])continue;
+      const d=desmontar(linhas[j]);
+      return (!!d.hora&&!d.nome&&!d.placas.length)||/^(motorista|mot|nome|condutor|livre|hor[aá]rio)\b/i.test(linhas[j]);
+    }
+    return false;
+  };
+  linhas.forEach((linha,i)=>{
     if(!linha)return;
-    // Linha única com campos separados (Excel / planilha)
-    if(/[;|\t]/.test(linha)){
-      const campos=linha.split(/[;|\t]/).map(x=>x.trim()).filter(Boolean);
-      if(campos.length>=2){
-        fechar();cur=novo();
-        campos.forEach(c=>{
-          const t=acharTransp(c),h=lerHora(c);
-          if(t)cur.transp=t;else if(h)cur.livreTxt=h;else if(ehCPF(c))cur.cpf=c.replace(/\D/g,'');
-          else if(ehPlaca(c))guardarPlaca(c);else if(!cur.nome)cur.nome=c;
-        });
-        fechar();return;
-      }
+    // Excel / planilha: campos separados na mesma linha → um motorista por linha
+    if(/[;|\t]/.test(linha)&&linha.split(/[;|\t]/).filter(x=>x.trim()).length>=2){
+      fechar();cur=novo();
+      linha.split(/[;|\t]/).map(x=>x.trim()).filter(Boolean).forEach(c=>{
+        const t=acharTransp(c);if(t){cur.transp=t;cur.transpFora='';return;}
+        const d=desmontar(c);
+        if(d.cpfs[0])cur.cpf=d.cpfs[0];
+        d.placas.forEach(p=>{if(!cur.placa)cur.placa=p;else if(!cur.carreta)cur.carreta=p;});
+        if(d.hora&&!cur.livreTxt)cur.livreTxt=d.hora;
+        if(d.nome&&!cur.nome&&!d.placas.length&&!d.cpfs.length)cur.nome=d.nome;
+      });
+      fechar();return;
     }
     const t=acharTransp(linha);
-    if(t){fechar();transpAtual=t;return;}
-    const h=lerHora(linha);
-    if(h){if(cur&&(cur.nome||cur.placa))fechar();if(!cur)cur=novo();cur.livreTxt=h;return;}
+    if(t){fechar();transpAtual=t;transpFora='';return;}
+    const rot=linha.match(RE_ROT);
+    const tipo=rot?_dmNorm(rot[1]):'';
+    // Rótulo que não usamos (Telefone, RG, CNH, Obs…) — ignora a linha inteira
+    if(!rot&&/^[A-Za-zÀ-ú .]{2,20}\s*[:=]/.test(linha))return;
+    const d=desmontar(rot?linha.slice(rot[0].length):linha);
+    if(/^TRANSPORTADORA/.test(tipo)){
+      const tt=acharTransp(linha.slice(rot[0].length));
+      fechar();transpAtual=tt;transpFora=tt?'':linha.slice(rot[0].length).trim();return;
+    }
+    if(/^(HORARIO|LIVRE|DISPONIVEL)/.test(tipo)){
+      if(cur&&(cur.nome||cur.placa))fechar();
+      if(!cur)cur=novo();
+      cur.livreTxt=d.hora||cur.livreTxt;return;
+    }
+    if(/^(MOTORISTA|MOT|NOME|CONDUTOR)$/.test(tipo)){
+      if(cur&&cur.nome)fechar();
+      if(!cur)cur=novo();
+      if(d.nome)cur.nome=d.nome;
+      if(d.cpfs[0])cur.cpf=d.cpfs[0];
+      d.placas.forEach(p=>{if(!cur.placa)cur.placa=p;else if(!cur.carreta)cur.carreta=p;});
+      return;
+    }
+    if(tipo==='CPF'){if(!cur)cur=novo();cur.cpf=d.cpfs[0]||String(rot?linha.slice(rot[0].length):'').replace(/\D/g,'');return;}
+    if(/CARRETA|REBOQUE/.test(tipo)){if(!cur)cur=novo();if(d.placas[0])cur.carreta=d.placas[0];return;}
+    if(tipo){ // CAVALO / TRATOR / PLACA(S) / VEÍCULO: 1ª placa = cavalo, 2ª = carreta
+      if(!cur)cur=novo();
+      d.placas.forEach((p,k)=>{if(k===0)cur.placa=p;else if(!cur.carreta)cur.carreta=p;});
+      return;
+    }
+    // Sem rótulo
+    const soHora=d.hora&&!d.nome&&!d.placas.length&&!d.cpfs.length;
+    if(soHora){if(cur&&(cur.nome||cur.placa))fechar();if(!cur)cur=novo();cur.livreTxt=d.hora;return;}
+    const soPalavras=!d.hora&&!d.placas.length&&!d.cpfs.length&&d.nome;
+    // Título de transportadora fora do cadastro: poucas palavras, antes de um motorista começar
+    if(soPalavras&&d.nome.split(' ').length<=4&&vazio()&&!(cur&&cur.livreTxt)&&proxAbreBloco(i)){
+      fechar();transpAtual='';transpFora=linha;return;
+    }
+    // Linha com tudo junto (ex.: "07:00 João Pereira DMI2H97 FXD0E18") abre um motorista novo
+    if(d.hora&&(d.nome||d.placas.length)&&cur&&(cur.nome||cur.placa))fechar();
+    if(soPalavras&&cur&&cur.nome&&d.nome.split(' ').length>=2)fechar();
     if(!cur)cur=novo();
-    const rot=linha.match(/^([A-Za-zÀ-ú .]{2,30}?)\s*[:\-–]\s*(.+)$/);
-    const rotulo=rot?_dmNorm(rot[1]):'',valor=rot?rot[2].trim():linha;
-    if(/^(MOTORISTA|MOT|NOME|CONDUTOR)$/.test(rotulo)){if(cur.nome){fechar();cur=novo();}cur.nome=valor;return;}
-    if(rotulo==='CPF'){cur.cpf=valor.replace(/\D/g,'');return;}
-    if(/^(CAVALO|CAVALO MECANICO|TRATOR|PLACA|PLACA CAVALO|VEICULO|TRUCK)$/.test(rotulo)){cur.placa=normPlaca(valor);return;}
-    if(/^(CARRETA|REBOQUE|SEMI REBOQUE|SEMIRREBOQUE|PLACA CARRETA)$/.test(rotulo)){cur.carreta=normPlaca(valor);return;}
-    if(/^(TRANSPORTADORA)$/.test(rotulo)){cur.transp=acharTransp(valor)||valor.toUpperCase();return;}
-    if(ehCPF(linha)){cur.cpf=linha.replace(/\D/g,'');return;}
-    if(ehPlaca(linha)){guardarPlaca(linha);return;}
-    // Sem rótulo: nome (ao menos 2 palavras, sem dígitos). Um nome novo abre outro motorista.
-    if(!/\d/.test(linha)&&linha.split(/\s+/).length>=2){if(cur.nome){fechar();cur=novo();}cur.nome=linha;}
+    if(d.hora)cur.livreTxt=d.hora;
+    if(d.cpfs[0])cur.cpf=d.cpfs[0];
+    d.placas.forEach(p=>{if(!cur.placa)cur.placa=p;else if(!cur.carreta)cur.carreta=p;});
+    if(d.nome&&!cur.nome&&(d.nome.split(' ').length>=2||d.placas.length||d.cpfs.length))cur.nome=d.nome;
   });
   fechar();
   return lista;
@@ -6789,7 +6848,7 @@ function _dmLerEDistribuir(){
   _dmMotoristas=lidos.map(m=>{
     m.nomeN=_dmNorm(m.nome);
     if(!m.nome)m.avisos.push('sem nome');
-    if(!m.transp)m.avisos.push('transportadora não reconhecida — coloque o nome dela (como no cadastro) acima dos motoristas');
+    if(!m.transp)m.avisos.push(m.transpFora?`transportadora "${m.transpFora}" não está no cadastro (Admin → Transportadoras)`:'sem transportadora — coloque o nome dela (como no cadastro) acima dos motoristas');
     if(m.cpf&&cpfs[m.cpf]>1)m.avisos.push('CPF repetido na lista — confira');
     if(m.placa&&placas[m.placa]>1)m.avisos.push('placa repetida na lista');
     if(!m.placa)m.avisos.push('sem placa do cavalo');
