@@ -527,6 +527,49 @@ body.dark .countdown{color:#58a6ff;}
 .sug{background:var(--blue2);border:1px solid rgba(37,99,235,.3);color:var(--text);border-radius:8px;padding:8px 10px;font-size:.72rem;margin:4px 0 8px;line-height:1.5;}
 .sug.ok{background:var(--green2);border-color:rgba(22,163,74,.3);}
 .sug .btn{margin-left:6px;font-size:.68rem;padding:3px 8px;}
+/* Distribuir motoristas (Programação em Massa) */
+.dm-ajuda{font-size:.72rem;color:var(--t2);line-height:1.5;margin-bottom:8px;}
+.dm-texto{width:100%;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:8px 10px;font:inherit;font-size:.78rem;resize:vertical;outline:none;}
+.dm-texto:focus{border-color:var(--red);}
+.dm-vazio{font-size:.74rem;color:var(--t2);margin-top:12px;}
+.dm-sec{font-size:.74rem;font-weight:700;color:var(--gray3);margin:16px 0 6px;}
+.dm-sec small{font-weight:400;color:var(--t2);}
+.dm-flags{display:flex;flex-direction:column;gap:6px;}
+.dm-flag{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:.74rem;}
+.dm-flag b{min-width:92px;}
+.dm-chip{border:1.5px solid var(--bd);background:var(--bg3);color:var(--t2);border-radius:999px;padding:3px 10px;font-size:.7rem;font-weight:600;cursor:pointer;min-height:30px;}
+.dm-chip.on{border-color:var(--green);color:var(--green);background:rgba(22,163,74,.08);}
+.dm-tab{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--bd);border-radius:var(--rs);}
+.dm-tab table{width:100%;border-collapse:collapse;font-size:.72rem;}
+.dm-tab th{text-align:left;padding:6px 8px;background:var(--bg3);color:var(--t2);font-weight:600;white-space:nowrap;}
+.dm-tab td{padding:6px 8px;border-top:1px solid var(--bd);vertical-align:top;}
+.dm-tab td small{color:var(--t2);display:inline-block;}
+.dm-tab td>small{display:block;margin-top:2px;}
+.dm-mono{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.dm-tag{display:inline-block;border-radius:4px;padding:1px 6px;font-size:.68rem;font-weight:600;background:var(--bg3);color:var(--t2);}
+.dm-tag.ok{background:rgba(22,163,74,.12);color:var(--green);}
+.dm-tag.amb{background:rgba(217,119,6,.14);color:#b45309;}
+.dm-tag.red{background:rgba(204,0,0,.1);color:var(--red);}
+body.dark .dm-tag.amb{color:#f59e0b;}
+.dm-aviso{font-size:.68rem;color:#b45309;line-height:1.35;}
+body.dark .dm-aviso{color:#f59e0b;}
+tr.dm-red td{background:rgba(204,0,0,.05);}
+tr.dm-amb td{background:rgba(217,119,6,.06);}
+.dm-sobra{font-size:.72rem;color:var(--t2);margin-top:8px;line-height:1.6;}
+/* Celular: cada linha vira um cartão com o nome do campo à esquerda */
+@media(max-width:640px){
+  .dm-tab{border:none;}
+  .dm-tab thead{display:none;}
+  .dm-tab table,.dm-tab tbody,.dm-tab tr,.dm-tab td{display:block;width:100%;}
+  .dm-tab tr{border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:8px;padding:4px 0;}
+  .dm-tab td{border:none;padding:3px 10px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;}
+  .dm-tab td::before{content:attr(data-l);flex:0 0 96px;font-size:.66rem;color:var(--t2);}
+  .dm-tab td>small,.dm-tab td>.dm-aviso{flex-basis:100%;padding-left:104px;}
+  /* O nome do motorista é o título do cartão (sem rótulo) */
+  .dm-tab td[data-l="Motorista"]::before{display:none;}
+  .dm-tab td[data-l="Motorista"]>small,.dm-tab td[data-l="Motorista"]>.dm-aviso{padding-left:0;}
+  .dm-tab td[data-l="Motorista"]>small{flex-basis:auto;}
+}
 .pd-prev{margin-top:14px;}
 .pd-aviso{font-size:.72rem;color:var(--t2);margin-bottom:8px;}
 .pd-barras{display:flex;gap:4px;align-items:flex-end;overflow-x:auto;padding-bottom:2px;}
@@ -1206,7 +1249,10 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
       <button class="btn btn-p" style="margin-top:11px;font-size:.71rem" onclick="gerarMassa()">→ Gerar tabela</button>
     </div>
     <div id="massaStep2" style="display:none;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh)">
-      <div class="sec" style="margin-top:0">✏️ Passo 2 <span id="mCnt" style="color:var(--red);font-size:.76rem;text-transform:none;font-weight:600;letter-spacing:0"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <div class="sec" style="margin:0">✏️ Passo 2 <span id="mCnt" style="color:var(--red);font-size:.76rem;text-transform:none;font-weight:600;letter-spacing:0"></span></div>
+        <button class="btn btn-p" style="font-size:.73rem" onclick="abrirDistribuirMotoristas()" title="Cole a lista de motoristas das transportadoras e o app preenche a tabela">🧩 Distribuir motoristas</button>
+      </div>
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table id="massaTable"><thead><tr><th>#</th><th>Rota</th><th>Transportadora</th><th>Motorista</th><th>Placa</th><th>Carreta</th><th>SM</th><th>TMS</th><th>Pl.Apres</th><th>Pl.Saída</th><th>Pl.FC</th><th>Tipo</th><th></th></tr></thead><tbody id="massaBody"></tbody></table></div>
     </div>
     <!-- BARRA DE APLICAÇÃO RÁPIDA DE HORÁRIOS -->
@@ -2083,6 +2129,26 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   </div>
 </div>
 
+<!-- DISTRIBUIR MOTORISTAS (Programação em Massa → Passo 2) -->
+<div class="overlay" id="overlayDistribuir">
+  <div class="modal" style="max-width:980px">
+    <div class="mhdr"><h2>🧩 Distribuir motoristas</h2><button class="mclose" onclick="fecharDistribuirMotoristas()">✕</button></div>
+    <div class="mbody">
+      <div class="dm-ajuda">Cole a lista das transportadoras como vem (Notion, WhatsApp ou Excel). O horário de cada motorista é <b>a partir de quando ele está livre</b>. O app confere quem ainda está aguardando descarga ou em trânsito e só preenche a tabela: nada é gravado até você clicar em <b>✅ Gerar</b>.</div>
+      <textarea id="dmTexto" class="dm-texto" rows="9" placeholder="Innovation&#10;07:00&#10;MOTORISTA: Rafael Henrique&#10;CPF: 000.000.000-00&#10;CAVALO: DMI2H97&#10;CARRETA: FXD0E18&#10;&#10;ou uma linha por motorista:&#10;SPEED; João da Silva; ABC1D23; XYZ9K88; 08:00"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn btn-s" onclick="_dmLerEDistribuir()">🔍 Ler e distribuir</button>
+        <button class="btn btn-g" onclick="document.getElementById('dmTexto').value='';_dmLerEDistribuir()">Limpar</button>
+      </div>
+      <div id="dmResultado"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="fecharDistribuirMotoristas()">Cancelar</button>
+      <button class="btn btn-s" id="dmAplicarBtn" onclick="_dmAplicar()" disabled>✅ Aplicar na tabela</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CAF -->
 <div class="overlay" id="overlayCAF">
   <div class="modal" style="max-width:560px">
@@ -2340,11 +2406,18 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v351';
+const APP_VERSION='v352';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v352:[
+    '🧩 Programação em Massa → Passo 2: botão "Distribuir motoristas". Cole a lista das transportadoras como vem (Notion, WhatsApp ou Excel — com ou sem "MOTORISTA:", "CAVALO:", "CARRETA:", ":" ou "-", ou uma linha por motorista). O horário é a partir de quando o motorista está livre.',
+    '🚛 O app confere quem ainda está aguardando descarga ou em trânsito e calcula quando ele realmente fica livre (espera que ainda falta pelo histórico do FC + volta até a TZX). Se a transportadora disser um horário antes disso, avisa.',
+    '✅ Rotas por transportadora: marque o que cada uma faz (ex.: esta faz XC9 e GR8, aquela só GR8). Vale para todos os usuários.',
+    '📋 Distribui pela ordem de apresentação, guardando os motoristas mais flexíveis para as rotas que só eles fazem e preferindo quem já fez a rota. Mostra folga de cada um, viagens sem motorista (com o motivo) e quem sobrou. Também avisa CPF ou placa repetidos na lista.',
+    '💾 Só preenche a tabela — nada é gravado até clicar em ✅ Gerar. O CPF é usado só para conferir duplicados e não é guardado.'
+  ],
   v351:[
     '🚦 Checagem antes da saída: ao marcar Em Trânsito (botão, arrastar ou salvar), o app lista o que falta — motorista, placa, carreta, horário real de saída, CAF sem pallets ou ainda em produção — e pergunta se quer seguir mesmo assim.',
     '📝 Motivo de atraso: cartão com atraso de 30min+ sem motivo ganha o selo "sem motivo"; ao salvar a viagem o app lembra e já leva ao campo, que aparece sozinho assim que o atraso é digitado.',
@@ -3701,6 +3774,8 @@ let ROTAS=['TZX_GR8','TZX_XC9','TZX_JDU','TZX_GR9','TZX_GR5'];
 const TIPOS=['LTL','FLT','Inbound','Extra']; // tipo de carga da VIAGEM — mantém Extra
 const TIPOS_CAF=['LTL','FLT','Inbound','NC']; // tipo da CAF em si — usa NC no lugar de Extra
 const TIPOLS=['CARRETA','TOCO','TRUCK','VAN','UTILITÁRIO'];
+// Rotas que cada transportadora pode fazer ({TRANSP:[rotas]}); sem entrada = todas. Salvo em configuracoes.
+let TRANSP_ROTAS={};
 let TRANSPS=['FRATELLI','GALEGOS','PRC','FULLFLEX','HORIZONTE','SPEED','VOXEL','NEW ALPHA','REALUZ','SETAG','INNOVATION','SABOIA'];
 const STS=[{id:'PROG',lb:'PROGRAMADO'},{id:'AGUCARR',lb:'AGUARD. CARREGAMENTO'},{id:'EMCARR',lb:'EM CARREGAMENTO'},{id:'TRAN',lb:'EM TRÂNSITO'},{id:'AGUDESC',lb:'AGUARD. DESCARGA'},{id:'FIN',lb:'FINALIZADO'},{id:'CANC',lb:'CANCELADO'},{id:'REC',lb:'RECUSADO'},{id:'DECLINIO',lb:'DECLÍNIO'},{id:'PERN',lb:'EM PERNOITE'}];
 const COL_ORD=['PROG','AGUCARR','EMCARR','TRAN','AGUDESC','FIN','CANC','REC','DECLINIO','PERN'];
@@ -3846,6 +3921,7 @@ async function loadConfig(){
           if(r.chave==='transportadoras'&&Array.isArray(r.valor)&&r.valor.length){TRANSPS=r.valor;}
           if(r.chave==='docas')DOCAS_CONFIG={...DOCAS_CONFIG,...(r.valor||{})};
           if(r.chave==='estoque_pallets_tzx')estoqueTZX={...estoqueTZX,...(r.valor||{})};
+          if(r.chave==='transp_rotas')TRANSP_ROTAS={...(r.valor||{})};
         });
         try{localStorage.setItem('trk_cfg',JSON.stringify(CFG));localStorage.setItem('trk_sla_metas',JSON.stringify(SLA_METAS));localStorage.setItem('trk_rotas',JSON.stringify(ROTAS));localStorage.setItem('trk_transps',JSON.stringify(TRANSPS));localStorage.setItem('trk_docas',JSON.stringify(DOCAS_CONFIG));}catch(e){}
         applyConfig();return;
@@ -6491,6 +6567,310 @@ async function confirmarMassa(){
   addActivityLog(`${n} operações criadas em massa por ${who}`);
   loading(false);render();setView('painel');showToast(`✅ ${n} operação(ões) criada(s)!`,'ok');
   }finally{_liberarTrava('confirmarMassa');if(btnMassa)btnMassa.disabled=false;}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DISTRIBUIR MOTORISTAS (Programação em Massa → Passo 2)
+// ══════════════════════════════════════════════════════════════════
+// Cola-se a lista de motoristas que as transportadoras mandam (formato do Notion, WhatsApp ou uma linha
+// por motorista). O app lê nome, placas e "livre a partir de", confere na operação se o motorista ainda
+// está aguardando descarga / em trânsito (o XC9 chega a segurar o carro 30h+) e distribui nas linhas da
+// tabela respeitando as rotas que cada transportadora pode fazer. Só preenche a tabela — gravar continua
+// sendo no "✅ Gerar". O CPF é lido só para achar duplicado; não é guardado.
+const DM_VOLTA_PADRAO=270; // 4h30: volta do FC até estar pronto, quando não há histórico suficiente
+const DM_FOLGA_OK=120;     // folga (livre → apresentação) a partir da qual a linha fica verde
+const _DM_PLACA=/^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
+let _dmMotoristas=[],_dmResultado=null;
+// Nome sem acento, maiúsculo e sem pontuação — para comparar nomes escritos de jeitos diferentes.
+const _dmNorm=v=>String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+// Mediana e percentil de uma lista já ordenada.
+const _dmMediana=a=>a.length?a[Math.floor(a.length/2)]:null;
+const _dmPct=(a,p)=>a.length?a[Math.min(a.length-1,Math.floor(a.length*p))]:null;
+const _dmHHMM=d=>d?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
+// "14:30" ou "ter 14:30" quando cai em outro dia que não o da programação.
+function _dmHoraDia(d,dataAlvo){
+  if(!d)return'—';
+  const dia=dateLocal(d);
+  if(dia===dataAlvo)return _dmHHMM(d);
+  return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit'}).replace('.','')+' '+_dmHHMM(d);
+}
+// Transportadora pode fazer a rota? Sem marcação = pode todas.
+function _dmPodeRota(transp,rota){
+  const lista=TRANSP_ROTAS[transp];
+  return !Array.isArray(lista)||!lista.length||lista.includes(rota);
+}
+
+// Abre a janela de distribuição (exige a tabela do Passo 2 já gerada).
+function abrirDistribuirMotoristas(){
+  if(!mRows.length){showToast('Gere a tabela do Passo 2 primeiro','err');return;}
+  document.getElementById('overlayDistribuir').classList.add('open');
+  _dmLerEDistribuir();
+  setTimeout(()=>document.getElementById('dmTexto')?.focus(),50);
+}
+// Fecha a janela de distribuição (o texto colado fica, caso reabra).
+function fecharDistribuirMotoristas(){document.getElementById('overlayDistribuir').classList.remove('open');}
+
+// ── Leitura do texto colado ──
+// Aceita blocos (transportadora como título, horário, MOTORISTA:, CPF:, CAVALO:, CARRETA:, com ":" ou "-",
+// com ou sem os rótulos) e linhas separadas por ; | ou tab. Transportadora é reconhecida pelo cadastro.
+function _dmLerTexto(txt){
+  const lista=[];
+  let transpAtual='',cur=null;
+  const novo=()=>({transp:transpAtual,livreTxt:'',nome:'',cpf:'',placa:'',carreta:'',avisos:[]});
+  const fechar=()=>{if(cur&&(cur.nome||cur.placa))lista.push(cur);cur=null;};
+  const acharTransp=v=>{const n=_dmNorm(String(v).replace(/^\s*transportadora\s*[:\-–]?/i,''));return n?TRANSPS.find(t=>_dmNorm(t)===n)||'':'';};
+  const lerHora=v=>{const m=String(v).trim().match(/^(?:livre|dispon[ií]vel|a partir d[ae]s?|hor[aá]rio|hr|[àa]s)?\s*[:\-–]?\s*([01]?\d|2[0-3])\s*(?:[:hH]\s*([0-5]\d)?)\s*(?:hs?|hrs)?\.?$/i);return m?String(m[1]).padStart(2,'0')+':'+(m[2]||'00'):'';};
+  const ehCPF=v=>/^\d{3}\.?\d{3}\.?\d{3}[-.]?\d{2}$/.test(String(v).trim());
+  const ehPlaca=v=>_DM_PLACA.test(normPlaca(v));
+  const guardarPlaca=(p)=>{if(!cur.placa)cur.placa=normPlaca(p);else if(!cur.carreta)cur.carreta=normPlaca(p);};
+  String(txt||'').split(/\r?\n/).forEach(bruta=>{
+    const linha=bruta.replace(/^[\s*•·>\-–]+/,'').replace(/\*+/g,'').trim();
+    if(!linha)return;
+    // Linha única com campos separados (Excel / planilha)
+    if(/[;|\t]/.test(linha)){
+      const campos=linha.split(/[;|\t]/).map(x=>x.trim()).filter(Boolean);
+      if(campos.length>=2){
+        fechar();cur=novo();
+        campos.forEach(c=>{
+          const t=acharTransp(c),h=lerHora(c);
+          if(t)cur.transp=t;else if(h)cur.livreTxt=h;else if(ehCPF(c))cur.cpf=c.replace(/\D/g,'');
+          else if(ehPlaca(c))guardarPlaca(c);else if(!cur.nome)cur.nome=c;
+        });
+        fechar();return;
+      }
+    }
+    const t=acharTransp(linha);
+    if(t){fechar();transpAtual=t;return;}
+    const h=lerHora(linha);
+    if(h){if(cur&&(cur.nome||cur.placa))fechar();if(!cur)cur=novo();cur.livreTxt=h;return;}
+    if(!cur)cur=novo();
+    const rot=linha.match(/^([A-Za-zÀ-ú .]{2,30}?)\s*[:\-–]\s*(.+)$/);
+    const rotulo=rot?_dmNorm(rot[1]):'',valor=rot?rot[2].trim():linha;
+    if(/^(MOTORISTA|MOT|NOME|CONDUTOR)$/.test(rotulo)){if(cur.nome){fechar();cur=novo();}cur.nome=valor;return;}
+    if(rotulo==='CPF'){cur.cpf=valor.replace(/\D/g,'');return;}
+    if(/^(CAVALO|CAVALO MECANICO|TRATOR|PLACA|PLACA CAVALO|VEICULO|TRUCK)$/.test(rotulo)){cur.placa=normPlaca(valor);return;}
+    if(/^(CARRETA|REBOQUE|SEMI REBOQUE|SEMIRREBOQUE|PLACA CARRETA)$/.test(rotulo)){cur.carreta=normPlaca(valor);return;}
+    if(/^(TRANSPORTADORA)$/.test(rotulo)){cur.transp=acharTransp(valor)||valor.toUpperCase();return;}
+    if(ehCPF(linha)){cur.cpf=linha.replace(/\D/g,'');return;}
+    if(ehPlaca(linha)){guardarPlaca(linha);return;}
+    // Sem rótulo: nome (ao menos 2 palavras, sem dígitos). Um nome novo abre outro motorista.
+    if(!/\d/.test(linha)&&linha.split(/\s+/).length>=2){if(cur.nome){fechar();cur=novo();}cur.nome=linha;}
+  });
+  fechar();
+  return lista;
+}
+
+// ── Histórico usado nas previsões (tudo em memória, sem consultar o banco) ──
+// Minutos de espera para descarregar (chegada FC → descarga), por rota, ordenados.
+function _dmEsperasPorRota(){
+  const m={};
+  ops.forEach(o=>{
+    if(!o.realChegFC||!o.realDescarga)return;
+    const d=_minEntre(o.realChegFC,o.realDescarga);
+    if(d===null||d<0||d>72*60)return;
+    (m[o.rota]=m[o.rota]||[]).push(d);
+  });
+  Object.values(m).forEach(a=>a.sort((x,y)=>x-y));
+  return m;
+}
+// Volta do FC até estar pronto para a próxima viagem: os 10% mais rápidos entre "descarregou" e "se
+// apresentou para a viagem seguinte" do mesmo motorista, por rota (no banco real: ~4,7h XC9, ~4,3h GR8).
+// Sem histórico suficiente → DM_VOLTA_PADRAO.
+function _dmVoltaPorRota(){
+  const porMot={},dif={};
+  ops.forEach(o=>{const n=_dmNorm(o.mot);if(n&&o.status!=='CANC')(porMot[n]=porMot[n]||[]).push(o);});
+  Object.values(porMot).forEach(l=>{
+    l.sort((a,b)=>(a.dataOp+(a.planApres||'')).localeCompare(b.dataOp+(b.planApres||'')));
+    for(let i=1;i<l.length;i++){
+      const ant=l[i-1],prox=l[i];
+      if(!ant.realDescarga||String(ant.realDescarga).length<=5)continue;
+      const apres=prox.realApres&&String(prox.realApres).length>5?new Date(prox.realApres):resolveDataHoraOp(prox,prox.realApres||prox.planApres);
+      if(!apres)continue;
+      const d=(apres-new Date(ant.realDescarga))/60000;
+      if(d>60&&d<72*60)(dif[ant.rota]=dif[ant.rota]||[]).push(d);
+    }
+  });
+  const out={};
+  // Acima de 8h não é "volta", é folga/escala do motorista — nesse caso fica o padrão
+  Object.entries(dif).forEach(([r,a])=>{a.sort((x,y)=>x-y);const v=a.length>=5?Math.round(_dmPct(a,0.1)):null;if(v&&v<=480)out[r]=v;});
+  return out;
+}
+// Quanto ainda falta de espera para quem já está parado há `ja` minutos: mediana das esperas que
+// passaram de `ja` menos o que já esperou. Quem já passou de quase tudo do histórico ganha +2h.
+function _dmEsperaRestante(esperas,ja){
+  const maiores=(esperas||[]).filter(x=>x>ja);
+  if(maiores.length>=3)return{min:Math.max(30,_dmMediana(maiores)-ja),acima:false};
+  return{min:120,acima:true};
+}
+
+// Situação de um motorista agora: já programado no dia? em viagem? Quando fica livre na TZX?
+function _dmSituacao(m,dataAlvo,esperas,voltas){
+  const mesmoMot=o=>(m.nomeN&&_dmNorm(o.mot)===m.nomeN)||(m.placa&&normPlaca(o.placa)===m.placa);
+  const noDia=ops.find(o=>o.dataOp===dataAlvo&&o.status!=='CANC'&&mesmoMot(o));
+  if(noDia)return{bloqueio:`já está na viagem ${noDia.codigoCurto||noDia.id} desse dia`};
+  const ativa=ops.filter(o=>['PROG','AGUCARR','EMCARR','TRAN','AGUDESC'].includes(o.status)&&o.dataOp<dataAlvo&&mesmoMot(o))
+    .sort((a,b)=>(b.dataOp+(b.planApres||'')).localeCompare(a.dataOp+(a.planApres||'')))[0];
+  if(!ativa)return{};
+  const agora=new Date(),rota=ativa.rota,fc=_fcFromRota(rota)||rota;
+  const arr=esperas[rota]||[],volta=voltas[rota]||DM_VOLTA_PADRAO;
+  const espTipica=_dmMediana(arr)??240;
+  const cod=ativa.codigoCurto||ativa.id;
+  if(ativa.status==='AGUDESC'){
+    const cheg=String(ativa.realChegFC).length>5?new Date(ativa.realChegFC):resolveDataHoraOp(ativa,ativa.realChegFC);
+    const ja=cheg&&!isNaN(cheg)?Math.max(0,Math.round((agora-cheg)/60000)):0;
+    const r=_dmEsperaRestante(arr,ja);
+    return{op:ativa,livre:new Date(agora.getTime()+(r.min+volta)*60000),
+      txt:`aguardando descarga no ${fc} há ${_fmtDuracaoMin(ja)} (${cod})`,
+      calc:`faltam ~${_fmtDuracaoMin(r.min)} de espera${r.acima?' (já passou do normal)':''} + ${_fmtDuracaoMin(volta)} de volta`};
+  }
+  let chegPrev=null,txt='';
+  if(ativa.status==='TRAN'){
+    chegPrev=_previsaoChegada(ativa)?.eta||resolveDataHoraOp(ativa,ativa.planChegFC);
+    txt=`em trânsito para ${fc} (${cod})`;
+  }else{
+    chegPrev=resolveDataHoraOp(ativa,ativa.planChegFC);
+    txt=`programado para ${fc} em ${fmtD(ativa.dataOp)} (${cod})`;
+  }
+  if(!chegPrev||chegPrev<agora)chegPrev=agora;
+  return{op:ativa,livre:new Date(chegPrev.getTime()+(espTipica+volta)*60000),txt,
+    calc:`chega ${_dmHHMM(chegPrev)} + ~${_fmtDuracaoMin(espTipica)} de espera + ${_fmtDuracaoMin(volta)} de volta`};
+}
+
+// ── Distribuição ──
+// Viagens em ordem de apresentação. Para cada uma, candidatos = motoristas livres a tempo, da mesma
+// transportadora (se a linha já tiver uma) e com a rota liberada. Preferência: quem só pode fazer menos
+// rotas (guarda os flexíveis), quem já fez a rota, quem está livre há mais tempo. Depois tenta remanejar
+// (emparelhamento) para cobrir o máximo de viagens possível.
+function _dmDistribuir(motoristas,dataAlvo){
+  const exp={};
+  ops.forEach(o=>{const n=_dmNorm(o.mot);if(n&&o.status!=='CANC'){const k=n+'|'+o.rota;exp[k]=(exp[k]||0)+1;}});
+  const usados=new Set(mRows.filter(r=>r.mot).map(r=>_dmNorm(r.mot)));
+  const aptos=motoristas.map((m,i)=>({...m,idx:i})).filter(m=>!m.bloqueio&&!usados.has(m.nomeN));
+  const apresDe=r=>r.planApres?resolveDataHoraOp({dataOp:dataAlvo,planApres:r.planApres},r.planApres):null;
+  const linhas=mRows.map((r,i)=>({r,i,apres:apresDe(r)})).filter(x=>!x.r.mot)
+    .sort((a,b)=>(a.apres?a.apres.getTime():Infinity)-(b.apres?b.apres.getTime():Infinity));
+  const nRotas=t=>{const l=TRANSP_ROTAS[t];return Array.isArray(l)&&l.length?l.length:ROTAS.length;};
+  const cand=linhas.map(L=>aptos.filter(m=>(!L.r.transp||L.r.transp===m.transp)&&m.transp&&_dmPodeRota(m.transp,L.r.rota)&&(!L.apres||!m.livre||m.livre<=L.apres))
+    .sort((a,b)=>nRotas(a.transp)-nRotas(b.transp)||(exp[b.nomeN+'|'+L.r.rota]||0)-(exp[a.nomeN+'|'+L.r.rota]||0)||((a.livre?.getTime()||0)-(b.livre?.getTime()||0))));
+  const dono={}; // idx do motorista → posição da linha
+  const tentar=(li,visto)=>{
+    for(const m of cand[li]){
+      if(visto.has(m.idx))continue;visto.add(m.idx);
+      if(dono[m.idx]===undefined||tentar(dono[m.idx],visto)){dono[m.idx]=li;return true;}
+    }
+    return false;
+  };
+  linhas.forEach((_,li)=>tentar(li,new Set()));
+  const porLinha={};Object.entries(dono).forEach(([mi,li])=>{porLinha[li]=aptos.find(m=>m.idx===+mi);});
+  const atribs=linhas.map((L,li)=>{
+    const m=porLinha[li]||null;
+    const folga=m&&L.apres&&m.livre?Math.round((L.apres-m.livre)/60000):null;
+    let motivoVazio='';
+    if(!m){
+      if(!aptos.some(x=>!L.r.transp||L.r.transp===x.transp))motivoVazio=L.r.transp?`ninguém da ${L.r.transp} na lista`:'lista vazia';
+      else if(!aptos.some(x=>_dmPodeRota(x.transp,L.r.rota)))motivoVazio='nenhuma transportadora da lista faz essa rota';
+      else if(!cand[li].length)motivoVazio='ninguém livre até a apresentação';
+      else motivoVazio='os motoristas possíveis ficaram com outras viagens';
+    }
+    return{...L,m,folga,motivoVazio,exp:m?(exp[m.nomeN+'|'+L.r.rota]||0):0};
+  });
+  const sobraram=aptos.filter(m=>dono[m.idx]===undefined);
+  return{atribs,sobraram,jaPreenchidas:mRows.filter(r=>r.mot).length};
+}
+
+// Lê o texto, calcula a situação de cada motorista, distribui e desenha o resultado.
+function _dmLerEDistribuir(){
+  const dataAlvo=document.getElementById('mData')?.value||hojeLocal();
+  const esperas=_dmEsperasPorRota(),voltas=_dmVoltaPorRota();
+  const lidos=_dmLerTexto(document.getElementById('dmTexto')?.value||'');
+  // Avisos de conferência: CPF/placa repetidos na própria lista, transportadora não reconhecida
+  const conta=(campo)=>{const c={};lidos.forEach(m=>{if(m[campo])c[m[campo]]=(c[m[campo]]||0)+1;});return c;};
+  const cpfs=conta('cpf'),placas=conta('placa');
+  _dmMotoristas=lidos.map(m=>{
+    m.nomeN=_dmNorm(m.nome);
+    if(!m.nome)m.avisos.push('sem nome');
+    if(!m.transp)m.avisos.push('transportadora não reconhecida — coloque o nome dela (como no cadastro) acima dos motoristas');
+    if(m.cpf&&cpfs[m.cpf]>1)m.avisos.push('CPF repetido na lista — confira');
+    if(m.placa&&placas[m.placa]>1)m.avisos.push('placa repetida na lista');
+    if(!m.placa)m.avisos.push('sem placa do cavalo');
+    const declarado=m.livreTxt?resolveDataHoraOp({dataOp:dataAlvo},m.livreTxt):null;
+    const sit=_dmSituacao(m,dataAlvo,esperas,voltas);
+    m.declarado=declarado;m.sit=sit;m.bloqueio=sit.bloqueio||'';
+    m.livre=declarado;
+    if(sit.livre&&(!declarado||sit.livre>declarado)){
+      m.livre=sit.livre;
+      if(declarado)m.avisos.push(`transportadora disse ${m.livreTxt}, mas pela operação só fica livre ${_dmHoraDia(sit.livre,dataAlvo)}`);
+    }
+    if(!m.livreTxt&&!sit.livre)m.avisos.push('sem horário — considerado livre o dia todo');
+    return m;
+  });
+  _dmResultado=_dmMotoristas.length?_dmDistribuir(_dmMotoristas,dataAlvo):null;
+  _dmRender(dataAlvo);
+}
+
+// Liga/desliga uma rota para uma transportadora e salva para todos (configuração compartilhada).
+async function _dmAlternarRota(transp,rota){
+  const rotasIda=_dmRotasDaTabela();
+  let lista=Array.isArray(TRANSP_ROTAS[transp])&&TRANSP_ROTAS[transp].length?[...TRANSP_ROTAS[transp]]:[...rotasIda];
+  lista=lista.includes(rota)?lista.filter(r=>r!==rota):[...lista,rota];
+  if(!lista.length){showToast('Deixe pelo menos uma rota marcada','err');return;}
+  // Todas marcadas = sem restrição (não guarda nada)
+  if(rotasIda.every(r=>lista.includes(r))&&lista.every(r=>rotasIda.includes(r)))delete TRANSP_ROTAS[transp];
+  else TRANSP_ROTAS[transp]=lista;
+  _dmLerEDistribuir();
+  if(await _saveCfgSupabase('transp_rotas',TRANSP_ROTAS))_publishAbly('cfg_update',{});
+}
+// Rotas que aparecem na tabela do Passo 2 (as marcações de rota mostram só essas).
+function _dmRotasDaTabela(){return[...new Set(mRows.map(r=>r.rota))].sort();}
+
+// Desenha: rotas por transportadora, motoristas lidos e a distribuição proposta.
+function _dmRender(dataAlvo){
+  const el=document.getElementById('dmResultado'),btn=document.getElementById('dmAplicarBtn');
+  if(!el)return;
+  const res=_dmResultado,motos=_dmMotoristas;
+  if(btn)btn.disabled=!(res&&res.atribs.some(a=>a.m));
+  if(!motos.length){el.innerHTML=`<div class="dm-vazio">Cole a lista acima e toque em <b>Ler e distribuir</b>. Viagens do dia ${fmtD(dataAlvo)} na tabela: <b>${mRows.length}</b>.</div>`;return;}
+  const rotasTab=_dmRotasDaTabela();
+  const transps=[...new Set(motos.map(m=>m.transp).filter(Boolean))];
+  const flags=transps.map(t=>`<div class="dm-flag"><b>${esc(t)}</b>${rotasTab.map(r=>{
+    const on=_dmPodeRota(t,r);
+    return`<button class="dm-chip${on?' on':''}" onclick="_dmAlternarRota('${esc(t)}','${esc(r)}')" title="${on?'Pode fazer — toque para bloquear':'Não faz — toque para liberar'}">${on?'✓':'✕'} ${esc(r)}</button>`;}).join('')}</div>`).join('');
+  const linhaMot=m=>{
+    const sit=m.bloqueio?`<span class="dm-tag red">${esc(m.bloqueio)}</span>`:m.sit.txt?`<span class="dm-tag ${m.sit.op?.status==='AGUDESC'?'amb':''}">${esc(m.sit.txt)}</span><small>${esc(m.sit.calc)}</small>`:'<span class="dm-tag ok">sem viagem em andamento</span>';
+    return`<tr><td data-l="Motorista"><b>${esc(m.nome||'—')}</b> <small>${esc(m.transp||'?')}</small>${m.avisos.map(a=>`<div class="dm-aviso">⚠ ${esc(a)}</div>`).join('')}</td>
+      <td class="dm-mono" data-l="Cavalo / Carreta">${esc(m.placa||'—')}${m.carreta?' / '+esc(m.carreta):''}</td>
+      <td class="dm-mono" data-l="Livre (transp.)">${esc(m.livreTxt||'—')}</td><td data-l="Agora">${sit}</td>
+      <td class="dm-mono" data-l="Livre (previsto)"><b>${m.livre?_dmHoraDia(m.livre,dataAlvo):'dia todo'}</b></td></tr>`;
+  };
+  const cor=a=>!a.m?'red':a.folga===null||a.folga>=DM_FOLGA_OK?'ok':'amb';
+  const linhaAtr=a=>`<tr class="dm-${cor(a)}"><td data-l="#">${a.i+1}</td><td data-l="Rota"><b>${esc(a.r.rota)}</b></td><td class="dm-mono" data-l="Apres.">${esc(a.r.planApres||'—')}</td>
+    <td data-l="Motorista">${a.m?`<b>${esc(a.m.nome)}</b> <small>${esc(a.m.transp)}</small>${a.exp?` <small title="viagens dele nessa rota nos últimos ~90 dias">· ${a.exp}× na rota</small>`:''}`:`<span class="dm-tag red">sem motorista</span> <small>${esc(a.motivoVazio)}</small>`}</td>
+    <td class="dm-mono" data-l="Livre">${a.m?_dmHoraDia(a.m.livre,dataAlvo):''}</td>
+    <td data-l="Folga">${a.m?(a.folga===null?'<small>sem horário</small>':`<span class="dm-tag ${cor(a)}">${a.folga>=0?'folga '+_fmtDuracaoMin(a.folga):'—'}</span>`):''}</td></tr>`;
+  const ok=res.atribs.filter(a=>a.m).length;
+  el.innerHTML=`
+    <div class="dm-sec">Rotas por transportadora <small>toque para marcar o que cada uma faz — vale para todos os usuários</small></div>
+    <div class="dm-flags">${flags||'<small>Nenhuma transportadora reconhecida na lista.</small>'}</div>
+    <div class="dm-sec">Motoristas lidos (${motos.length})</div>
+    <div class="dm-tab"><table><thead><tr><th>Motorista</th><th>Cavalo / Carreta</th><th>Livre (transp.)</th><th>Agora</th><th>Livre (previsto)</th></tr></thead><tbody>${motos.map(linhaMot).join('')}</tbody></table></div>
+    <div class="dm-sec">Distribuição — ${ok} de ${res.atribs.length} viagens com motorista${res.jaPreenchidas?` <small>(${res.jaPreenchidas} linha(s) que já tinham motorista ficaram como estavam)</small>`:''}</div>
+    <div class="dm-tab"><table><thead><tr><th>#</th><th>Rota</th><th>Apres.</th><th>Motorista</th><th>Livre</th><th>Folga</th></tr></thead><tbody>${res.atribs.map(linhaAtr).join('')}</tbody></table></div>
+    ${res.sobraram.length?`<div class="dm-sobra"><b>Sobraram ${res.sobraram.length}:</b> ${res.sobraram.map(m=>{const rs=TRANSP_ROTAS[m.transp];return`${esc(m.nome)} <small>(${esc(m.transp||'?')}, livre ${m.livre?_dmHoraDia(m.livre,dataAlvo):'dia todo'}${Array.isArray(rs)&&rs.length?', só faz '+esc(rs.join('/')):''})</small>`;}).join(' · ')}</div>`:''}`;
+}
+
+// Joga a distribuição na tabela do Passo 2 (transportadora, motorista, cavalo e carreta).
+function _dmAplicar(){
+  if(!_dmResultado)return;
+  let n=0;
+  _dmResultado.atribs.forEach(a=>{
+    if(!a.m)return;
+    const r=mRows[a.i];
+    r.transp=a.m.transp;r.mot=a.m.nome;r.placa=a.m.placa||'';
+    if(r.tipologia==='CARRETA')r.placaCarreta=a.m.carreta||'';
+    n++;
+  });
+  renderMassa();fecharDistribuirMotoristas();
+  showToast(`🧩 ${n} viagem(ns) preenchida(s) — confira a tabela e toque em ✅ Gerar`,'ok');
 }
 
 // ══════════════════════════════════════════════════════════════════
