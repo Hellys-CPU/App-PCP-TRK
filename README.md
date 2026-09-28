@@ -2,6 +2,7 @@
 
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
+> **Versão atual: v354** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 > **Versão atual: v351** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
@@ -122,6 +123,12 @@ Roda 100% no navegador. Não existe backend próprio além do Supabase e de duas
   - **Previsão de docas lotadas** por hora do dia.
   - Ocupação de piso.
 - **Programação em Massa**: cria várias viagens de uma vez. O botão **"Ajustar pelo tempo real da rota"** recalcula os horários.
+  - **Distribuir motoristas**: cola a lista das transportadoras (Notion, WhatsApp ou Excel) e o app preenche a tabela.
+    - Confere quem ainda está aguardando descarga ou em trânsito e calcula quando ele fica livre de verdade: espera que ainda falta pelo histórico do FC + volta até a TZX (os 10% mais rápidos do histórico; padrão de 4h30).
+    - Respeita as rotas marcadas para cada transportadora (configuração `transp_rotas`, compartilhada).
+    - Também preenche viagens **já criadas** do dia sem motorista (botão "Distribuir em viagens já criadas" no Passo 1). Essas são gravadas ao aplicar, com confirmação e registro no histórico.
+    - Opção de dividir entre as transportadoras na proporção de motoristas enviados.
+    - Linhas da tabela só gravam no "✅ Gerar". O CPF só serve para conferir duplicados e não é guardado.
 - **CAFs**
   - No PC, tabela.
   - No tablet, cartões com botão de próximo status.
@@ -307,6 +314,9 @@ O histórico completo fica **dentro do app**: clique no badge da versão, no top
 
 Últimas versões:
 
+- **v354**: Distribuir motoristas em viagens já criadas + divisão proporcional entre transportadoras.
+- **v353**: leitor da lista de motoristas aceita mais formatos (WhatsApp, tudo numa linha, rótulo sem ":" etc.).
+- **v352**: Distribuir motoristas na Programação em Massa, com rotas por transportadora.
 - **v351**
   - checagem antes da saída;
   - motivo de atraso;
