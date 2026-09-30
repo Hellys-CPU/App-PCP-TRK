@@ -2,7 +2,7 @@
 
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
-> **Versão atual: v355** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
+> **Versão atual: v356** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
 
@@ -268,6 +268,7 @@ O app conhece dois projetos Supabase, **A** e **B**, definidos em `PROJETOS_SUPA
 - **Primeiro carregamento**: viagens dos últimos ~90 dias, em páginas de 1000, **sem o histórico** (`hist`).
 - **Depois**: só o que mudou (`updated_at` maior que o último sync), a cada ~45s. O tempo real principal é o Ably, que não gasta egress do Supabase.
 - **Painel de Descarga, FUP Amazon, alertas, previsões, notas, comparações e avisos do navegador** usam os dados já em memória, sem consulta extra.
+- **Checagem de exclusões** (a cada 5 min): compara só a contagem do banco com a da tela (`HEAD` + `Prefer: count=exact`); só procura IDs se o banco tiver menos. Antes mandava ~2.000 IDs na URL e era 87% da ingestão de logs do Supabase.
 - **Histórico (`hist`) de uma viagem** só é baixado quando é preciso: ao abrir ou alterar aquela viagem, ou na Extração Completa (em lotes).
 
 ---
@@ -315,6 +316,7 @@ O histórico completo fica **dentro do app**: clique no badge da versão, no top
 
 Últimas versões:
 
+- **v356**: checagem de exclusões por contagem — corta ~87% da ingestão de logs do Supabase.
 - **v355**: veículos únicos por transportadora (Análise + ficha) e CAF Produzida exige pallets e volume.
 - **v354**: Distribuir motoristas em viagens já criadas + divisão proporcional entre transportadoras.
 - **v353**: leitor da lista de motoristas aceita mais formatos (WhatsApp, tudo numa linha, rótulo sem ":" etc.).
