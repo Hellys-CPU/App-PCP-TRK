@@ -2,7 +2,7 @@
 
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
-> **Versão atual: v354** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
+> **Versão atual: v355** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
 
@@ -132,6 +132,7 @@ Roda 100% no navegador. Não existe backend próprio além do Supabase e de duas
   - No PC, tabela.
   - No tablet, cartões com botão de próximo status.
   - Ciclo: Em Produção → Produzida → Em Auditoria GRIS → Vinculada a Veículo → Processo de Entrega → Entrega Realizada.
+  - Para virar **Produzida**, pallets e volume são obrigatórios e maiores que zero.
 - **Painel de Descarga**: fila aguardando descarga com cronômetro ao vivo, filtro por FC e imagem para mandar no WhatsApp.
 - **FUP FC / FUP Amazon**: acompanhamento por FC. O FUP Amazon tem justificativas de atraso de descarga.
 
@@ -159,12 +160,13 @@ Roda 100% no navegador. Não existe backend próprio além do Supabase e de duas
   - **CAFs**: consolidação e tempo por status.
   - **Operação & Frota**:
     - **Nota das transportadoras (0–100)**;
-    - **Transportadoras × Rotas** (quem mais atua);
+    - **Transportadoras × Rotas** (quem mais atua), com **veículos únicos** por transportadora (cavalo + carreta = 1), % da frota, viagens por veículo e placas que já rodaram por mais de uma transportadora;
     - uso do app pelos motoristas.
   - **Monte sua Análise**: filtros livres.
 - **Ficha da transportadora / do motorista**
   - Abre ao clicar no nome (Lista, FUP FC, Análise, modal da viagem).
   - Mostra a nota dos últimos 30 dias.
+  - Transportadora: **veículos que já atuaram** (placas únicas, cavalo + carreta = 1), com aviso nas que também rodaram por outra transportadora.
   - Botão **"Relatório da semana (PDF)"**.
 - **Exportações**:
   - CSV/backup;
@@ -313,6 +315,7 @@ O histórico completo fica **dentro do app**: clique no badge da versão, no top
 
 Últimas versões:
 
+- **v355**: veículos únicos por transportadora (Análise + ficha) e CAF Produzida exige pallets e volume.
 - **v354**: Distribuir motoristas em viagens já criadas + divisão proporcional entre transportadoras.
 - **v353**: leitor da lista de motoristas aceita mais formatos (WhatsApp, tudo numa linha, rótulo sem ":" etc.).
 - **v352**: Distribuir motoristas na Programação em Massa, com rotas por transportadora.
