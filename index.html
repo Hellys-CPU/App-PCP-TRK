@@ -490,6 +490,19 @@ body.dark .countdown{color:#58a6ff;}
 .fi-st small{text-transform:none;letter-spacing:0;font-weight:600;}
 .fi-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
 .fi-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:.74rem;}
+.fi-veics{max-height:220px;overflow-y:auto;}
+/* Campo obrigatório que falta (ex.: pallets/volume ao marcar CAF como Produzida) */
+.campo-falta{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(204,0,0,.15)!important;}
+.fi-veics .fi-row>span:last-child{white-space:nowrap;}
+.fi-veics .ab{font-size:.6rem;}
+/* Análise → veículos que rodaram por mais de uma transportadora */
+.fr-multi{margin-top:12px;border:1px solid var(--bd);border-radius:var(--rs);padding:8px 12px;}
+.fr-tit{font-size:.72rem;font-weight:700;color:#b45309;margin-bottom:4px;cursor:pointer;}
+.fr-tit small{font-weight:400;color:var(--t3);}
+body.dark .fr-tit{color:#f59e0b;}
+.fr-row{display:flex;gap:12px;flex-wrap:wrap;padding:4px 0;border-top:1px solid var(--bd);font-size:.72rem;}
+.fr-row:first-of-type{border-top:none;}
+.fr-row small{color:var(--t3);}
 .fi-row:last-child{border-bottom:none;}
 .fi-row small{color:var(--t3);}
 .fi-click{cursor:pointer;}.fi-click:hover{background:var(--bg3);}
@@ -2203,8 +2216,8 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
           <small id="cafEsteiraColaborador" style="font-size:.63rem;color:var(--t2)"></small>
         </div>
         <div class="fg"><label>Vencimento</label><input id="cafVenc" type="date"></div>
-        <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0"></div>
-        <div class="fg"><label>Pallets</label><input id="cafPal" type="number" min="0" step="0.5" placeholder="0"></div>
+        <div class="fg"><label>Volume (unidades)</label><input id="cafVol" type="number" min="0" placeholder="0" inputmode="numeric" oninput="this.classList.remove('campo-falta')"></div>
+        <div class="fg"><label>Pallets</label><input id="cafPal" type="number" min="0" step="0.5" placeholder="0" inputmode="decimal" oninput="this.classList.remove('campo-falta')"></div>
       </div>
       <div class="fg" style="margin-top:11px"><label>Observações</label><textarea id="cafObs" rows="2"></textarea></div>
       <div id="cafOpVinc" style="margin-top:11px;display:none">
@@ -2417,11 +2430,17 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v354';
+const APP_VERSION='v355';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v355:[
+    '🚚 Análise → Operação & Frota → "Transportadoras × Rotas": novas colunas Veículos (placas únicas), % da frota, viagens por veículo e "Em outra transp." (veículos que também já rodaram por outra transportadora), mais a lista dessas placas com quantas viagens em cada uma.',
+    '🔢 Veículo = cavalo: cavalo + carreta contam como 1 veículo, nunca 2. Cada placa é classificada pelo papel que mais tem no histórico, então viagem com cavalo e carreta digitados trocados é corrigida na contagem e a carreta nunca vira veículo. Viagem sem placa do cavalo não entra (o quadro mostra quantas).',
+    '📋 Ficha da transportadora: "Veículos que atuaram" (número + lista de placas com viagens de cada uma), com aviso nas placas que também rodaram por outra transportadora.',
+    '📦 CAF "Produzida" exige Pallets e Volume maiores que zero — não salva vazio ou 0 (os campos ficam em vermelho). Pelo botão do cartão (tablet) ou pela viagem, ir para Produzida abre o formulário e espera a pessoa conferir/atualizar Pallets e Volume e tocar em Salvar; pela viagem, ao salvar ou cancelar volta para a viagem.'
+  ],
   v354:[
     '🧩 Distribuir motoristas também nas viagens já criadas: botão "Distribuir em viagens já criadas" no Passo 1 da Programação em Massa (ou a opção "Incluir viagens já criadas" dentro da janela). Pega as viagens programadas do dia escolhido que estão sem motorista; ao aplicar, confirma e grava na hora, com registro no histórico da viagem. Se alguém preencheu ou a viagem andou enquanto a janela estava aberta, ela é pulada.',
     '⚖️ Opção "Dividir entre as transportadoras": reparte as viagens na proporção de motoristas que cada uma mandou (ex.: mandou 3 e a outra 1 → 3 para 1), respeitando as rotas de cada uma e quem está livre a tempo. O total por transportadora aparece no título da distribuição.'
@@ -6279,6 +6298,8 @@ async function alterarStatusCAFInline(cafId,novoStatus){
   if(c.status===novoStatus)return;
   const opIdVoltar=editId; // guarda pra reabrir depois
   document.getElementById('overlay').classList.remove('open'); // fecha o modal da viagem temporariamente
+  // Produzida: abre o formulário e espera pallets/volume; ao salvar ou cancelar volta para a viagem
+  if(novoStatus==='Produzida'){_cafVoltarParaViagem=opIdVoltar;_cafAbrirParaProduzida(cafId);return;}
   openEditCAF(cafId);
   // Aguarda o modal da CAF montar os campos, ajusta o status e salva sozinho — reaproveita 100% da
   // lógica já validada de saveCAF() (liberação/ocupação de rua, incremento de pallets, histórico)
@@ -9405,6 +9426,7 @@ function _renderCafCartoes(data){
 function _cafAvancarStatus(cafId,novo){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
   if(!_cafStatusPermitido(currentUser?.perfil).includes(novo)){showToast('⛔ Seu perfil não pode definir este status','err');return;}
+  if(novo==='Produzida'){_cafAbrirParaProduzida(cafId);return;}
   if(!confirm(`CAF ${c.num}: ${c.status} → ${novo}?`))return;
   openEditCAF(cafId);
   setTimeout(async()=>{
@@ -9520,8 +9542,42 @@ function openEditCAF(id){
   document.getElementById('overlayCAF').classList.add('open');
 }
 
-// Fecha o formulário da CAF.
-function closeCAFModal(){document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;}
+// Viagem para reabrir quando o formulário da CAF fechar (status alterado de dentro do modal da viagem).
+let _cafVoltarParaViagem=null;
+// Fecha o formulário da CAF (e volta para a viagem, se o formulário foi aberto a partir dela).
+function closeCAFModal(){
+  document.getElementById('overlayCAF').classList.remove('open');editCAFId=null;
+  _cafLimparFalta();
+  if(_cafVoltarParaViagem){const id=_cafVoltarParaViagem;_cafVoltarParaViagem=null;openEdit(id);}
+}
+// Confere pallets e volume do formulário da CAF (maiores que zero). Se faltar, marca os campos em vermelho,
+// foca o primeiro e avisa. Devolve true se estiver tudo certo.
+function _cafConferirPalletsVolume(){
+  const pal=document.getElementById('cafPal'),vol=document.getElementById('cafVol');
+  const palV=parseFloat(pal?.value||0)||0,volV=parseInt(vol?.value||0)||0;
+  _cafLimparFalta();
+  const faltam=[];
+  if(!(palV>0)){faltam.push('pallets');pal?.classList.add('campo-falta');}
+  if(!(volV>0)){faltam.push('volume');vol?.classList.add('campo-falta');}
+  if(!faltam.length)return true;
+  showToast(`⚠ Para marcar como Produzida, informe ${faltam.join(' e ')} (não pode ficar vazio ou 0)`,'err');
+  (palV>0?vol:pal)?.focus();
+  return false;
+}
+// Tira o destaque vermelho de pallets/volume.
+function _cafLimparFalta(){['cafPal','cafVol'].forEach(id=>document.getElementById(id)?.classList.remove('campo-falta'));}
+// Indo para "Produzida" pelo cartão ou pela viagem: abre o formulário com o status já trocado e ESPERA a pessoa
+// conferir/atualizar pallets e volume e tocar em Salvar (não salva sozinho).
+function _cafAbrirParaProduzida(cafId){
+  openEditCAF(cafId);
+  setTimeout(()=>{
+    const sel=document.getElementById('cafStatus');if(sel)sel.value='Produzida';
+    const pal=document.getElementById('cafPal'),vol=document.getElementById('cafVol');
+    [pal,vol].forEach(e=>e?.classList.add('campo-falta'));
+    showToast('📦 Confira e atualize Pallets e Volume antes de salvar como Produzida','info');
+    pal?.focus();pal?.select?.();
+  },80);
+}
 
 // Salva a CAF: valida permissão e número, cuida da rua (ocupa/libera), pallets, vínculo com viagem e histórico.
 async function saveCAF(){
@@ -9544,6 +9600,8 @@ async function saveCAF(){
   if(!num){showToast('⚠ Informe o número da CAF','err');return;}
   if(!/^\d{8}$/.test(num)){showToast('⚠ O número da CAF deve ter exatamente 8 dígitos numéricos','err');return;}
   if(!rota){showToast('⚠ Selecione a rota de destino','err');return;}
+  // Regra: CAF "Produzida" precisa de pallets e volume reais — nunca vazio ou 0
+  if(statusEscolhido==='Produzida'&&!_cafConferirPalletsVolume())return;
   // Verifica duplicata
   const dup=cafsDB.find(c=>c.num===num&&c.id!==editCAFId);
   if(dup){showToast(`⚠ CAF ${num} já cadastrada (rota ${dup.rota})`,'err');return;}
@@ -12037,6 +12095,54 @@ function _renderMapaHorarioAtrasos(data){
       <span class="hm-esc"><i style="background:${cor(0)}"></i>0%<i style="background:${cor(.35)}"></i>35%<i style="background:${cor(.7)}"></i>70%+</span>
       <span>apagado = menos de 3 viagens</span></div>`;
 }
+// ── Frota: veículos únicos por transportadora ──
+// Cada viagem conta no máximo 1 veículo: o cavalo (conjunto cavalo + carreta = 1 veículo). Como às vezes cavalo
+// e carreta são digitados trocados, cada placa é classificada pelo papel que mais tem em todas as viagens
+// carregadas (no banco havia placa com 59× como cavalo e 1× como carreta). Assim a carreta nunca vira veículo.
+let _cachePapelPlacas={chave:'',mapa:{}};
+// {PLACA:{cav:n, car:n}} — quantas vezes cada placa apareceu como cavalo e como carreta.
+function _papelDasPlacas(){
+  const chave=ops.length+'|'+(typeof _lastSyncAt!=='undefined'?_lastSyncAt:'');
+  if(_cachePapelPlacas.chave===chave)return _cachePapelPlacas.mapa;
+  const m={};
+  ops.forEach(o=>{
+    if(o.status==='CANC')return;
+    const a=normPlaca(o.placa),b=normPlaca(o.placaCarreta);
+    if(a)(m[a]=m[a]||{cav:0,car:0}).cav++;
+    if(b&&b!==a)(m[b]=m[b]||{cav:0,car:0}).car++;
+  });
+  _cachePapelPlacas={chave,mapa:m};
+  return m;
+}
+// Placa do veículo (cavalo) de uma viagem, corrigindo campos trocados. {placa, trocada} ou null se não há cavalo.
+function _veiculoDaViagem(o,papel){
+  const a=normPlaca(o.placa),b=normPlaca(o.placaCarreta);
+  const ehCavalo=p=>p&&papel[p]&&papel[p].cav>=papel[p].car;
+  if(ehCavalo(a))return{placa:a,trocada:false};
+  if(ehCavalo(b))return{placa:b,trocada:true};   // cavalo digitado no campo da carreta
+  return null;                                     // só carreta (ou nada) — não conta como veículo
+}
+// Veículos por transportadora numa lista de viagens + em quantas transportadoras cada veículo já apareceu
+// (olhando TODAS as viagens carregadas). {porT:{T:Set}, transpsDoVeic:{PLACA:{T:viagens}}, semVeic, trocadas}
+function _frotaTransportadoras(lista){
+  const papel=_papelDasPlacas();
+  const transpsDoVeic={};
+  ops.forEach(o=>{
+    if(o.status==='CANC'||!o.transp)return;
+    const v=_veiculoDaViagem(o,papel);if(!v)return;
+    const m=transpsDoVeic[v.placa]=transpsDoVeic[v.placa]||{};
+    m[o.transp]=(m[o.transp]||0)+1;
+  });
+  const porT={};let semVeic=0,trocadas=0;
+  lista.forEach(o=>{
+    if(o.status==='CANC'||!o.transp)return;
+    const v=_veiculoDaViagem(o,papel);
+    if(!v){semVeic++;return;}
+    if(v.trocada)trocadas++;
+    (porT[o.transp]=porT[o.transp]||new Set()).add(v.placa);
+  });
+  return{porT,transpsDoVeic,semVeic,trocadas};
+}
 // Análise: quais transportadoras mais atuam e em quais rotas. Ranking por número de viagens no período,
 // quantas rotas diferentes cada uma atende, participação no total, rota principal e SLA de chegada;
 // embaixo, a matriz transportadora × rota (cada célula = viagens; cor mais forte = mais viagens) e,
@@ -12055,9 +12161,13 @@ function _renderTranspRotas(data){
   const ranking=Object.entries(porT).sort((a,b)=>b[1].t-a[1].t);
   const total=val.length,max=ranking[0][1].t;
   const corSla=p=>p===null?'var(--t3)':p>=92?'var(--green)':p>=80?'#d97706':'var(--red)';
+  const frota=_frotaTransportadoras(val);
+  const totVeic=new Set(Object.values(frota.porT).flatMap(st=>[...st])).size;
+  const compart=p=>Object.keys(frota.transpsDoVeic[p]||{}).length>1;
   const linhas=ranking.map(([n,d],i)=>{
     const principal=Object.entries(d.rotas).sort((a,b)=>b[1]-a[1])[0];
     const sla=d.cheg?Math.round(d.ok/d.cheg*100):null;
+    const veics=[...(frota.porT[n]||[])],nv=veics.length,nComp=veics.filter(compart).length;
     return `<tr>
       <td style="font-weight:800;color:var(--t3)">${i+1}º</td>
       <td style="font-weight:700">${_fichaLink('transp',n)}</td>
@@ -12066,7 +12176,19 @@ function _renderTranspRotas(data){
       <td style="text-align:center"><b class="mono">${Object.keys(d.rotas).length}</b><span style="color:var(--t3)">/${rotas.length}</span></td>
       <td><span class="rota-cell">${esc(principal[0])}</span> <span style="color:var(--t3);font-size:.66rem">(${principal[1]} viag.)</span></td>
       <td class="mono" style="text-align:center;font-weight:800;color:${corSla(sla)}">${sla===null?'—':sla+'%'}</td>
+      <td class="mono" style="text-align:center"><b>${nv}</b></td>
+      <td class="mono" style="text-align:center">${totVeic?Math.round(nv/totVeic*100)+'%':'—'}</td>
+      <td class="mono" style="text-align:center">${nv?(d.t/nv).toFixed(1).replace('.',','):'—'}</td>
+      <td class="mono" style="text-align:center">${nComp?`<span class="ab" title="${esc(veics.filter(compart).join(', '))}">⚠ ${nComp}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
     </tr>`;}).join('');
+  // Veículos que já rodaram por mais de uma transportadora (em todas as viagens carregadas)
+  const doPeriodo=new Set(Object.values(frota.porT).flatMap(st=>[...st]));
+  const multi=Object.entries(frota.transpsDoVeic).filter(([p,m])=>doPeriodo.has(p)&&Object.keys(m).length>1)
+    .sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0));
+  // Lista recolhível: abre sozinha se for curta
+  const blocoMulti=multi.length?`<details class="fr-multi"${multi.length<=8?' open':''}><summary class="fr-tit">⚠ ${multi.length} veículo${multi.length>1?'s já rodaram':' já rodou'} por mais de uma transportadora <small>(viagens de cada uma entre parênteses)</small></summary>
+    ${multi.map(([p,m])=>`<div class="fr-row"><span class="mono"><b>${esc(p)}</b></span><span>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${_fichaLink('transp',t)} <small>(${n})</small>`).join(' · ')}</span></div>`).join('')}</details>`:'';
+  const notaFrota=`Veículo = cavalo (cavalo + carreta contam 1). ${frota.trocadas?`${frota.trocadas} viage${frota.trocadas>1?'ns':'m'} com cavalo e carreta digitados trocados foram corrigidas na contagem. `:''}${frota.semVeic?`${frota.semVeic} viage${frota.semVeic>1?'ns':'m'} sem placa do cavalo não entram.`:''}`;
   // Matriz transportadora × rota
   const maxCel=Math.max(...ranking.flatMap(([,d])=>Object.values(d.rotas)));
   const matriz=`<div style="overflow-x:auto;margin-top:14px"><table style="width:100%;border-collapse:collapse;font-size:.7rem">
@@ -12080,8 +12202,9 @@ function _renderTranspRotas(data){
   const lider=ranking[0];
   return `<p style="font-size:.72rem;color:var(--t2);margin-bottom:10px">Mais ativa no período: <b>${esc(lider[0])}</b> — ${lider[1].t} viagens (${Math.round(lider[1].t/total*100)}% do total) em ${Object.keys(lider[1].rotas).length} rota(s). Clique no nome para abrir a ficha.</p>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.74rem">
-      <thead><tr><th></th><th style="text-align:left">Transportadora</th><th style="text-align:left">Viagens</th><th>% do total</th><th>Rotas atendidas</th><th style="text-align:left">Rota principal</th><th>SLA chegada</th></tr></thead>
-      <tbody>${linhas}</tbody></table></div>${matriz}`;
+      <thead><tr><th></th><th style="text-align:left">Transportadora</th><th style="text-align:left">Viagens</th><th>% do total</th><th>Rotas atendidas</th><th style="text-align:left">Rota principal</th><th>SLA chegada</th><th title="Veículos (cavalos) diferentes que rodaram no período">Veículos</th><th title="Parte da frota total do período">% da frota</th><th title="Viagens ÷ veículos">Viag./veículo</th><th title="Veículos que também já rodaram por outra transportadora">Em outra transp.</th></tr></thead>
+      <tbody>${linhas}</tbody></table></div>
+    <p style="font-size:.66rem;color:var(--t3);margin-top:6px">${totVeic} veículos no período. ${notaFrota}</p>${blocoMulti}${matriz}`;
 }
 // Análise: SLA de chegada de cada rota no MÊS ATUAL contra a meta da rota (Admin → metas de SLA).
 // Mostra quanto falta: quantas viagens seguidas no prazo seriam necessárias para chegar na meta.
@@ -13246,6 +13369,19 @@ function abrirFicha(tipo,nome){
     return `<div class="fi-row fi-click" onclick="fecharFicha();openEdit('${esc(o.id)}')"><span><b>${esc(o.codigoCurto||o.id)}</b> <small>${fmtD(o.dataOp)} · ${esc(o.rota)}</small></span><span class="mono" style="color:${d===null?'var(--t3)':d>30?'var(--red)':d>0?'#d97706':'var(--green)'}">${d===null?stObj(o.status).lb:fDiff(d)}</span></div>`;}).join('');
   const datas=lista.map(o=>o.dataOp).filter(Boolean).sort();
   const kpi=(v,l,cor)=>`<div class="fi-kpi"><div class="v" style="color:${cor||'var(--text)'}">${v}</div><div class="l">${l}</div></div>`;
+  // Frota da transportadora: veículos (cavalos) diferentes que já atuaram nas viagens carregadas
+  let frotaHTML='',nVeic=null;
+  if(tipo!=='mot'&&lista.length){
+    const fr=_frotaTransportadoras(lista),papel=_papelDasPlacas();
+    const transpReal=lista[0].transp;
+    const veics=[...(fr.porT[transpReal]||[])];
+    nVeic=veics.length;
+    const viagDoVeic={};lista.forEach(o=>{const v=_veiculoDaViagem(o,papel);if(v)viagDoVeic[v.placa]=(viagDoVeic[v.placa]||0)+1;});
+    const outras=p=>Object.entries(fr.transpsDoVeic[p]||{}).filter(([t])=>_normNome(t)!==alvo);
+    const lin=veics.sort((a,b)=>(viagDoVeic[b]||0)-(viagDoVeic[a]||0)).map(p=>{const ou=outras(p);
+      return `<div class="fi-row"><span class="mono"><b>${esc(p)}</b>${ou.length?` <span class="ab" title="Também rodou por: ${esc(ou.map(([t,n])=>t+' ('+n+')').join(', '))}">⚠ também ${esc(ou.map(([t])=>t).join(', '))}</span>`:''}</span><span class="mono">${viagDoVeic[p]||0} viag.</span></div>`;}).join('');
+    frotaHTML=`<div class="fi-sec"><div class="fi-st">Veículos que já atuaram (${nVeic}) <small>cavalo + carreta = 1 · ${fmtD(datas[0])} a ${fmtD(datas[datas.length-1])}</small></div><div class="fi-veics">${lin||'<p style="color:var(--t3);font-size:.7rem">Nenhuma placa de cavalo registrada.</p>'}</div></div>`;
+  }
   const div=document.createElement('div');
   div.id='_fichaModal';div.className='fi-back';
   div.onclick=e=>{if(e.target===div)fecharFicha();};
@@ -13269,11 +13405,13 @@ function abrirFicha(tipo,nome){
         ${kpi(atrasoCheg===null?'—':fDiff(atrasoCheg),'Δ médio chegada',atrasoCheg>30?'var(--red)':null)}
         ${kpi(usoApp===null?'—':usoApp+'%','Uso do app',corPct(usoApp))}
         ${kpi(Object.values(ocorr).reduce((a,b)=>a+b,0),'Ocorrências')}
+        ${nVeic!==null?kpi(nVeic,'Veículos que atuaram'):''}
       </div>
       <div class="fi-sec"><div class="fi-st">SLA por semana</div><div class="fi-trend">${tendencia}</div></div>
       <div class="fi-cols">${relHTML}
         <div class="fi-sec"><div class="fi-st">Ocorrências mais comuns</div>${ocorrArr.length?ocorrArr.map(([t,n])=>`<div class="fi-row"><span>${esc(t)}</span><span class="mono">${n}</span></div>`).join(''):'<p style="color:var(--t3);font-size:.7rem">Nenhuma.</p>'}</div>
       </div>
+      ${frotaHTML}
       <div class="fi-sec"><div class="fi-st">Últimas viagens <small>(toque para abrir)</small></div>${ultimas}</div>
       `:'<p style="color:var(--t3);text-align:center;padding:24px">Nenhuma viagem carregada com esse nome.</p>'}
     </div>
