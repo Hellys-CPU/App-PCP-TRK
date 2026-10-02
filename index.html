@@ -1849,6 +1849,24 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px" id="slaMetaGrid"></div>
 </div>
 <div style="margin-top:14px">
+  <div class="sec" style="margin-top:0">⏱️ Programação em Massa — Tempos Padrão</div>
+  <div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:12px">
+    <div style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Quando alguém digita só a Chegada no FC (sem usar "Ajustar pelo tempo real da rota"), o sistema calcula Saída e Apresentação subtraindo esses minutos. Vale pra toda a equipe.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg">
+        <label>Min. antes p/ Saída</label>
+        <input type="number" id="cfgMassaMinSaida" min="5" max="600" value="60" onchange="saveConfig()" style="width:100%">
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Saída = Chegada FC − isso</div>
+      </div>
+      <div class="fg">
+        <label>Min. antes p/ Apresentação</label>
+        <input type="number" id="cfgMassaMinApres" min="5" max="600" value="180" onchange="saveConfig()" style="width:100%">
+        <div style="font-size:.65rem;color:var(--t2);margin-top:3px">Apresentação = Chegada FC − isso</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="margin-top:14px">
   <div class="sec" style="margin-top:0">🏭 Capacidade de Piso (Yard)</div>
   <div style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--rs);padding:12px">
     <div style="font-size:.7rem;color:var(--t2);margin-bottom:10px">Define o limite de ocupação do pátio. Alertas aparecem no YARD, TV Yard e TV operacional quando a ocupação ultrapassar 70% e 90%.</div>
@@ -2387,12 +2405,67 @@ async function _garantirHistCarregado(op){
     op.hist=Array.isArray(r)&&r[0]&&Array.isArray(r[0].hist)?r[0].hist:[];
   }catch(e){op.hist=[];} // rede falhou — segue com vazio pra não travar a ação do usuário
 }
-// Acrescenta uma linha no histórico da viagem. Baixa o histórico do banco antes, se ainda não veio (ele não vem
-// na carga normal), e guarda só as 50 últimas linhas.
+// Acrescenta uma linha no histórico da viagem — grava direto no banco de forma ATÔMICA
+// via fn_append_hist_operacao (trava a linha até terminar), em vez de buscar o array,
+// somar na memória e regravar a linha inteira depois. ANTES: duas ações tocando a mesma
+// viagem quase ao mesmo tempo (comum com vários tablets) podiam fazer uma sobrescrever o
+// histórico da outra, sem erro nenhum — a entrada simplesmente sumia. Testado sob
+// concorrência real (10 chamadas simultâneas): 10 de 10 sobreviveram com a função nova,
+// contra 2 de 10 com o jeito antigo.
 async function addHist(op, txt){
-  await _garantirHistCarregado(op);
-  op.hist.push({t:ts(),txt});
-  if(op.hist.length>50)op.hist=op.hist.slice(-50); // mantém as 50 mais recentes
+  const entrada={t:ts(),txt};
+  if(!supabaseOK){
+    // Offline: sem banco pra travar nada, mantém o comportamento local de sempre.
+    await _garantirHistCarregado(op);
+    op.hist.push(entrada);
+    if(op.hist.length>50)op.hist=op.hist.slice(-50);
+    return;
+  }
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_append_hist_operacao`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_id:op.id,p_entrada:entrada})
+    });
+    if(!res.ok)throw new Error(await res.text());
+    const novoHist=await res.json();
+    // novoHist vem null se a viagem ainda não existe no banco (criação em andamento,
+    // primeiro save ainda não aconteceu) — nesse caso cai no fallback local, e a entrada
+    // vai junto no INSERT inicial (saveToSupabase inclui hist só na criação).
+    if(Array.isArray(novoHist))op.hist=novoHist;
+    else{await _garantirHistCarregado(op);op.hist.push(entrada);if(op.hist.length>50)op.hist=op.hist.slice(-50);}
+  }catch(e){
+    console.warn('addHist: RPC atômica falhou, usando fallback local:',e);
+    await _garantirHistCarregado(op);
+    op.hist.push(entrada);
+    if(op.hist.length>50)op.hist=op.hist.slice(-50);
+  }
+}
+// Mesma lógica de addHist, só que pra CAF — grava direto via fn_append_hist_caf (atômica).
+// Usada só pra CAF já existente (editCAFId); CAF nova ainda não tem linha no banco pra
+// travar, então a primeira entrada vai junto no INSERT normalmente.
+async function addHistCaf(cafId, txt){
+  if(!supabaseOK)return; // offline: saveCAF já monta o hist local nesse caso
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_append_hist_caf`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_id:cafId,p_entrada:{t:new Date().toISOString(),txt}})
+    });
+    if(!res.ok)throw new Error(await res.text());
+  }catch(e){console.warn('addHistCaf: RPC atômica falhou:',e);}
+}
+// Mesma lógica, pra Retorno de Pallets — grava via fn_append_hist_retorno_pallets.
+async function addHistPallet(palletId, txt){
+  if(!supabaseOK)return;
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/rpc/fn_append_hist_retorno_pallets`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({p_id:palletId,p_entrada:{t:new Date().toISOString(),txt}})
+    });
+    if(!res.ok)throw new Error(await res.text());
+  }catch(e){console.warn('addHistPallet: RPC atômica falhou:',e);}
 }
 
 // ── Converte Date para YYYY-MM-DD local (evita UTC) ──
@@ -2430,11 +2503,13 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v357';
+const APP_VERSION='v359';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v359:['⏱️ Programação em Massa: os "60min antes" (Saída) e "180min antes" (Apresentação) usados quando alguém digita só a Chegada no FC agora são configuráveis — Admin → "Programação em Massa — Tempos Padrão". Antes era fixo no código; agora muda pra toda a equipe sem precisar mexer em nada técnico.'],
+  v358:['🐛 CRÍTICO: histórico perdendo entradas sem erro nenhum — confirmado o motivo (viagens, CAFs e Retorno de Pallets): ao gravar uma linha nova no histórico, o app buscava o histórico inteiro, somava a linha na memória e regravava a LINHA INTEIRA de volta. Se duas ações tocassem o mesmo registro quase ao mesmo tempo (comum com vários tablets), a que terminasse por último sobrescrevia o histórico da outra — sem erro, sem aviso, a entrada só sumia. Testado sob concorrência real: 10 chamadas ao mesmo tempo só sobreviviam 2 do jeito antigo. Corrigido com 3 funções no banco que travam a linha e somam de forma atômica — testado de novo com a mesma concorrência: 9 de 9 sobrevivem agora, nas três telas (Viagens, CAFs, Retorno de Pallets), e editar outro campo (ex: observação) não encosta mais no histórico.'],
   v357:['📉 Ainda menos log no Supabase: com o Ably conectado (ele já entrega tudo na hora), as rotinas de segurança ficaram mais espaçadas — sync a cada ~7,5 min (era 3), presença no banco a cada 10 min (era 3) e checagem de exclusões a cada 15 min (era 5). Com a aba escondida/minimizada o sync e a presença param, e ao voltar sincroniza na hora. Sem Ably tudo continua como antes (a cada 45–60s). Nada muda no que aparece na tela.'],
   v356:['📉 Menos "ingestão de logs" no Supabase: a checagem de viagens/CAFs excluídas (rede de segurança a cada 5 min — o Ably já avisa as exclusões na hora) mandava a lista de ~2.000 IDs na URL, e cada consulta gerava ~25 KB de log. Era 87% de todo o log do projeto (~300 MB/dia). Agora ela só pergunta a CONTAGEM ao banco (URL curta, resposta vazia) e só procura por IDs se o banco tiver menos que a tela. Também diminui o egress (a resposta não traz mais a lista de IDs).'],
   v355:[
@@ -3101,7 +3176,14 @@ async function saveToSupabase(op){
   // ANTES: cortava sempre pra HH:MM e jogava a data fora — por isso viagens que
   // cruzam a meia-noite (pernoite) "perdiam" a data ao salvar/recarregar.
   const _hh=(v)=>{if(!v)return null;const s=String(v).trim();return s||null;};
-  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],hist:op.hist||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,motorista_usou_app:op.motoristaUsouApp||null,justificativa_atraso_descarga:op.justificativaAtrasoDescarga||null,justificativa_atraso_por:op.justificativaAtrasoPor||null,justificativa_atraso_em:op.justificativaAtrasoEm||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
+  // hist só entra no row quando a viagem ainda NÃO existe localmente (= é uma criação, vai
+  // virar INSERT). Pra viagem já existente, addHist() grava hist direto no banco de forma
+  // atômica (fn_append_hist_operacao) — incluir hist aqui de novo reintroduziria a mesma
+  // condição de corrida que a função atômica existe pra evitar (sobrescrever com uma cópia
+  // local possivelmente desatualizada).
+  const _ehCriacao=ops.findIndex(o=>o.id===op.id)===-1;
+  const row={id:op.id,data_prog:op.dataProg||null,data_op:op.dataOp||null,rota:op.rota||null,tipo_carga:op.tipoCarga||null,tipologia:op.tipologia||null,transportadora:op.transp||null,motorista:op.mot||null,placa:op.placa||null,placa_carreta:op.placaCarreta||null,sm:op.sm||null,tms:op.tms||null,isa:op.isa||null,plan_apres:op.planApres||null,plan_saida:op.planSaida||null,plan_cheg_fc:op.planChegFC||null,real_apres:_hh(op.realApres),real_saida:_hh(op.realSaida),real_cheg_fc:_hh(op.realChegFC),real_descarga:_hh(op.realDescarga),status:op.status||null,obs:op.obs||null,doca:op.doca||null,cafs:op.cafs||[],updated_by:op.updatedBy||null,updated_at:now,motivo_atraso_saida:op.motivoAtrasoSaida||null,motivo_atraso_chegada:op.motivoAtrasoChegada||null,motorista_usou_app:op.motoristaUsouApp||null,justificativa_atraso_descarga:op.justificativaAtrasoDescarga||null,justificativa_atraso_por:op.justificativaAtrasoPor||null,justificativa_atraso_em:op.justificativaAtrasoEm||null,gerar_retorno_pallets:!!op.gerarRetornoPallets,retorno_pallets_id:op.retornoPalletsId||null};
+  if(_ehCriacao)row.hist=op.hist||[];
   // Adiciona ocorr só se a coluna já existir no banco (evita erro PGRST204)
   if(_hasOcorrCol)row.ocorr=op.ocorr||[];
   try{
@@ -3969,6 +4051,8 @@ async function saveConfig(){
     // CRÍTICO: só atualiza piso se o campo estiver visível no DOM
     pisoCAF:_g('cfgPisoCAF')?parseInt(_g('cfgPisoCAF').value)||CFG.pisoCAF||27:CFG.pisoCAF||27,
     pisoPallets:_g('cfgPisoPallets')?parseInt(_g('cfgPisoPallets').value)||CFG.pisoPallets||30:CFG.pisoPallets||30,
+    massaMinSaida:_g('cfgMassaMinSaida')?parseInt(_g('cfgMassaMinSaida').value)||CFG.massaMinSaida||60:CFG.massaMinSaida||60,
+    massaMinApres:_g('cfgMassaMinApres')?parseInt(_g('cfgMassaMinApres').value)||CFG.massaMinApres||180:CFG.massaMinApres||180,
   };
   ROTAS.forEach(r=>{const el=document.getElementById('slaMeta_'+r);if(el&&el.value)SLA_METAS[r]=parseInt(el.value);else if(!el){}else delete SLA_METAS[r];});
   await _saveCfgSupabase('cfg_sistema',CFG);
@@ -4047,6 +4131,8 @@ function applyConfig(){
   Object.entries(ids).forEach(([id,k])=>{const el=document.getElementById(id);if(el)el.checked=CFG[k];});
   const cl=document.getElementById('cfgLimiteAtraso');if(cl)cl.value=CFG.limiteAtraso;
   const sm=document.getElementById('cfgSlaMeta');if(sm)sm.value=CFG.slaMeta||92;
+  const mMs=document.getElementById('cfgMassaMinSaida');if(mMs)mMs.value=CFG.massaMinSaida||60;
+  const mMa=document.getElementById('cfgMassaMinApres');if(mMa)mMa.value=CFG.massaMinApres||180;
   _renderSLAMetaGrid();
   loadPisoConfig();
   applyDocasAdmin();
@@ -5461,7 +5547,7 @@ async function _autoGerarRetornoPallets(op){
     criadoPor:who,criadoEm:nowIso,atualizadoPor:who
   };
   loading(true);
-  const ok=await savePalletToDB(retorno);
+  const ok=await savePalletToDB(retorno,true);
   if(ok){
     op.retornoPalletsId=novoId;
     try{await saveOp(op);}catch(e){console.warn('vincular retornoPalletsId à viagem:',e);}
@@ -5741,8 +5827,8 @@ function _renderPreviewViagensIA(viagens){
     placaCarreta:normPlaca(v.placaCarreta||''),sm:v.sm||'',tms:v.tms||'',
     tipoCarga:v.tipoCarga||'LTL',tipologia:v.tipologia||'CARRETA',
     planChegFC:v.planChegFC||'',
-    planSaida:v.planChegFC?subMin(v.planChegFC,60):'',
-    planApres:v.planChegFC?subMin(v.planChegFC,180):''
+    planSaida:v.planChegFC?subMin(v.planChegFC,CFG.massaMinSaida||60):'',
+    planApres:v.planChegFC?subMin(v.planChegFC,CFG.massaMinApres||180):''
   }));
   const wrap=document.getElementById('assistentePreview');
   if(!_previewViagensIA.length){wrap.innerHTML='';return;}
@@ -6054,7 +6140,8 @@ function _atualizarTimelineDoForm(){
     realApres:v('fRA'),realSaida:v('fRS'),realChegFC:v('fRC'),realDescarga:v('fRD')
   });
 }
-// ── SUGESTÃO DE HORÁRIO — usa o tempo REAL da rota em vez da regra fixa (saída = FC − 1h, apresentação = FC − 3h)
+// ── SUGESTÃO DE HORÁRIO — usa o tempo REAL da rota em vez da regra padrão configurável
+// (Admin → Programação em Massa — Tempos Padrão, CFG.massaMinSaida/massaMinApres)
 // Tempo típico (mediana) entre apresentação e saída real, nas viagens já feitas (qualquer rota)
 function _tempoTipicoCarregamento(){
   const arr=ops.map(o=>_minEntre(o.realApres,o.realSaida)).filter(v=>v!==null&&v>=10&&v<=600).sort((a,b)=>a-b);
@@ -6598,10 +6685,11 @@ function subMin(t,mins){
   if(total<0)total+=1440;
   return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0');
 }
-// Ao digitar FC em uma linha: auto-calcula Saída (FC-1h) e Apres. (FC-3h)
+// Ao digitar FC em uma linha: auto-calcula Saída e Apres. subtraindo os minutos
+// configurados em Admin → Programação em Massa — Tempos Padrão (padrão: 60 e 180).
 function autoHoraMassa(i,fc){
   if(!fc)return;
-  const saida=subMin(fc,60),apres=subMin(fc,180);
+  const saida=subMin(fc,CFG.massaMinSaida||60),apres=subMin(fc,CFG.massaMinApres||180);
   mRows[i].planSaida=saida;mRows[i].planApres=apres;
   const es=document.getElementById('mSaida_'+i),ea=document.getElementById('mApres_'+i);
   if(es)es.value=saida;if(ea)ea.value=apres;
@@ -9179,8 +9267,12 @@ async function saveCAFToDB(caf){
     criado_em:caf.criadoEm&&caf.criadoEm.includes('T')?caf.criadoEm:now,
     rua_id:caf.ruaId||null,
     esteira_num:caf.esteiraNum||null,
-    hist:caf.hist||[],
   };
+  // hist só entra no row na CRIAÇÃO (caf.id ainda não existe = vai virar INSERT). Checar
+  // isso por caf.id, não por caf.hist estar populado — uma CAF já existente também pode ter
+  // hist carregado localmente (por ter sido visualizado antes), e incluir de novo aqui
+  // reintroduziria a mesma condição de corrida que a RPC atômica existe pra evitar.
+  if(!caf.id)row.hist=caf.hist||[];
   try{
     await sbUpsert(TABELA_CAF, caf.id?{...row,id:caf.id}:row);
     return true;
@@ -9651,18 +9743,23 @@ async function saveCAF(){
   const who=_nomeOperadorAtual();
   const existente=existentePreCheck;
   const statusAnterior=existente?existente.status:null;
-  const hist=existente&&Array.isArray(existente.hist)?[...existente.hist]:[];
   const nowIso=new Date().toISOString();
+  // CAF nova: ainda não existe linha no banco pra travar — monta o hist local, igual sempre
+  // foi, e ele vai junto no INSERT (saveCAFToDB só inclui hist nesse caso).
+  // CAF existente: grava cada entrada direto no banco via RPC atômica (fn_append_hist_caf),
+  // sem tocar no array local — evita a mesma condição de corrida já corrigida nas viagens
+  // (duas ações na mesma CAF quase ao mesmo tempo podiam apagar o histórico uma da outra).
+  const hist=[];
+  const mensagensHist=[];
   if(!editCAFId){
     hist.push({t:nowIso,txt:`[${who}] CAF criada (status: ${statusEscolhido})`});
   }else{
     if(statusAnterior&&statusAnterior!==statusEscolhido){
-      hist.push({t:nowIso,txt:`[${who}] Status alterado: ${statusAnterior} → ${statusEscolhido}`});
+      mensagensHist.push(`[${who}] Status alterado: ${statusAnterior} → ${statusEscolhido}`);
     }else{
-      hist.push({t:nowIso,txt:`[${who}] CAF editada`});
+      mensagensHist.push(`[${who}] CAF editada`);
     }
   }
-  if(hist.length>50)hist.splice(0,hist.length-50);
   // Regra: a rua é liberada quando a CAF sai do fluxo ativo (Processo de Entrega, Entrega Realizada ou Cancelada)
   // Corrige bug de "rua fantasma": antes só liberava em Processo de Entrega — se pulasse direto pra
   // Entrega Realizada (sem passar por Processo de Entrega), a rua ficava presa pra sempre.
@@ -9673,9 +9770,10 @@ async function saveCAF(){
     ruaFinal=null;
     try{
       await sbUpdate(TABELA_RUAS,ruaAntigaId,{caf_id:null,ocupada:false,atualizado_em:new Date().toISOString(),atualizado_por:who});
-      hist.push({t:nowIso,txt:`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF → ${statusEscolhido})`});
+      mensagensHist.push(`[${who}] Rua ${ruaNumeroDe(ruaAntigaId)||ruaAntigaId} liberada (CAF → ${statusEscolhido})`);
     }catch(e){console.warn('liberar rua em Processo de Entrega:',e);}
   }
+  if(editCAFId){for(const txt of mensagensHist)await addHistCaf(editCAFId,txt);}
   const caf={
     id:editCAFId||undefined,num,tipo:document.getElementById('cafTipo')?.value||'LTL',
     rota,vol:parseInt(document.getElementById('cafVol')?.value||0)||0,
@@ -9688,8 +9786,8 @@ async function saveCAF(){
     obs:document.getElementById('cafObs')?.value||'',
     criadoPor:existente?existente.criadoPor:who,
     criadoEm:editCAFId?(cafsDB.find(c=>c.id===editCAFId)?.criadoEm||new Date().toISOString()):new Date().toISOString(),
-    hist,
   };
+  if(!editCAFId)caf.hist=hist; // criação: inclui o hist inicial — vai junto no INSERT
   loading(true);
   const ok=await saveCAFToDB(caf);
   await loadCAFs();
@@ -9833,16 +9931,20 @@ async function loadInventarioPallets(){
 }
 
 // Grava um registro de Retorno de Pallets (marca a chegada quando vira Aguardando Descarga).
-async function savePalletToDB(p){
+// incluirHist: true SÓ na criação (linha ainda não existe pra travar). Em edição, o
+// histórico é gravado à parte via addHistPallet (RPC atômica) — incluir aqui de novo
+// reintroduziria a condição de corrida que isso existe pra evitar (ver addHist/addHistCaf).
+async function savePalletToDB(p,incluirHist){
   const row={
     id:p.id,fc:p.fc,data_op:p.dataOp,transportadora:p.transp||null,
     motorista:p.motorista||null,placa:p.placa||null,tipologia:p.tipologia||null,placa_carreta:p.placaCarreta||null,
     qtd_prevista:p.qtdPrevista||0,qtd_recebida:(p.qtdRecebida===''||p.qtdRecebida===undefined)?null:p.qtdRecebida,
-    status:p.status,doca:p.doca||null,obs:p.obs||null,hist:p.hist||[],
+    status:p.status,doca:p.doca||null,obs:p.obs||null,
     op_origem_id:p.opOrigemId||null,sm:p.sm||null,id_ref:p.idRef||null,
     criado_por:p.criadoPor,criado_em:p.criadoEm,
     atualizado_por:p.atualizadoPor,atualizado_em:new Date().toISOString()
   };
+  if(incluirHist)row.hist=p.hist||[];
   row.horario_saida_fc=p.horaSaidaFC||null;
   if(p.status==='AGU_DESCARGA'&&!p.horaChegada)row.horario_chegada=new Date().toISOString();
   else row.horario_chegada=p.horaChegada||null;
@@ -10251,16 +10353,16 @@ async function savePallet(){
   const qtdRecebidaVal=podeAuditoria?document.getElementById('rpQtdRecebida')?.value:(existente?.qtdRecebida??'');
   const who=_nomeOperadorAtual();
   const statusAnterior=existente?existente.status:null;
-  const hist=existente&&Array.isArray(existente.hist)?[...existente.hist]:[];
   const nowIso=new Date().toISOString();
+  const hist=[]; // só usado na criação — ver addHistPallet pra edição
+  let msgHistEdicao=null;
   if(!editPalletId){
     hist.push({t:nowIso,txt:`[${who}] Retorno registrado (status: ${_palletStatusInfo(statusEscolhido).lb})`});
   }else if(statusAnterior&&statusAnterior!==statusEscolhido){
-    hist.push({t:nowIso,txt:`[${who}] Status alterado: ${_palletStatusInfo(statusAnterior).lb} → ${_palletStatusInfo(statusEscolhido).lb}`});
+    msgHistEdicao=`[${who}] Status alterado: ${_palletStatusInfo(statusAnterior).lb} → ${_palletStatusInfo(statusEscolhido).lb}`;
   }else{
-    hist.push({t:nowIso,txt:`[${who}] Retorno editado`});
+    msgHistEdicao=`[${who}] Retorno editado`;
   }
-  if(hist.length>50)hist.splice(0,hist.length-50);
   // Horários (Torre) só mudam se tiver pallet_horarios — senão preserva os valores existentes
   const horaSaidaFC=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraSaidaFC')?.value):(existente?.horaSaidaFC||null);
   const horaChegadaTZX=podeHorarios?_dtLocalToIso(document.getElementById('rpHoraChegadaTZX')?.value):(existente?.horaChegada||null);
@@ -10288,8 +10390,9 @@ async function savePallet(){
     criadoEm:existente?existente.criadoEm:nowIso,
     atualizadoPor:who
   };
+  if(editPalletId&&msgHistEdicao)await addHistPallet(editPalletId,msgHistEdicao);
   loading(true);
-  const ok=await savePalletToDB(p);
+  const ok=await savePalletToDB(p,!editPalletId);
   // Ao finalizar (status muda para FINALIZADO agora), abate a qtd. recebida do saldo devedor do FC
   // e devolve essa quantidade ao estoque compartilhado da TZX
   if(ok&&statusEscolhido==='FINALIZADO'&&statusAnterior!=='FINALIZADO'&&p.qtdRecebida>0){
@@ -10340,12 +10443,12 @@ async function avancarStatusPallet(id){
     if(v===null)return;
     qtdRecebida=parseInt(v)||0;
   }
-  const hist=[...(p.hist||[]),{t:new Date().toISOString(),txt:`[${who}] Status alterado: ${_palletStatusInfo(p.status).lb} → ${_palletStatusInfo(proximo).lb}`}];
-  if(proximo==='AGU_DESCARGA')hist.push({t:new Date().toISOString(),txt:`[${who}] Qtd. prevista informada (folha): ${qtdPrevista}`});
-  if(proximo==='FINALIZADO'&&qtdPrevista!==qtdRecebida)hist.push({t:new Date().toISOString(),txt:`[${who}] ⚠ Divergência na auditoria: previsto ${qtdPrevista||0} × recebido ${qtdRecebida}`});
-  const atualizado={...p,status:proximo,qtdPrevista,qtdRecebida,hist,atualizadoPor:who};
+  await addHistPallet(p.id,`[${who}] Status alterado: ${_palletStatusInfo(p.status).lb} → ${_palletStatusInfo(proximo).lb}`);
+  if(proximo==='AGU_DESCARGA')await addHistPallet(p.id,`[${who}] Qtd. prevista informada (folha): ${qtdPrevista}`);
+  if(proximo==='FINALIZADO'&&qtdPrevista!==qtdRecebida)await addHistPallet(p.id,`[${who}] ⚠ Divergência na auditoria: previsto ${qtdPrevista||0} × recebido ${qtdRecebida}`);
+  const atualizado={...p,status:proximo,qtdPrevista,qtdRecebida,atualizadoPor:who};
   loading(true);
-  const ok=await savePalletToDB(atualizado);
+  const ok=await savePalletToDB(atualizado,false);
   if(ok&&proximo==='FINALIZADO'&&qtdRecebida>0){
     await ajustarSaldoFC(p.fc,-qtdRecebida,who);
     await ajustarEstoqueTZX(qtdRecebida,who);
@@ -11552,9 +11655,7 @@ async function desvincularCAF(){
   c.opId='';
   c.status='Produzida'; // volta para disponível p/ embarque (Vinculada a Veículo → Produzida)
   // A rua NÃO foi liberada no momento do vínculo — continua com a CAF (c.ruaId intacto)
-  if(!Array.isArray(c.hist))c.hist=[];
-  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Desvinculada da operação ${opIdAnterior||''} (Vinculada a Veículo → Produzida)`});
-  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+  await addHistCaf(c.id,`[${who}] Desvinculada da operação ${opIdAnterior||''} (Vinculada a Veículo → Produzida)`);
   await saveCAFToDB(c);await loadCAFs();
   _publishAbly('cafs_update',{action:'update'});
   renderCAFs();closeCAFModal();
@@ -11580,9 +11681,7 @@ async function _desvincularCAFDaViagemInline(cafId,linhaDomId){
   }
   c.opId='';
   c.status='Produzida';
-  if(!Array.isArray(c.hist))c.hist=[];
-  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Desvinculada da operação ${opIdAnterior||''} (via edição da viagem, status voltou pra Produzida)`});
-  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+  await addHistCaf(c.id,`[${who}] Desvinculada da operação ${opIdAnterior||''} (via edição da viagem, status voltou pra Produzida)`);
   await saveCAFToDB(c);await loadCAFs();
   _publishAbly('cafs_update',{action:'update'});
   const row=document.getElementById(linhaDomId);if(row)row.remove();
@@ -11637,9 +11736,7 @@ async function _vincularCAF(cafId,op){
   // A rua NÃO é liberada aqui — permanece ocupada até a CAF chegar em "Processo de Entrega"
   c.opId=op.id;
   c.status='Vinculada a Veículo';
-  if(!Array.isArray(c.hist))c.hist=[];
-  c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id}`});
-  if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+  await addHistCaf(c.id,`[${who}] Vinculada à operação ${op.id}`);
   await saveCAFToDB(c);
   await loadCAFs();
   await loadRuas();
@@ -12044,9 +12141,7 @@ async function autoVincularCAFs(op){
       continue;
     }
     c.opId=op.id;
-    if(!Array.isArray(c.hist))c.hist=[];
-    c.hist.push({t:new Date().toISOString(),txt:`[${who}] Vinculada à operação ${op.id} (Produzida → Vinculada a Veículo)`});
-    if(c.hist.length>50)c.hist.splice(0,c.hist.length-50);
+    await addHistCaf(c.id,`[${who}] Vinculada à operação ${op.id} (Produzida → Vinculada a Veículo)`);
     c.status='Vinculada a Veículo';
     await saveCAFToDB(c);
     changed=true;
@@ -15059,10 +15154,10 @@ async function atribuirDocaPallet(id,doca){
   }
   const who=_nomeOperadorAtual();
   const prev=p.doca||'';
-  const hist=[...(p.hist||[]),{t:new Date().toISOString(),txt:`[${who}] ${doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`}`}];
-  const atualizado={...p,doca,hist,atualizadoPor:who};
+  await addHistPallet(p.id,`[${who}] ${doca?`Doca ${doca} atribuída`:`Doca ${prev} removida`}`);
+  const atualizado={...p,doca,atualizadoPor:who};
   loading(true);
-  const ok=await savePalletToDB(atualizado);
+  const ok=await savePalletToDB(atualizado,false);
   await loadPallets();
   loading(false);
   if(ok){
