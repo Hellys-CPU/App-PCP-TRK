@@ -2516,11 +2516,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v360';
+const APP_VERSION='v361';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v361:['📥 Análise → "Transportadoras × Rotas": botão "Extrair Excel". Baixa o quadro no mesmo período e filtro de transportadora da tela, em 4 abas: Ranking (todas as colunas — viagens, % do total, rotas, rota principal, SLA de chegada, veículos, % da frota, viagens por veículo e as placas que rodaram por outra transportadora), Transp x Rota (a matriz com totais, transportadora dominante e % dela em cada rota), Veículos em +1 transp (placa × transportadora × viagens) e Info (período, filtro, quem gerou). Os números são calculados pela mesma conta da tela.'],
   v360:['📦 Vincular CAF na viagem ficou mais fácil: no lugar da lista suspensa (que só mostrava número, tipo e volume), as CAFs disponíveis aparecem em cartões com PALLETS em destaque, VENCIMENTO colorido (vencida em vermelho, hoje laranja, amanhã amarelo) e rua — as que vencem antes ficam primeiro. Toque no cartão pra vincular. Tem busca pelo número, mostra quantos pallets já estão na viagem e quantos ainda cabem no veículo (quando a carreta está cadastrada), e avisa se a CAF passaria da capacidade. Se nenhuma aparece, explica quantas da rota ainda não estão "Produzida". Desvincular uma CAF tocada por engano, antes de salvar a viagem, agora só tira ela da lista, sem gravar nada.'],
   v359:['⏱️ Programação em Massa: os "60min antes" (Saída) e "180min antes" (Apresentação) usados quando alguém digita só a Chegada no FC agora são configuráveis — Admin → "Programação em Massa — Tempos Padrão". Antes era fixo no código; agora muda pra toda a equipe sem precisar mexer em nada técnico.'],
   v358:['🐛 CRÍTICO: histórico perdendo entradas sem erro nenhum — confirmado o motivo (viagens, CAFs e Retorno de Pallets): ao gravar uma linha nova no histórico, o app buscava o histórico inteiro, somava a linha na memória e regravava a LINHA INTEIRA de volta. Se duas ações tocassem o mesmo registro quase ao mesmo tempo (comum com vários tablets), a que terminasse por último sobrescrevia o histórico da outra — sem erro, sem aviso, a entrada só sumia. Testado sob concorrência real: 10 chamadas ao mesmo tempo só sobreviviam 2 do jeito antigo. Corrigido com 3 funções no banco que travam a linha e somam de forma atômica — testado de novo com a mesma concorrência: 9 de 9 sobrevivem agora, nas três telas (Viagens, CAFs, Retorno de Pallets), e editar outro campo (ex: observação) não encosta mais no histórico.'],
@@ -12365,9 +12366,11 @@ function _frotaTransportadoras(lista){
 // quantas rotas diferentes cada uma atende, participação no total, rota principal e SLA de chegada;
 // embaixo, a matriz transportadora × rota (cada célula = viagens; cor mais forte = mais viagens) e,
 // por rota, quem é a transportadora dominante. Canceladas não entram.
-function _renderTranspRotas(data){
+// Cálculo do quadro "Transportadoras × Rotas" — usado tanto pela tela quanto pela extração em Excel,
+// pra os dois sempre mostrarem exatamente os mesmos números. null se não houver viagem válida.
+function _calcTranspRotas(data){
   const val=data.filter(o=>o.status!=='CANC'&&o.transp&&o.rota);
-  if(!val.length)return'<p style="color:var(--t3);text-align:center;padding:16px">Sem viagens com transportadora e rota no período.</p>';
+  if(!val.length)return null;
   const porT={},rotasSet=new Set();
   val.forEach(o=>{
     rotasSet.add(o.rota);
@@ -12378,51 +12381,142 @@ function _renderTranspRotas(data){
   const rotas=[...rotasSet].sort();
   const ranking=Object.entries(porT).sort((a,b)=>b[1].t-a[1].t);
   const total=val.length,max=ranking[0][1].t;
-  const corSla=p=>p===null?'var(--t3)':p>=92?'var(--green)':p>=80?'#d97706':'var(--red)';
   const frota=_frotaTransportadoras(val);
   const totVeic=new Set(Object.values(frota.porT).flatMap(st=>[...st])).size;
   const compart=p=>Object.keys(frota.transpsDoVeic[p]||{}).length>1;
   const linhas=ranking.map(([n,d],i)=>{
     const principal=Object.entries(d.rotas).sort((a,b)=>b[1]-a[1])[0];
-    const sla=d.cheg?Math.round(d.ok/d.cheg*100):null;
-    const veics=[...(frota.porT[n]||[])],nv=veics.length,nComp=veics.filter(compart).length;
-    return `<tr>
-      <td style="font-weight:800;color:var(--t3)">${i+1}º</td>
-      <td style="font-weight:700">${_fichaLink('transp',n)}</td>
-      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="an-hbar" style="height:8px"><div style="width:${Math.round(d.t/max*100)}%;background:var(--blue)"></div></div><b class="mono">${d.t}</b></div></td>
-      <td class="mono" style="text-align:center">${Math.round(d.t/total*100)}%</td>
-      <td style="text-align:center"><b class="mono">${Object.keys(d.rotas).length}</b><span style="color:var(--t3)">/${rotas.length}</span></td>
-      <td><span class="rota-cell">${esc(principal[0])}</span> <span style="color:var(--t3);font-size:.66rem">(${principal[1]} viag.)</span></td>
-      <td class="mono" style="text-align:center;font-weight:800;color:${corSla(sla)}">${sla===null?'—':sla+'%'}</td>
-      <td class="mono" style="text-align:center"><b>${nv}</b></td>
-      <td class="mono" style="text-align:center">${totVeic?Math.round(nv/totVeic*100)+'%':'—'}</td>
-      <td class="mono" style="text-align:center">${nv?(d.t/nv).toFixed(1).replace('.',','):'—'}</td>
-      <td class="mono" style="text-align:center">${nComp?`<span class="ab" title="${esc(veics.filter(compart).join(', '))}">⚠ ${nComp}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
-    </tr>`;}).join('');
+    const veics=[...(frota.porT[n]||[])];
+    const veicsComp=veics.filter(compart);
+    return{pos:i+1,nome:n,d,viagens:d.t,pctTotal:d.t/total,nRotas:Object.keys(d.rotas).length,
+      principal,sla:d.cheg?Math.round(d.ok/d.cheg*100):null,cheg:d.cheg,
+      veics,nv:veics.length,veicsComp,nComp:veicsComp.length,
+      pctFrota:totVeic?veics.length/totVeic:null,viagPorVeic:veics.length?d.t/veics.length:null};
+  });
   // Veículos que já rodaram por mais de uma transportadora (em todas as viagens carregadas)
   const doPeriodo=new Set(Object.values(frota.porT).flatMap(st=>[...st]));
   const multi=Object.entries(frota.transpsDoVeic).filter(([p,m])=>doPeriodo.has(p)&&Object.keys(m).length>1)
     .sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0));
+  const maxCel=Math.max(...ranking.flatMap(([,d])=>Object.values(d.rotas)));
+  // Por rota: transportadora dominante e total da rota
+  const dominante={};
+  rotas.forEach(r=>{let best=null;ranking.forEach(([n,d])=>{const v=d.rotas[r]||0;if(v&&(!best||v>best.v))best={n,v};});
+    const tot=ranking.reduce((s,[,d])=>s+(d.rotas[r]||0),0);dominante[r]={best,tot};});
+  const notaFrota=`Veículo = cavalo (cavalo + carreta contam 1). ${frota.trocadas?`${frota.trocadas} viage${frota.trocadas>1?'ns':'m'} com cavalo e carreta digitados trocados foram corrigidas na contagem. `:''}${frota.semVeic?`${frota.semVeic} viage${frota.semVeic>1?'ns':'m'} sem placa do cavalo não entram.`:''}`;
+  return{val,rotas,ranking,total,max,frota,totVeic,linhas,multi,maxCel,dominante,notaFrota};
+}
+// Análise: quais transportadoras mais atuam e em quais rotas. Ranking por número de viagens no período,
+// quantas rotas diferentes cada uma atende, participação no total, rota principal e SLA de chegada;
+// embaixo, a matriz transportadora × rota (cada célula = viagens; cor mais forte = mais viagens) e,
+// por rota, quem é a transportadora dominante. Canceladas não entram.
+function _renderTranspRotas(data){
+  const c=_calcTranspRotas(data);
+  if(!c)return'<p style="color:var(--t3);text-align:center;padding:16px">Sem viagens com transportadora e rota no período.</p>';
+  const{rotas,ranking,total,max,totVeic,linhas:dados,multi,maxCel,dominante,notaFrota}=c;
+  const corSla=p=>p===null?'var(--t3)':p>=92?'var(--green)':p>=80?'#d97706':'var(--red)';
+  const linhas=dados.map(l=>`<tr>
+      <td style="font-weight:800;color:var(--t3)">${l.pos}º</td>
+      <td style="font-weight:700">${_fichaLink('transp',l.nome)}</td>
+      <td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px"><div class="an-hbar" style="height:8px"><div style="width:${Math.round(l.viagens/max*100)}%;background:var(--blue)"></div></div><b class="mono">${l.viagens}</b></div></td>
+      <td class="mono" style="text-align:center">${Math.round(l.pctTotal*100)}%</td>
+      <td style="text-align:center"><b class="mono">${l.nRotas}</b><span style="color:var(--t3)">/${rotas.length}</span></td>
+      <td><span class="rota-cell">${esc(l.principal[0])}</span> <span style="color:var(--t3);font-size:.66rem">(${l.principal[1]} viag.)</span></td>
+      <td class="mono" style="text-align:center;font-weight:800;color:${corSla(l.sla)}">${l.sla===null?'—':l.sla+'%'}</td>
+      <td class="mono" style="text-align:center"><b>${l.nv}</b></td>
+      <td class="mono" style="text-align:center">${l.pctFrota!==null?Math.round(l.pctFrota*100)+'%':'—'}</td>
+      <td class="mono" style="text-align:center">${l.viagPorVeic!==null?l.viagPorVeic.toFixed(1).replace('.',','):'—'}</td>
+      <td class="mono" style="text-align:center">${l.nComp?`<span class="ab" title="${esc(l.veicsComp.join(', '))}">⚠ ${l.nComp}</span>`:'<span style="color:var(--t3)">—</span>'}</td>
+    </tr>`).join('');
   // Lista recolhível: abre sozinha se for curta
   const blocoMulti=multi.length?`<details class="fr-multi"${multi.length<=8?' open':''}><summary class="fr-tit">⚠ ${multi.length} veículo${multi.length>1?'s já rodaram':' já rodou'} por mais de uma transportadora <small>(viagens de cada uma entre parênteses)</small></summary>
     ${multi.map(([p,m])=>`<div class="fr-row"><span class="mono"><b>${esc(p)}</b></span><span>${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${_fichaLink('transp',t)} <small>(${n})</small>`).join(' · ')}</span></div>`).join('')}</details>`:'';
-  const notaFrota=`Veículo = cavalo (cavalo + carreta contam 1). ${frota.trocadas?`${frota.trocadas} viage${frota.trocadas>1?'ns':'m'} com cavalo e carreta digitados trocados foram corrigidas na contagem. `:''}${frota.semVeic?`${frota.semVeic} viage${frota.semVeic>1?'ns':'m'} sem placa do cavalo não entram.`:''}`;
   // Matriz transportadora × rota
-  const maxCel=Math.max(...ranking.flatMap(([,d])=>Object.values(d.rotas)));
   const matriz=`<div style="overflow-x:auto;margin-top:14px"><table style="width:100%;border-collapse:collapse;font-size:.7rem">
     <thead><tr><th style="text-align:left">Transportadora</th>${rotas.map(r=>`<th style="text-align:center">${esc(r)}</th>`).join('')}</tr></thead>
     <tbody>${ranking.map(([n,d])=>`<tr><td style="font-weight:700;white-space:nowrap">${esc(n)}</td>${rotas.map(r=>{const v=d.rotas[r]||0;
       return `<td style="text-align:center;padding:4px"><div class="mono" title="${esc(n)} · ${esc(r)}: ${v} viagens" style="border-radius:6px;padding:5px 0;font-weight:800;${v?`background:rgba(37,99,235,${(.12+.7*v/maxCel).toFixed(2)});color:${v/maxCel>.55?'#fff':'var(--text)'}`:'color:var(--t3)'}">${v||'·'}</div></td>`;}).join('')}</tr>`).join('')}
-    <tr><td style="font-weight:700;color:var(--t2)">Dominante</td>${rotas.map(r=>{let best=null;ranking.forEach(([n,d])=>{const v=d.rotas[r]||0;if(v&&(!best||v>best.v))best={n,v};});
-      const tot=ranking.reduce((s,[,d])=>s+(d.rotas[r]||0),0);
+    <tr><td style="font-weight:700;color:var(--t2)">Dominante</td>${rotas.map(r=>{const{best,tot}=dominante[r];
       return `<td style="text-align:center;font-size:.62rem;color:var(--t2)">${best?`<b>${esc(best.n)}</b><br>${Math.round(best.v/tot*100)}%`:'—'}</td>`;}).join('')}</tr>
     </tbody></table></div>`;
   const lider=ranking[0];
-  return `<p style="font-size:.72rem;color:var(--t2);margin-bottom:10px">Mais ativa no período: <b>${esc(lider[0])}</b> — ${lider[1].t} viagens (${Math.round(lider[1].t/total*100)}% do total) em ${Object.keys(lider[1].rotas).length} rota(s). Clique no nome para abrir a ficha.</p>
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <p style="font-size:.72rem;color:var(--t2);margin:0;flex:1;min-width:240px">Mais ativa no período: <b>${esc(lider[0])}</b> — ${lider[1].t} viagens (${Math.round(lider[1].t/total*100)}% do total) em ${Object.keys(lider[1].rotas).length} rota(s). Clique no nome para abrir a ficha.</p>
+      <button type="button" class="btn btn-s" style="font-size:.7rem;padding:4px 10px;flex-shrink:0" onclick="exportarTranspRotasExcel()" title="Baixa este quadro em Excel: ranking, matriz transportadora × rota e veículos em mais de uma transportadora (mesmo período e filtro da tela)">📥 Extrair Excel</button>
+    </div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.74rem">
       <thead><tr><th></th><th style="text-align:left">Transportadora</th><th style="text-align:left">Viagens</th><th>% do total</th><th>Rotas atendidas</th><th style="text-align:left">Rota principal</th><th>SLA chegada</th><th title="Veículos (cavalos) diferentes que rodaram no período">Veículos</th><th title="Parte da frota total do período">% da frota</th><th title="Viagens ÷ veículos">Viag./veículo</th><th title="Veículos que também já rodaram por outra transportadora">Em outra transp.</th></tr></thead>
       <tbody>${linhas}</tbody></table></div>
     <p style="font-size:.66rem;color:var(--t3);margin-top:6px">${totVeic} veículos no período. ${notaFrota}</p>${blocoMulti}${matriz}`;
+}
+// Extrai o quadro "Transportadoras × Rotas" em Excel, com o mesmo período/filtro da Análise:
+// aba Ranking (todas as colunas da tela), aba Matriz (transportadora × rota + totais + dominante),
+// aba Veículos em +1 transp. e aba Info (período, filtro, quem gerou, observações).
+function exportarTranspRotasExcel(){
+  if(typeof XLSX==='undefined'){showToast('❌ Biblioteca de Excel não carregou — verifique a internet e recarregue','err');return;}
+  const c=_calcTranspRotas(getAnaliseOps());
+  if(!c){showToast('Sem viagens com transportadora e rota no período','err');return;}
+  const{rotas,ranking,total,totVeic,linhas,multi,dominante,notaFrota}=c;
+  const fmtCols=(ws,cols,fmt,nLinhas)=>{for(let r=1;r<=nLinhas;r++)cols.forEach(col=>{const ref=XLSX.utils.encode_cell({r,c:col});if(ws[ref]&&typeof ws[ref].v==='number')ws[ref].z=fmt;});};
+  // Aba 1 — Ranking
+  const rank=linhas.map(l=>({
+    'Posição':l.pos,
+    'Transportadora':l.nome,
+    'Viagens':l.viagens,
+    '% do total':l.pctTotal,
+    'Rotas atendidas':l.nRotas,
+    'Rotas no período':rotas.length,
+    'Rota principal':l.principal[0],
+    'Viagens na rota principal':l.principal[1],
+    'SLA chegada':l.sla===null?'':l.sla/100,
+    'Chegadas medidas (SLA)':l.cheg,
+    'Veículos':l.nv,
+    '% da frota':l.pctFrota===null?'':l.pctFrota,
+    'Viag./veículo':l.viagPorVeic===null?'':Math.round(l.viagPorVeic*10)/10,
+    'Veículos em outra transp.':l.nComp,
+    'Placas em outra transp.':l.veicsComp.join(', ')
+  }));
+  const wsR=XLSX.utils.json_to_sheet(rank);
+  fmtCols(wsR,[3,8,11],'0%',rank.length);fmtCols(wsR,[12],'0.0',rank.length); // % do total, SLA chegada, % da frota · Viag./veículo
+  wsR['!cols']=[{wch:8},{wch:22},{wch:9},{wch:10},{wch:14},{wch:15},{wch:15},{wch:22},{wch:12},{wch:20},{wch:9},{wch:10},{wch:12},{wch:22},{wch:40}];
+  // Aba 2 — Matriz transportadora × rota, com totais e dominante por rota
+  const aoa=[['Transportadora',...rotas,'Total']];
+  ranking.forEach(([n,d])=>aoa.push([n,...rotas.map(r=>d.rotas[r]||0),d.t]));
+  aoa.push(['Total',...rotas.map(r=>dominante[r].tot),total]);
+  aoa.push(['Dominante',...rotas.map(r=>dominante[r].best?dominante[r].best.n:'—'),'']);
+  aoa.push(['% da dominante',...rotas.map(r=>dominante[r].best?dominante[r].best.v/dominante[r].tot:''),'']);
+  const wsM=XLSX.utils.aoa_to_sheet(aoa);
+  const linhaPct=aoa.length-1;
+  rotas.forEach((_,i)=>{const ref=XLSX.utils.encode_cell({r:linhaPct,c:i+1});if(wsM[ref]&&typeof wsM[ref].v==='number')wsM[ref].z='0%';});
+  wsM['!cols']=[{wch:22},...rotas.map(()=>({wch:11})),{wch:8}];
+  // Aba 3 — Veículos que rodaram por mais de uma transportadora (uma linha por placa × transportadora)
+  const veic=[];
+  multi.forEach(([placa,m])=>Object.entries(m).sort((a,b)=>b[1]-a[1]).forEach(([t,n])=>veic.push({'Placa (cavalo)':placa,'Transportadora':t,'Viagens':n,'Nº de transportadoras':Object.keys(m).length})));
+  const wsV=XLSX.utils.json_to_sheet(veic.length?veic:[{'Placa (cavalo)':'Nenhum veículo rodou por mais de uma transportadora','Transportadora':'','Viagens':'','Nº de transportadoras':''}]);
+  wsV['!cols']=[{wch:16},{wch:22},{wch:9},{wch:20}];
+  // Aba 4 — Info
+  const filtroTransp=document.getElementById('aFiltroTransp')?.value||'';
+  const wsI=XLSX.utils.aoa_to_sheet([
+    ['Quadro','Transportadoras × Rotas — quem mais atua'],
+    ['Período',getAnaliseLabel()],
+    ['Filtro de transportadora',filtroTransp||'Todas'],
+    ['Viagens consideradas',total],
+    ['Transportadoras',ranking.length],
+    ['Rotas',rotas.length],
+    ['Veículos no período',totVeic],
+    ['Gerado em',new Date().toLocaleString('pt-BR')],
+    ['Gerado por',currentUser?.nome||'—'],
+    ['Observação','Viagens canceladas não entram. SLA de chegada considera só viagens com chegada planejada e real preenchidas. '+notaFrota.trim()],
+    ['"Em outra transp."','Veículos (cavalos) do período que também já rodaram por outra transportadora, olhando todas as viagens carregadas no sistema.']
+  ]);
+  wsI['!cols']=[{wch:26},{wch:100}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsR,'Ranking');
+  XLSX.utils.book_append_sheet(wb,wsM,'Transp x Rota');
+  XLSX.utils.book_append_sheet(wb,wsV,'Veículos em +1 transp');
+  XLSX.utils.book_append_sheet(wb,wsI,'Info');
+  const nome=getAnaliseLabel().replace(/[^\wÀ-ú-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  XLSX.writeFile(wb,`TRK_Transportadoras_x_Rotas_${nome||'periodo'}.xlsx`);
+  showToast(`✅ Excel gerado — ${ranking.length} transportadoras, ${rotas.length} rotas`,'ok');
 }
 // Análise: SLA de chegada de cada rota no MÊS ATUAL contra a meta da rota (Admin → metas de SLA).
 // Mostra quanto falta: quantas viagens seguidas no prazo seriam necessárias para chegar na meta.
