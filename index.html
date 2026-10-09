@@ -363,6 +363,19 @@ body.dark .card-rota-badge{color:#e6edf3;}
 .b-prod{background:rgba(249,115,22,.12);color:#ea580c;border:1px solid rgba(249,115,22,.3);}
 .b-gris{background:rgba(220,38,38,.14);color:#dc2626;border:1.5px solid rgba(220,38,38,.4);font-weight:800;}
 .b-agend{background:rgba(30,58,138,.13);color:#1e3a8a;border:1px solid rgba(30,58,138,.35);}
+/* Modal da viagem: cartões de CAF disponível pra vincular (pallets + vencimento à vista) */
+.caf-disp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;max-height:280px;overflow-y:auto;padding:1px}
+.caf-disp-card{display:flex;flex-direction:column;gap:3px;text-align:left;background:var(--bg2);border:1.5px solid var(--bd);border-left:4px solid var(--bd2);border-radius:var(--rs);padding:7px 9px;cursor:pointer;color:var(--text);font:inherit;min-height:44px;transition:border-color .12s,background .12s}
+.caf-disp-card:hover,.caf-disp-card:focus-visible{border-color:var(--green);background:var(--green2);outline:none}
+.caf-disp-card .cdc-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.caf-disp-card .cdc-num{font-weight:800;font-size:.84rem;letter-spacing:.2px}
+.caf-disp-card .cdc-add{font-size:.62rem;font-weight:800;color:var(--green);white-space:nowrap}
+.caf-disp-card .cdc-pal{font-size:.74rem;color:var(--t2)}
+.caf-disp-card .cdc-pal b{font-size:.95rem;color:var(--text)}
+.caf-disp-card .cdc-venc{font-size:.7rem;font-weight:700}
+.caf-disp-card .cdc-meta{font-size:.64rem;color:var(--t3)}
+.caf-disp-card .cdc-aviso{font-size:.62rem;font-weight:700;color:var(--red)}
+.caf-disp-vazio{grid-column:1/-1;font-size:.72rem;color:var(--t2);padding:10px;text-align:center;background:var(--bg2);border:1.5px dashed var(--bd);border-radius:var(--rs)}
 .ci{font-size:.69rem;color:var(--t2);display:flex;flex-direction:column;gap:2px;}
 .ci .row{display:flex;justify-content:space-between;}
 .ci .lbl{color:var(--t3);font-size:.65rem;}
@@ -2503,11 +2516,12 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v359';
+const APP_VERSION='v360';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v360:['📦 Vincular CAF na viagem ficou mais fácil: no lugar da lista suspensa (que só mostrava número, tipo e volume), as CAFs disponíveis aparecem em cartões com PALLETS em destaque, VENCIMENTO colorido (vencida em vermelho, hoje laranja, amanhã amarelo) e rua — as que vencem antes ficam primeiro. Toque no cartão pra vincular. Tem busca pelo número, mostra quantos pallets já estão na viagem e quantos ainda cabem no veículo (quando a carreta está cadastrada), e avisa se a CAF passaria da capacidade. Se nenhuma aparece, explica quantas da rota ainda não estão "Produzida". Desvincular uma CAF tocada por engano, antes de salvar a viagem, agora só tira ela da lista, sem gravar nada.'],
   v359:['⏱️ Programação em Massa: os "60min antes" (Saída) e "180min antes" (Apresentação) usados quando alguém digita só a Chegada no FC agora são configuráveis — Admin → "Programação em Massa — Tempos Padrão". Antes era fixo no código; agora muda pra toda a equipe sem precisar mexer em nada técnico.'],
   v358:['🐛 CRÍTICO: histórico perdendo entradas sem erro nenhum — confirmado o motivo (viagens, CAFs e Retorno de Pallets): ao gravar uma linha nova no histórico, o app buscava o histórico inteiro, somava a linha na memória e regravava a LINHA INTEIRA de volta. Se duas ações tocassem o mesmo registro quase ao mesmo tempo (comum com vários tablets), a que terminasse por último sobrescrevia o histórico da outra — sem erro, sem aviso, a entrada só sumia. Testado sob concorrência real: 10 chamadas ao mesmo tempo só sobreviviam 2 do jeito antigo. Corrigido com 3 funções no banco que travam a linha e somam de forma atômica — testado de novo com a mesma concorrência: 9 de 9 sobrevivem agora, nas três telas (Viagens, CAFs, Retorno de Pallets), e editar outro campo (ex: observação) não encosta mais no histórico.'],
   v357:['📉 Ainda menos log no Supabase: com o Ably conectado (ele já entrega tudo na hora), as rotinas de segurança ficaram mais espaçadas — sync a cada ~7,5 min (era 3), presença no banco a cada 10 min (era 3) e checagem de exclusões a cada 15 min (era 5). Com a aba escondida/minimizada o sync e a presença param, e ao voltar sincroniza na hora. Sem Ably tudo continua como antes (a cada 45–60s). Nada muda no que aparece na tela.'],
@@ -6207,7 +6221,7 @@ ${o.id?_timelineViagemHTML(o):''}
 </div>
 <div class="sec">🗺️ Rota & Carga</div>
 <div class="fgrid">
-  <div class="fg"><label>Rota</label><select id="fRota" onchange="calcD()">${sl(ROTAS,o.rota)}</select></div>
+  <div class="fg"><label>Rota</label><select id="fRota" onchange="calcD();_renderCafsDisponiveis()">${sl(ROTAS,o.rota)}</select></div>
   <div class="fg"><label>Tipo de Carga</label><select id="fTipo">${sl(TIPOS,o.tipoCarga)}</select></div>
 </div>
 <div class="sec">🚛 Operação</div>
@@ -6215,10 +6229,10 @@ ${o.id?_timelineViagemHTML(o):''}
   <div class="fg"><label>Transportadora <a class="ficha-mini" onclick="abrirFicha('transp',document.getElementById('fTransp')?.value)">ficha ›</a></label><select id="fTransp"><option value="">Selecione...</option>${sl(TRANSPS,o.transp)}</select></div>
   <div class="fg"><label>Tipologia</label><select id="fTipol" onchange="tgPlaca()">${sl(TIPOLS,o.tipologia)}</select></div>
   <div class="fg"><label>Motorista <a class="ficha-mini" onclick="abrirFicha('mot',document.getElementById('fMot')?.value)">ficha ›</a></label><input id="fMot" value="${o.mot}" placeholder="Nome do motorista"></div>
-  <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX0000" style="text-transform:uppercase"></div>
+  <div class="fg"><label>Placa Principal</label><input id="fPlaca" value="${o.placa}" placeholder="XXX0000" style="text-transform:uppercase" onchange="_renderCafsDisponiveis()"></div>
 </div>
 <div id="wCarreta" style="${o.tipologia!=='CARRETA'?'display:none;':''}margin-top:10px">
-  <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="fPlacaC" value="${o.placaCarreta||''}" placeholder="XXX0000" style="text-transform:uppercase"></div>
+  <div class="fg" style="max-width:49%"><label>Placa Carreta</label><input id="fPlacaC" value="${o.placaCarreta||''}" placeholder="XXX0000" style="text-transform:uppercase" onchange="_renderCafsDisponiveis()"></div>
 </div>
 <div class="sec">🕐 Horários Planejados</div>
 <div class="fgrid c3">
@@ -6272,17 +6286,12 @@ ${o.id?_timelineViagemHTML(o):''}
   <div style="font-size:.7rem;font-weight:700;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">
     📦 Vincular CAF do Banco — Rota <strong style="color:var(--red)">${o.rota||'(selecione a rota)'}</strong>
   </div>
-  <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
-    <div class="fg" style="flex:1;min-width:160px">
-      <label>CAF disponível</label>
-      <select id="fCafSelect" style="background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;width:100%;outline:none">
-        <option value="">— selecione uma CAF —</option>
-        ${cafsDB.filter(c=>(!c.rota||c.rota===o.rota)&&c.status==='Produzida'&&!c.opId&&!o.cafs.find(x=>x.num===c.num)).map(c=>`<option value="${esc(c.num)}|${esc(c.tipo)}|${c.vol}">${esc(c.num)} · ${esc(c.tipo)} · ${c.vol} un · ${esc(c.rota)}</option>`).join('')}
-      </select>
-    </div>
-    <button class="btn btn-s" style="font-size:.72rem;flex-shrink:0" onclick="adicionarCAFdoBanco()">+ Adicionar</button>
-    <button class="btn btn-g" style="font-size:.72rem;flex-shrink:0" onclick="addCaf()">+ Manual</button>
+  <div id="cafDispCarga" style="margin-bottom:8px"></div>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+    <input id="cafDispBusca" placeholder="🔍 Buscar CAF pelo número..." oninput="_renderCafsDisponiveis()" style="flex:1;min-width:0;background:var(--bg2);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--text);padding:6px 8px;font-size:.78rem;outline:none">
+    <button type="button" class="btn btn-g" style="font-size:.72rem;flex-shrink:0" onclick="addCaf()">+ Manual</button>
   </div>
+  <div id="cafDispList" class="caf-disp-list"></div>
 </div>
 <div class="sec">📱 Motorista utilizou o App?</div>
 <div class="fgrid c1">
@@ -6342,6 +6351,7 @@ ${o.justificativaAtrasoDescarga?`<div class="sec">📋 Justificativa de Atraso n
 </div>
 ${op&&o.hist.length?`<div class="sec">🕒 Histórico</div><div class="hist-list">${o.hist.slice().reverse().map(h=>`<div class="hi"><div class="ht">${h.t}</div>${esc(h.txt)}</div>`).join('')}</div>`:''}`;
   _atualizarSugestaoHorario(); // dica de horário pelo tempo real da rota já ao abrir
+  _renderCafsDisponiveis(); // cartões de CAF disponíveis (pallets + vencimento) pra vincular
 }
 // Modal da viagem: mostra o campo de placa da carreta só quando a tipologia é CARRETA.
 function tgPlaca(){const v=document.getElementById('fTipol').value,w=document.getElementById('wCarreta');if(w)w.style.display=v==='CARRETA'?'':'none';}
@@ -11668,6 +11678,14 @@ async function desvincularCAF(){
 // o "Salvar" da viagem inteira, exatamente como já funciona no painel de CAF.
 async function _desvincularCAFDaViagemInline(cafId,linhaDomId){
   const c=cafsDB.find(x=>x.id===cafId);if(!c)return;
+  // CAF que acabou de ser tocada na lista e a viagem ainda não foi salva: o vínculo só existe
+  // no modal — basta tirar da lista, sem gravar nada no banco nem pedir confirmação.
+  if(!c.opId&&c.status==='Produzida'){
+    const row=document.getElementById(linhaDomId);if(row)row.remove();
+    _renderCafsDisponiveis();
+    showToast(`CAF ${c.num} tirada da viagem`,'ok');
+    return;
+  }
   const avancada=c.status!=='Vinculada a Veículo';
   const msg=avancada
     ? `Essa CAF já está em "${c.status}" — desvincular aqui vai voltar o status dela pra "Produzida". Confirma?`
@@ -11685,6 +11703,7 @@ async function _desvincularCAFDaViagemInline(cafId,linhaDomId){
   await saveCAFToDB(c);await loadCAFs();
   _publishAbly('cafs_update',{action:'update'});
   const row=document.getElementById(linhaDomId);if(row)row.remove();
+  _renderCafsDisponiveis(); // ela volta a aparecer na lista de disponíveis
   showToast(`✅ CAF ${c.num} desvinculada da viagem`,'ok');
 }
 
@@ -12053,24 +12072,86 @@ async function exportRD(){
 
 
 // ─── Adiciona CAF do banco ao modal da operação ───
-function adicionarCAFdoBanco(){
-  const sel=document.getElementById('fCafSelect');
-  if(!sel||!sel.value){showToast('Selecione uma CAF','err');return;}
-  const[num,tipo,qtd]=sel.value.split('|');
-  // Verifica se já não está na lista desta viagem
-  const existing=[...document.querySelectorAll('#cafList .caf-row')].map(r=>r.querySelector('.cn')?.value||'');
-  if(existing.includes(num)){showToast(`CAF ${num} já adicionada`,'err');return;}
+// Números das CAFs que já estão na lista "CAFs Vinculadas" do modal aberto
+function _numsCafsNoModal(){
+  return[...document.querySelectorAll('#cafList .caf-row')].map(r=>r.querySelector('.cn')?.value||'').filter(Boolean);
+}
+// Texto e cor do vencimento de uma CAF, relativo a hoje (urgência à vista na hora de vincular)
+function _vencInfoCAF(venc){
+  if(!venc)return{txt:'Sem vencimento',cor:'var(--t3)',dias:null};
+  const dias=Math.round((new Date(venc+'T12:00')-new Date(hojeLocal()+'T12:00'))/86400000);
+  const data=new Date(venc+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  if(dias<0)return{txt:`${data} · Vencida há ${-dias}d`,cor:'var(--red)',dias};
+  if(dias===0)return{txt:`${data} · Vence hoje`,cor:'var(--orange)',dias};
+  if(dias===1)return{txt:`${data} · Vence amanhã`,cor:'var(--yellow3)',dias};
+  return{txt:`${data} · em ${dias} dias`,cor:'var(--t2)',dias};
+}
+// Modal da viagem: lista de CAFs disponíveis pra vincular, em cartões com pallets, vencimento e rua.
+// Antes era um <select> que só mostrava número/tipo/volume — a equipe não via pallets nem vencimento na
+// hora de escolher. Mostra só CAF "Produzida", livre (sem viagem) e da rota escolhida no formulário, as que
+// vencem antes primeiro. Avisa quando somar a CAF passaria da capacidade do veículo cadastrado.
+function _renderCafsDisponiveis(){
+  const box=document.getElementById('cafDispList');if(!box)return;
+  // Capacidade do veículo vem do cadastro de veículos — carrega uma vez se ainda não veio
+  if(supabaseOK&&typeof _veiculosLoadTried!=='undefined'&&!_veiculosLoadTried){
+    _veiculosLoadTried=true;
+    loadVeiculosCadastro().then(()=>_renderCafsDisponiveis()).catch(()=>{});
+  }
+  const rota=document.getElementById('fRota')?.value||'';
+  const busca=(document.getElementById('cafDispBusca')?.value||'').replace(/\D/g,'');
+  const jaNoModal=new Set(_numsCafsNoModal());
+  // Pallets que já estão nesta viagem (CAFs reais listadas no modal) e capacidade do veículo
+  const palNaViagem=cafsDB.filter(c=>jaNoModal.has(c.num)).reduce((s,c)=>s+(Number(c.pallets)||0),0);
+  const placa=normPlaca(document.getElementById('fPlaca')?.value||'');
+  const placaC=normPlaca(document.getElementById('fPlacaC')?.value||'');
+  const oc=_ocupacaoVeiculo(placa,placaC,palNaViagem);
+  const carga=document.getElementById('cafDispCarga');
+  if(carga){
+    carga.innerHTML=oc
+      ?`<div style="font-size:.7rem;color:var(--t2)">🚛 Na viagem: <b style="color:${_corOcupacao(oc.pct)}">${palNaViagem} de ${oc.capacidade} pallets</b> (${oc.pct}%)${oc.capacidade-palNaViagem>0?` · cabem mais <b style="color:var(--text)">${oc.capacidade-palNaViagem}</b>`:' · <b style="color:var(--red)">veículo cheio</b>'}</div>`
+      :`<div style="font-size:.7rem;color:var(--t2)">🚛 Na viagem: <b style="color:var(--text)">${palNaViagem} pallets</b>${placa||placaC?' · veículo sem capacidade cadastrada':''}</div>`;
+  }
+  if(!rota){box.innerHTML='<div class="caf-disp-vazio">Escolha a rota da viagem pra ver as CAFs disponíveis.</div>';return;}
+  const livres=cafsDB.filter(c=>(!c.rota||c.rota===rota)&&c.status==='Produzida'&&!c.opId&&!jaNoModal.has(c.num));
+  const lista=livres.filter(c=>!busca||String(c.num).includes(busca))
+    .sort((a,b)=>(a.venc||'9999').localeCompare(b.venc||'9999')||String(a.num).localeCompare(String(b.num)));
+  if(!lista.length){
+    // Explica por que a CAF esperada não aparece (ex.: ainda em produção)
+    const aindaNao=cafsDB.filter(c=>c.rota===rota&&['Em Agendamento','Em Produção','Em Auditoria GRIS'].includes(c.status)).length;
+    box.innerHTML=`<div class="caf-disp-vazio">${busca&&livres.length?`Nenhuma CAF disponível com "${esc(busca)}".`:`Nenhuma CAF Produzida e livre pra ${esc(rota)}.`}${aindaNao?`<br><span style="color:var(--t3)">${aindaNao} CAF(s) dessa rota ainda não estão "Produzida" — só aparecem aqui depois disso.</span>`:''}</div>`;
+    return;
+  }
+  box.innerHTML=lista.map(c=>{
+    const v=_vencInfoCAF(c.venc);
+    const pal=Number(c.pallets)||0;
+    const rua=c.ruaId?ruaNumeroDe(c.ruaId):null;
+    const passa=oc&&palNaViagem+pal>oc.capacidade?palNaViagem+pal-oc.capacidade:0;
+    return`<button type="button" class="caf-disp-card" style="border-left-color:${v.cor}" onclick="adicionarCAFdoBanco('${esc(c.num)}')" title="Vincular a CAF ${esc(c.num)} a esta viagem">
+      <div class="cdc-top"><span class="cdc-num">${esc(c.num)}</span><span class="cdc-add">+ Vincular</span></div>
+      <div class="cdc-pal"><b>${pal}</b> pallet${pal===1?'':'s'} · ${Number(c.vol)||0} un</div>
+      <div class="cdc-venc" style="color:${v.cor}">📅 ${v.txt}</div>
+      <div class="cdc-meta">${rua?(String(rua).startsWith('Porta')?esc(rua):'Rua '+esc(rua)):'Sem rua'} · ${esc(c.tipo||'—')}</div>
+      ${passa?`<div class="cdc-aviso">⚠ Passa da capacidade em ${passa} pallet${passa===1?'':'s'}</div>`:''}
+    </button>`;
+  }).join('');
+}
+// Vincula (no modal) a CAF tocada na lista de disponíveis. O vínculo de verdade no banco acontece no
+// "Salvar" da viagem, igual sempre foi.
+function adicionarCAFdoBanco(num){
+  if(!num){showToast('Toque numa CAF da lista','err');return;}
+  if(_numsCafsNoModal().includes(num)){showToast(`CAF ${num} já adicionada`,'err');return;}
   // Defesa extra: revalida no banco local se a CAF ainda está livre (Produzida, sem opId)
   const cRef=cafsDB.find(c=>c.num===num);
-  if(cRef&&(cRef.status!=='Produzida'||cRef.opId)){
-    showToast(`⛔ CAF ${num} não está mais disponível (já vinculada a ${cRef.opId||'outra viagem'})`,'err');
+  if(!cRef||cRef.status!=='Produzida'||cRef.opId){
+    showToast(`⛔ CAF ${num} não está mais disponível${cRef?.opId?` (já vinculada a ${cRef.opId})`:''}`,'err');
+    _renderCafsDisponiveis();
     return;
   }
   const d=document.createElement('div');
-  d.innerHTML=cafR({num,tipo,qtd},++cafIdx);
+  d.innerHTML=cafR({num,tipo:cRef.tipo,qtd:cRef.vol},++cafIdx);
   document.getElementById('cafList').appendChild(d.firstChild);
-  sel.value=''; // reseta select
-  showToast(`✅ CAF ${num} adicionada à viagem`,'ok');
+  _renderCafsDisponiveis();
+  showToast(`✅ CAF ${num} adicionada · ${Number(cRef.pallets)||0} pallets — salve a viagem pra confirmar`,'ok');
 }
 
 // ─── Lógica automática de status das CAFs vinculadas ───
