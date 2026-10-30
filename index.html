@@ -983,6 +983,207 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px;}
+/* ══ Painel de Descarga — layout do mockup (cabeçalho e menu escuros, área clara), cores do app ══ */
+#view-descarga.active{display:block;}
+.pdx{--pdx-nav:#14161f;--pdx-nav2:#1c1f2a;--pdx-navt:#a8acbd;--pdx-navl:#6b7085;--pdx-linha:var(--bg4);
+  --pdx-n0:var(--bd2);--pdx-n1:#d97706;--pdx-n2:var(--orange);--pdx-n3:var(--red);
+  background:var(--bg);color:var(--text);min-height:calc(100vh - 60px);display:flex;flex-direction:column;}
+body.dark .pdx{--pdx-n1:var(--yellow);}
+.pdx-ic{display:inline-flex;width:16px;height:16px;flex:0 0 auto;}
+.pdx-ic svg{width:100%;height:100%;}
+.pdx-mono{font-family:var(--font-mono);}
+.pdx-cinza{color:var(--t2);}
+/* Cabeçalho escuro */
+.pdx-top{height:64px;background:var(--pdx-nav);display:flex;align-items:center;justify-content:space-between;padding:0 24px;color:#fff;flex:0 0 auto;}
+.pdx-marca{display:flex;align-items:center;gap:12px;min-width:0;}
+.pdx-logo{width:32px;height:32px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto;}
+.pdx-logo svg{width:20px;height:20px;}
+.pdx-marca b{font-size:1.2rem;font-weight:700;letter-spacing:-.2px;}
+.pdx-marca i{width:1px;height:22px;background:#2e3242;}
+.pdx-marca span:last-child{font-size:.88rem;color:#e5e7eb;white-space:nowrap;}
+.pdx-top-r{display:flex;align-items:center;gap:20px;}
+.pdx-op{font-size:.74rem;letter-spacing:.6px;text-transform:uppercase;color:var(--pdx-navt);}
+.pdx-badge{background:rgba(204,0,0,.18);color:#ff6b6b;font-size:.74rem;font-weight:600;padding:6px 10px;border-radius:5px;}
+/* Corpo: menu lateral + área principal */
+.pdx-corpo{display:flex;flex:1 1 auto;min-height:0;}
+.pdx-side{width:192px;flex:0 0 192px;background:var(--pdx-nav);padding:26px 12px;display:flex;flex-direction:column;}
+.pdx-side-l{font-size:.62rem;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:var(--pdx-navl);padding:0 0 12px;margin-top:2px;}
+.pdx-side-l:not(:first-child){margin-top:26px;padding-left:12px;}
+.pdx-side-item{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:var(--rs);font-size:.86rem;font-weight:600;color:var(--pdx-navt);}
+.pdx-side-item.on{background:var(--pdx-nav2);color:#fff;box-shadow:inset 3px 0 0 var(--red);}
+.pdx-side-item.on .pdx-ic{color:#ff6b6b;}
+.pdx-side-fcs{display:flex;flex-direction:column;gap:2px;}
+.pdx-side-fc{display:flex;align-items:center;gap:10px;background:none;border:none;color:#e5e7eb;font:inherit;font-size:.76rem;padding:8px 12px;border-radius:7px;cursor:pointer;text-align:left;}
+.pdx-side-fc i{width:6px;height:6px;border-radius:50%;background:var(--red);}
+.pdx-side-fc:hover{background:var(--pdx-nav2);}
+.pdx-side-fc.on{background:var(--pdx-nav2);color:#fff;font-weight:600;}
+.pdx-side-vazio{font-size:.7rem;color:var(--pdx-navl);padding:4px 12px;}
+.pdx-side-nota{margin-top:60px;padding:0 12px;color:var(--pdx-navl);font-size:.68rem;line-height:1.6;}
+.pdx-side-nota .pdx-ic{width:15px;height:15px;margin-bottom:10px;}
+.pdx-main{flex:1 1 auto;min-width:0;padding:30px 32px 28px;}
+/* Cabeçalho da página */
+.pdx-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px;}
+.pdx-bread{font-size:.7rem;color:var(--t2);}
+.pdx-bread span{margin:0 4px;}
+.pdx-tit{font-size:1.9rem;font-weight:700;letter-spacing:-.6px;color:var(--text);margin:8px 0 6px;line-height:1.15;font-family:inherit;}
+.pdx-sub{font-size:.82rem;color:var(--t2);}
+.pdx-ref{text-align:right;padding-top:8px;flex:0 0 auto;}
+.pdx-ref-l{font-size:.68rem;letter-spacing:.6px;text-transform:uppercase;color:var(--t2);}
+.pdx-ref-d{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:8px 0 6px;font-family:var(--font-mono);font-size:.86rem;font-weight:600;color:var(--text);}
+.pdx-ref-d .pdx-ic{color:var(--t2);}
+.pdx-ref-s{font-size:.7rem;color:var(--t2);}
+/* Resumo geral (barra escura) */
+.pdx-res{background:var(--pdx-nav);border-radius:var(--rs);display:grid;grid-template-columns:1.1fr repeat(4,1fr);align-items:center;min-height:86px;padding:0 4px;margin-bottom:24px;}
+.pdx-res>div{padding:14px 20px;}
+.pdx-res>div+div{border-left:1px solid #2e3242;}
+.pdx-res-id span{display:block;font-size:.64rem;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--pdx-navt);}
+.pdx-res-id b{display:block;font-size:.95rem;font-weight:600;color:#fff;margin-top:6px;}
+.pdx-res-m{display:flex;align-items:center;gap:14px;}
+.pdx-res-m b{font-family:var(--font-mono);font-size:2rem;font-weight:600;line-height:1;}
+.pdx-res-m b.w{color:#fff;}.pdx-res-m b.a12{color:#e3b341;}.pdx-res-m b.a16{color:#f0883e;}.pdx-res-m b.a24{color:#ff4444;}
+.pdx-res-m span{font-size:.78rem;color:#d1d5db;}
+body.dark .pdx-res{border:1px solid var(--bd);}
+/* Título de seção */
+.pdx-sec{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:12px;}
+.pdx-sec h2{font-size:.95rem;font-weight:500;color:var(--text);font-family:inherit;}
+.pdx-sec span{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--t2);text-align:right;}
+.pdx-sec .pdx-ic{width:13px;height:13px;}
+/* Cartões */
+.pdx-card{background:var(--bg2);border:1px solid var(--pdx-linha);border-radius:var(--rs);}
+.pdx-vazio{padding:28px;text-align:center;color:var(--green);font-size:.85rem;margin-bottom:24px;}
+.pdx-fcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:20px;margin-bottom:24px;}
+.pdx-fc{padding:24px;}
+.pdx-fc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:20px;}
+.pdx-fc-id{display:flex;align-items:center;gap:12px;}
+.pdx-fc-ic{width:40px;height:40px;border-radius:var(--rs);background:var(--bg3);color:var(--t2);padding:10px;}
+.pdx-fc-nome{font-size:1.4rem;color:var(--text);line-height:1.1;}
+.pdx-fc-sub{font-size:.7rem;color:var(--t2);margin-top:4px;}
+.pdx-fc-tot{display:flex;align-items:center;gap:12px;}
+.pdx-fc-tot b{font-family:var(--font-mono);font-size:2.7rem;font-weight:600;line-height:1;color:var(--text);}
+.pdx-fc-tot span{font-size:.76rem;color:var(--t2);line-height:1.5;}
+.pdx-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.pdx-tile{border-radius:5px;padding:12px 14px;}
+.pdx-tile span{display:block;font-size:.78rem;}
+.pdx-tile b{display:block;font-family:var(--font-mono);font-size:1.6rem;font-weight:600;line-height:1.1;margin-top:8px;}
+.pdx-tile.t12{background:var(--yellow2);color:var(--yellow);}
+.pdx-tile.t16{background:var(--orange2);color:var(--orange);}
+.pdx-tile.t24{background:var(--red3);color:var(--red);}
+.pdx-dist-h{display:flex;justify-content:space-between;font-size:.7rem;color:var(--t2);margin-bottom:8px;}
+.pdx-dist{display:flex;gap:3px;height:8px;margin-bottom:10px;}
+.pdx-dist i{flex:1;border-radius:1px;}
+.pdx-dist i.vazio{background:var(--bg3);}
+.pdx-dist i.n0,.pdx-dist-leg i.n0{background:var(--pdx-n0);}
+.pdx-dist i.n1,.pdx-dist-leg i.n1{background:var(--pdx-n1);}
+.pdx-dist i.n2,.pdx-dist-leg i.n2{background:var(--pdx-n2);}
+.pdx-dist i.n3,.pdx-dist-leg i.n3{background:var(--pdx-n3);}
+.pdx-dist-leg{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;font-size:.64rem;color:var(--t2);}
+.pdx-dist-leg span{display:flex;align-items:center;gap:5px;}
+.pdx-dist-leg i{width:5px;height:5px;border-radius:1px;}
+.pdx-dist-leg i.sem{background:var(--bg4);}
+/* Tabela */
+.pdx-tab-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:22px 24px 18px;flex-wrap:wrap;}
+.pdx-tab-tit{display:flex;align-items:center;gap:10px;font-size:1.06rem;font-weight:500;color:var(--text);}
+.pdx-cont{font-family:var(--font-mono);font-size:.68rem;background:var(--bg3);color:var(--t2);padding:3px 7px;border-radius:4px;}
+.pdx-tab-sub{font-size:.78rem;color:var(--t2);margin-top:6px;}
+.pdx-filtros{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pdx-busca,.pdx-fcsel{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:var(--rs);height:34px;padding:0 12px;color:var(--t2);}
+.pdx-busca input{background:none;border:none;outline:none;color:var(--text);font:inherit;font-size:.78rem;width:170px;}
+.pdx-busca:focus-within{box-shadow:0 0 0 2px var(--red);}
+.pdx-fcsel-l{font-size:.7rem;color:var(--t2);}
+.pdx-fcsel select{background:none;border:none;outline:none;color:var(--text);font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;}
+.pdx-fcsel select option{background:var(--bg2);color:var(--text);}
+.pdx-btn{height:34px;padding:0 12px;border-radius:var(--rs);background:var(--bg3);border:none;color:var(--text);font:inherit;font-size:.76rem;font-weight:600;cursor:pointer;}
+.pdx-btn:hover{background:var(--bg4);}
+.pdx-alerta{display:flex;align-items:center;gap:12px;background:var(--red3);color:var(--red);font-size:.78rem;padding:12px 24px;flex-wrap:wrap;}
+.pdx-alerta .pdx-ic{width:17px;height:17px;}
+.pdx-alerta b{font-weight:500;}
+.pdx-alerta>i{width:1px;height:16px;background:currentColor;opacity:.3;}
+.pdx-tab-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.pdx-t{width:100%;border-collapse:collapse;min-width:960px;}
+.pdx-t th{background:var(--bg3);text-align:left;font-size:.72rem;font-weight:600;color:var(--gray2);padding:13px 12px;white-space:nowrap;text-transform:none;letter-spacing:0;border:none;position:static;}
+.pdx-t th:first-child,.pdx-t td:first-child{padding-left:24px;}
+.pdx-t td{padding:10px 12px;border-top:1px solid var(--pdx-linha);font-size:.78rem;white-space:nowrap;vertical-align:middle;}
+.pdx-r{cursor:pointer;transition:background .12s;}
+.pdx-r:hover{background:var(--bg3);}
+.pdx-r.cr{background:var(--red3);}
+.pdx-placa{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-mono);font-weight:600;color:var(--text);}
+.pdx-placa i{width:3px;height:16px;border-radius:2px;background:var(--pdx-n0);}
+.pdx-r.at .pdx-placa i{background:var(--pdx-n1);}.pdx-r.al .pdx-placa i{background:var(--pdx-n2);}.pdx-r.cr .pdx-placa i{background:var(--pdx-n3);}
+.pdx-carreta{font-family:var(--font-mono);font-size:.68rem;color:var(--t2);margin-left:8px;}
+.pdx-fcb{font-family:var(--font-mono);font-size:.68rem;font-weight:600;background:var(--bg3);color:var(--gray2);padding:3px 7px;border-radius:4px;}
+.pdx-r.cr .pdx-fcb{background:var(--bg2);}
+.pdx-t td i{font-style:normal;opacity:.6;margin:0 3px;}
+.pdx-tempo{font-weight:700;font-size:.84rem;color:var(--text);}
+.pdx-r.at .pdx-tempo{color:var(--yellow);}.pdx-r.al .pdx-tempo{color:var(--orange);}.pdx-r.cr .pdx-tempo{color:var(--red);}
+.pdx-pill{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;padding:4px 8px;border-radius:4px;background:var(--bg3);color:var(--t2);}
+.pdx-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}
+.pdx-r.at .pdx-pill{background:var(--yellow2);color:var(--yellow);}
+.pdx-r.al .pdx-pill{background:var(--orange2);color:var(--orange);}
+.pdx-r.cr .pdx-pill{background:var(--bg2);color:var(--red);}
+.pdx-lim{font-size:.72rem;color:var(--t2);}
+.pdx-r.cr .pdx-lim{color:var(--red);}
+.pdx-tab-vazio{padding:32px 24px;text-align:center;font-size:.84rem;color:var(--t2);border-top:1px solid var(--pdx-linha);}
+.pdx-tab-vazio button{margin-left:8px;background:none;border:1px solid var(--bd);border-radius:6px;padding:4px 10px;color:var(--text);font:inherit;font-size:.76rem;cursor:pointer;}
+.pdx-tab-foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid var(--pdx-linha);font-size:.72rem;color:var(--t2);}
+.pdx-rodape{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:24px;font-size:.7rem;color:var(--t2);}
+/* Telas médias: menu lateral vira faixa horizontal de FCs */
+@media(max-width:1100px){
+  .pdx-corpo{flex-direction:column;}
+  .pdx-side{width:auto;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px;padding:8px 16px;overflow-x:auto;}
+  .pdx-side-l,.pdx-side-nota{display:none;}
+  .pdx-side-item{height:34px;flex:0 0 auto;}
+  .pdx-side-fcs{flex-direction:row;gap:4px;}
+  .pdx-side-fc{white-space:nowrap;}
+  .pdx-main{padding:24px 20px;}
+  .pdx-fcs{grid-template-columns:1fr;}
+}
+/* Celular: resumo em grade, cartões empilhados e cada veículo vira um cartão (sem perder nenhuma coluna) */
+@media(max-width:700px){
+  .pdx-top{height:52px;padding:0 16px;}
+  .pdx-marca b{font-size:1.05rem;}
+  .pdx-marca i,.pdx-marca span:last-child,.pdx-op{display:none;}
+  .pdx-main{padding:18px 16px 24px;}
+  .pdx-head{flex-direction:column;gap:10px;}
+  .pdx-tit{font-size:1.5rem;}
+  .pdx-ref{text-align:left;padding:0;}
+  .pdx-ref-d{justify-content:flex-start;}
+  .pdx-res{grid-template-columns:1fr 1fr;padding:4px 0;}
+  .pdx-res>div{padding:12px 16px;}
+  .pdx-res-id{grid-column:1/-1;}
+  .pdx-res>div+div{border-left:none;border-top:1px solid #2e3242;}
+  .pdx-res-m:nth-child(odd){border-left:1px solid #2e3242!important;}
+  .pdx-res-m{gap:10px;}
+  .pdx-res-m b{font-size:1.6rem;}
+  .pdx-sec{flex-direction:column;align-items:flex-start;gap:4px;}
+  .pdx-sec span{text-align:left;}
+  .pdx-fcs{grid-template-columns:1fr;gap:14px;}
+  .pdx-fc{padding:18px;}
+  .pdx-fc-tot b{font-size:2.2rem;}
+  .pdx-tiles{gap:8px;}
+  .pdx-tile{padding:10px;}
+  .pdx-tile span{font-size:.68rem;}
+  .pdx-tab-head{padding:18px 16px 14px;}
+  .pdx-filtros{width:100%;}
+  .pdx-busca{flex:1 1 100%;}
+  .pdx-busca input{width:100%;}
+  .pdx-alerta{padding:12px 16px;}
+  .pdx-tab-wrap{overflow:visible;}
+  .pdx-t{min-width:0;}
+  .pdx-t thead{display:none;}
+  .pdx-t,.pdx-t tbody{display:block;width:100%;}
+  /* cartão por veículo: placa | criticidade · tempo | FC · início | limites */
+  .pdx-t tr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"placa crit" "tempo fc" "ini lim";gap:7px 12px;align-items:center;border-top:1px solid var(--pdx-linha);padding:12px 16px;}
+  .pdx-t td{display:block;border:none;padding:0!important;white-space:nowrap;}
+  .pdx-t td:nth-child(1){grid-area:placa;}
+  .pdx-t td:nth-child(2){grid-area:fc;justify-self:end;}
+  .pdx-t td:nth-child(3){display:none;} /* Doca: o app ainda não registra a doca no FC */
+  .pdx-t td:nth-child(4){grid-area:ini;font-size:.72rem;}
+  .pdx-t td:nth-child(4)::before{content:'Início ';font-family:'IBM Plex Sans',sans-serif;}
+  .pdx-t td:nth-child(5){grid-area:tempo;font-size:1rem;}
+  .pdx-t td:nth-child(6){grid-area:crit;justify-self:end;}
+  .pdx-t td:nth-child(7){grid-area:lim;justify-self:end;}
+  .pdx-tab-foot{padding:14px 16px;}
+}
 </style>
 </head>
 <body>
@@ -1780,11 +1981,7 @@ body.dark .mobile-nav{background:var(--bg2);border-top-color:var(--bd);}
 
 <!-- PAINEL DE DESCARGA -->
 <div class="view" id="view-descarga">
-  <div id="pdPageWrap" style="min-height:100%">
-    <div style="max-width:1120px;margin:0 auto;padding:20px 16px 40px">
-      <div id="pdViewBody"></div>
-    </div>
-  </div>
+  <div id="pdViewBody"></div>
 </div>
 
 <!-- ADMIN -->
@@ -2516,11 +2713,18 @@ function validaPlaca(v){
   if(!p)return true;
   return /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
 }
-const APP_VERSION='v362';
+const APP_VERSION='v363';
 console.info(`TRK PCP 2026 ${APP_VERSION} — Total Express PCP Transferência`);
 
 // ── Changelog para o popup de "Novidades" — adicionar uma linha aqui a cada versão nova ──
 const CHANGELOG={
+  v363:[
+    '🚚 Painel de Descarga com visual novo: cabeçalho e menu escuros, resumo geral (em descarga agora, acima de 12h, 16h e 24h), um cartão por FC com as mesmas contagens e a distribuição por tempo (1 segmento = 1 veículo), e tabela com placa, FC, doca, início, tempo decorrido, criticidade e limites excedidos — do maior tempo para o menor, com faixa de alerta para quem passou de 24h.',
+    '📐 Regras: só veículos Aguardando Descarga; tempo = agora − chegada no FC; contagens cumulativas (quem passou de 24h também conta em 16h e 12h); criticidade Até 12h · Atenção (>12h) · Alto (>16h) · Crítico (>24h). Resumo, cartões e tabela saem da mesma lista.',
+    '🏭 FCs aparecem sozinhos: só quem tem veículo em descarga ganha cartão e item no menu (XC9 aparece como XCV9 e GR8 como GRU8, os outros com o código da rota). Some quando esvazia.',
+    '🔎 Filtros mantidos na tabela: busca por placa (com ou sem hífen), carreta ou motorista, filtro por FC (seletor "FCs exibidos" ou tocando no FC do menu) e o botão "Enviar p/ WhatsApp". Tocar num veículo abre a viagem. Atualiza sozinho a cada 20s sem apagar o que está digitado na busca.',
+    '📱 Celular: cada veículo vira um cartão compacto e o menu de FCs vira uma faixa no topo. Cores e tema claro/escuro seguem o app.'
+  ],
   v362:['🚛 Extrair Excel de "Transportadoras × Rotas" agora traz as PLACAS: aba nova "Placas por transp" com uma linha por transportadora × cavalo — viagens no período, rotas (com quantidade), carretas que puxou, motoristas, data da última viagem e por quais outras transportadoras já rodou (tem filtro pronto no cabeçalho). No Ranking, nova coluna com todas as placas da transportadora e as viagens de cada uma. Cavalo e carreta digitados trocados são corrigidos, e a quantidade de placas bate com a coluna Veículos.'],
   v361:['📥 Análise → "Transportadoras × Rotas": botão "Extrair Excel". Baixa o quadro no mesmo período e filtro de transportadora da tela, em 4 abas: Ranking (todas as colunas — viagens, % do total, rotas, rota principal, SLA de chegada, veículos, % da frota, viagens por veículo e as placas que rodaram por outra transportadora), Transp x Rota (a matriz com totais, transportadora dominante e % dela em cada rota), Veículos em +1 transp (placa × transportadora × viagens) e Info (período, filtro, quem gerou). Os números são calculados pela mesma conta da tela.'],
   v360:['📦 Vincular CAF na viagem ficou mais fácil: no lugar da lista suspensa (que só mostrava número, tipo e volume), as CAFs disponíveis aparecem em cartões com PALLETS em destaque, VENCIMENTO colorido (vencida em vermelho, hoje laranja, amanhã amarelo) e rua — as que vencem antes ficam primeiro. Toque no cartão pra vincular. Tem busca pelo número, mostra quantos pallets já estão na viagem e quantos ainda cabem no veículo (quando a carreta está cadastrada), e avisa se a CAF passaria da capacidade. Se nenhuma aparece, explica quantas da rota ainda não estão "Produzida". Desvincular uma CAF tocada por engano, antes de salvar a viagem, agora só tira ela da lista, sem gravar nada.'],
@@ -14454,16 +14658,14 @@ async function _pdEnviarWhatsapp(){
 }
 
 let _pdFiltroFC='',_pdBusca='';
-// Painel de Descarga: filtra por FC.
-function _pdSetFiltroFC(v){_pdFiltroFC=v;_pdRefresh();}
-// Painel de Descarga: filtra pela busca digitada.
-function _pdSetBusca(v){_pdBusca=v;_pdRefresh();}
-// Painel de Descarga: limpa os filtros.
+// Painel de Descarga: filtra a tabela por FC (o resumo e os cartões dos FCs continuam mostrando todos).
+function _pdSetFiltroFC(v){_pdFiltroFC=v;_pdAtualizarTabela();}
+// Painel de Descarga: filtra a tabela pela placa/carreta/motorista digitada.
+function _pdSetBusca(v){_pdBusca=v;_pdAtualizarTabela();}
+// Painel de Descarga: limpa os filtros da tabela.
 function _pdLimparFiltro(){_pdFiltroFC='';_pdBusca='';_pdRefresh();}
-// Painel de Descarga: redesenha o conteúdo com as cores do tema atual.
+// Painel de Descarga: desenha a tela inteira.
 function _pdRefresh(){
-  const wrap=document.getElementById('pdPageWrap');
-  if(wrap)wrap.style.background=_pdColors().pageBg;
   const c=document.getElementById('pdViewBody');
   if(c)c.innerHTML=_renderPainelDescargaLive();
 }
@@ -14483,147 +14685,213 @@ function _pdSemanaLabel(dataOp){
   const{w,seg,dom}=_semanaSegDom(k);
   return`S${w} (${seg} a ${dom})`;
 }
-// Atualiza ao vivo, a cada segundo, a coluna "Aguardando Descarga" e os cards de KPI do painel
-setInterval(()=>{
-  if(curPage!=='descarga')return;
-  document.querySelectorAll('.pd-timer').forEach(el=>{
-    const cheg=new Date(el.dataset.cheg);
-    if(isNaN(cheg))return;
-    el.textContent=_fmtHMS(Date.now()-cheg);
+// Atualiza sozinho com a aba aberta: tempos, contagens, criticidade e quem entrou/saiu da descarga.
+// Não redesenha o campo de busca (quem está digitando não perde o cursor).
+setInterval(()=>{if(curPage==='descarga')_pdAtualizarParcial();},20000);
+
+// ── Regras do painel ──
+// Código da rota no app → código Amazon do FC (o que aparece na tela). FC fora da lista aparece como está.
+const FC_NOME_AMAZON={XC9:'XCV9',GR8:'GRU8'};
+const _pdNomeFC=fc=>FC_NOME_AMAZON[fc]||fc;
+// Faixa de criticidade pelo tempo decorrido: 0 até 12h · 1 atenção (>12h) · 2 alto (>16h) · 3 crítico (>24h)
+function _pdNivel(ms){const h=ms/3600000;return h>24?3:h>16?2:h>12?1:0;}
+const PD_NIVEIS=[{k:'ok',lb:'Até 12h',faixa:'Até 12h'},{k:'at',lb:'Atenção',faixa:'> 12h a 16h'},{k:'al',lb:'Alto',faixa:'> 16h a 24h'},{k:'cr',lb:'Crítico',faixa:'> 24h'}];
+// Tempo decorrido no formato do painel: '09h 15min'.
+function _pdTempo(ms){const m=Math.max(0,Math.floor(ms/60000));return String(Math.floor(m/60)).padStart(2,'0')+'h '+String(m%60).padStart(2,'0')+'min';}
+// Placa no formato AAA-1A11 (só para exibir).
+function _pdPlaca(p){const n=normPlaca(p);return n.length===7?n.slice(0,3)+'-'+n.slice(3):(n||'—');}
+// 'A', 'A e B', 'A, B e C'
+function _pdJuntar(l){return l.length<2?(l[0]||''):l.slice(0,-1).join(', ')+' e '+l[l.length-1];}
+// Contagens de um grupo de veículos. h12/h16/h24 são CUMULATIVAS (>24h também conta em >16h e >12h);
+// faixas[] são exclusivas (cada veículo em uma só) — usadas na barra de distribuição.
+function _pdContagens(itens){
+  const c={total:itens.length,h12:0,h16:0,h24:0,faixas:[0,0,0,0],semInicio:0};
+  itens.forEach(x=>{
+    if(!x.chegDt){c.semInicio++;return;}
+    const n=x.nivel;c.faixas[n]++;
+    if(n>=1)c.h12++;if(n>=2)c.h16++;if(n>=3)c.h24++;
   });
-  _pdAtualizarKpis();
-},1000);
-// Painel de Descarga: viagens aguardando descarga com tempo de espera, FC e CAFs, da chegada mais antiga para a
-// mais nova.
+  return c;
+}
+// Veículos em descarga (status Aguardando Descarga) com o tempo desde a chegada no FC, do maior tempo para o
+// menor. `todos` alimenta o resumo e os cartões; `lista` é a tabela, com os filtros de FC e busca.
+// (A TV também usa `lista`.)
 function _pdComputeLista(){
   const agora=new Date();
   const todos=ops.filter(o=>o.status==='AGUDESC').map(o=>{
-    const chegDt=o.realChegFC?new Date(o.realChegFC):null;
+    const chegDt=o.realChegFC?(String(o.realChegFC).length>5?new Date(o.realChegFC):resolveDataHoraOp(o,o.realChegFC)):null;
+    const ok=chegDt&&!isNaN(chegDt);
     const fc=_fcFromRota(o.rota)||o.rota||'—';
     const cafsOp=cafsDB.filter(c=>c.opId===o.id).map(c=>c.num);
     const cafs=(cafsOp.length?cafsOp:(o.cafs||[]).map(c=>c.num||c)).filter(Boolean);
-    const ms=chegDt?agora-chegDt:0;
-    const critico=!!(chegDt&&ms>24*3600000);
-    return{op:o,chegDt,fc,cafs,ms,critico};
+    const ms=ok?Math.max(0,agora-chegDt):0;
+    const nivel=ok?_pdNivel(ms):0;
+    return{op:o,chegDt:ok?chegDt:null,fc,fcNome:_pdNomeFC(fc),cafs,ms,nivel,critico:ok&&nivel===3};
   }).sort((a,b)=>{
     if(!a.chegDt&&!b.chegDt)return 0;
     if(!a.chegDt)return 1;
     if(!b.chegDt)return -1;
-    return a.chegDt-b.chegDt;
+    return b.ms-a.ms;
   });
-
-  const fcs=[...new Set(todos.map(x=>x.fc))].sort();
-  const q=_pdBusca.trim().toLowerCase();
+  // FCs com veículo em descarga, do que tem mais veículos para o que tem menos (mesma ordem em toda a tela)
+  const cont={};todos.forEach(x=>{cont[x.fc]=(cont[x.fc]||0)+1;});
+  const fcs=Object.keys(cont).sort((a,b)=>cont[b]-cont[a]||a.localeCompare(b));
+  const q=_pdBusca.trim().toLowerCase(),qp=normPlaca(_pdBusca);
   const lista=todos.filter(({op,fc})=>{
     if(_pdFiltroFC&&fc!==_pdFiltroFC)return false;
-    if(q&&!((op.placa||'').toLowerCase().includes(q)||(op.placaCarreta||'').toLowerCase().includes(q)||(op.mot||'').toLowerCase().includes(q)))return false;
+    if(q&&!((qp&&(normPlaca(op.placa).includes(qp)||normPlaca(op.placaCarreta).includes(qp)))||(op.mot||'').toLowerCase().includes(q)))return false;
     return true;
   });
   return{todos,lista,fcs};
 }
-// Painel de Descarga: aguardando, críticos (>24h), espera média e mais antigo.
-function _pdKpisAtuais(){
-  const{lista}=_pdComputeLista();
-  const comChegada=lista.filter(x=>x.chegDt);
-  const criticos=lista.filter(x=>x.critico).length;
-  const mediaMs=comChegada.length?comChegada.reduce((s,x)=>s+x.ms,0)/comChegada.length:0;
-  const maisAntigo=comChegada[0]||null; // lista já vem ordenada por chegada mais antiga primeiro
-  return{total:lista.length,criticos,mediaMs,maisAntigo};
+
+// ── Ícones (traço simples, cor herdada) ──
+const PD_IC={
+  armazem:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5V20H3z"/><path d="M7 20v-8h10v8M7 15h10M7 17.5h10"/></svg>',
+  caminhao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M2 6h11v10H2zM13 9h4.5L21 12.5V16h-8z"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
+  calendario:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M8 13h1M11.5 13h1M15 13h1M8 16.5h1M11.5 16.5h1" stroke-linecap="round"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4" stroke-linecap="round"/></svg>',
+  alerta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3.5 22 20H2z"/><path d="M12 10v4.5M12 17v.3" stroke-linecap="round"/></svg>',
+  busca:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5" stroke-linecap="round"/></svg>',
+  envio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>'
+};
+const _pdIc=(n,cls)=>`<span class="pdx-ic${cls?' '+cls:''}" aria-hidden="true">${PD_IC[n]}</span>`;
+const _pd2=n=>String(n).padStart(2,'0');
+
+// Lista de FCs do menu lateral (só os que têm veículo em descarga). Tocar filtra a tabela.
+function _pdHTMLMenuFCs(fcs){
+  if(!fcs.length)return'<div class="pdx-side-vazio">Nenhum FC com descarga agora</div>';
+  return fcs.map(fc=>`<button class="pdx-side-fc${_pdFiltroFC===fc?' on':''}" onclick="_pdSetFiltroFC(_pdFiltroFC==='${esc(fc)}'?'':'${esc(fc)}');_pdAtualizarParcial()"><i></i>${esc(_pdNomeFC(fc))}</button>`).join('');
 }
-// Quantidade aguardando por FC — sempre sobre o total (ignora o filtro de FC ativo,
-// senão o quadro viraria só 1 linha quando alguém filtra por um FC específico)
-function _pdPorFC(){
-  const{todos}=_pdComputeLista();
-  const map={};
-  todos.forEach(x=>{map[x.fc]=(map[x.fc]||0)+1;});
-  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+// Cabeçalho da página (título, subtítulo e referência de data/hora) + resumo geral + cartões por FC.
+function _pdHTMLTopo(todos,fcs){
+  const agora=new Date();
+  const nomes=fcs.map(_pdNomeFC);
+  const g=_pdContagens(todos);
+  const nFc=fcs.length;
+  const rotTotal=nFc===1?'Total do FC':nFc===2?'Total dos dois FCs':nFc?`Total dos ${nFc} FCs`:'Total';
+  const cards=fcs.map(fc=>({fc,itens:todos.filter(x=>x.fc===fc)})).sort((a,b)=>b.itens.length-a.itens.length);
+  const metrica=(v,lb,cls)=>`<div class="pdx-res-m"><b class="${cls}">${_pd2(v)}</b><span>${lb}</span></div>`;
+  const tile=(lb,v,cls)=>`<div class="pdx-tile ${cls}"><span>${lb}</span><b>${_pd2(v)}</b></div>`;
+  const cartao=({fc,itens})=>{
+    const c=_pdContagens(itens);
+    const segs=[0,1,2,3].flatMap(n=>Array(c.faixas[n]).fill(n));
+    return`<div class="pdx-card pdx-fc">
+      <div class="pdx-fc-top">
+        <div class="pdx-fc-id">${_pdIc('armazem','pdx-fc-ic')}<div><div class="pdx-fc-nome">${esc(_pdNomeFC(fc))}</div><div class="pdx-fc-sub">Centro de distribuição</div></div></div>
+        <div class="pdx-fc-tot"><b>${_pd2(c.total)}</b><span>veículos em<br>descarga agora</span></div>
+      </div>
+      <div class="pdx-tiles">${tile('Acima de 12h',c.h12,'t12')}${tile('Acima de 16h',c.h16,'t16')}${tile('Acima de 24h',c.h24,'t24')}</div>
+      <div class="pdx-dist-h"><span>Distribuição por tempo</span><span>1 segmento = 1 veículo</span></div>
+      <div class="pdx-dist">${segs.map(n=>`<i class="n${n}"></i>`).join('')||'<i class="vazio"></i>'}</div>
+      <div class="pdx-dist-leg">${PD_NIVEIS.map((nv,n)=>`<span><i class="n${n}"></i>${c.faixas[n]} ${nv.faixa}</span>`).join('')}${c.semInicio?`<span><i class="sem"></i>${c.semInicio} sem horário de chegada</span>`:''}</div>
+    </div>`;
+  };
+  return`<div class="pdx-head">
+      <div>
+        <div class="pdx-bread">Monitoramento <span>/</span> Operação de entrada</div>
+        <h1 class="pdx-tit">Descarga de veículos</h1>
+        <div class="pdx-sub">${nFc?`Visão consolidada ${nFc===1?'do FC':'dos FCs'} ${esc(_pdJuntar(nomes))}`:'Nenhum FC com veículo em descarga no momento'}</div>
+      </div>
+      <div class="pdx-ref">
+        <div class="pdx-ref-l">Referência do painel</div>
+        <div class="pdx-ref-d">${_pdIc('calendario')}<span>${agora.toLocaleDateString('pt-BR')} · ${_pd2(agora.getHours())}:${_pd2(agora.getMinutes())}</span></div>
+        <div class="pdx-ref-s">Dados do TRK PCP · atualização em tempo real</div>
+      </div>
+    </div>
+    <section class="pdx-res">
+      <div class="pdx-res-id"><span>${rotTotal}</span><b>${esc(nomes.join(' + ')||'—')}</b></div>
+      ${metrica(g.total,'Descarregando agora','w')}${metrica(g.h12,'Acima de 12h','a12')}${metrica(g.h16,'Acima de 16h','a16')}${metrica(g.h24,'Acima de 24h','a24')}
+    </section>
+    <div class="pdx-sec"><h2>Acompanhamento por FC</h2><span>${_pdIc('info')}Contagens cumulativas: &gt; 24h também entra em &gt; 16h e &gt; 12h. Não somar os limites.</span></div>
+    ${cards.length?`<div class="pdx-fcs">${cards.map(cartao).join('')}</div>`:'<div class="pdx-card pdx-vazio">✅ Nenhum veículo em descarga nos FCs agora.</div>'}`;
 }
-// Atualiza os números dos cards de KPI junto com o cronômetro de cada linha (mesmo intervalo de 1s)
-function _pdAtualizarKpis(){
-  const k=_pdKpisAtuais();
-  const elT=document.getElementById('pdKpiTotal');if(elT)elT.textContent=k.total;
-  const elC=document.getElementById('pdKpiCritico');if(elC)elC.textContent=k.criticos;
-  const elM=document.getElementById('pdKpiMedia');if(elM)elM.textContent=_fmtHMS(k.mediaMs);
-  const elA=document.getElementById('pdKpiAntigo');if(elA)elA.textContent=k.maisAntigo?_fmtHMS(k.maisAntigo.ms):'—';
+// Alerta + tabela + rodapé da tabela (a parte que muda com os filtros).
+function _pdHTMLLinhas(todos,lista,fcs){
+  const acima24=todos.filter(x=>x.nivel===3&&x.chegDt);
+  const alerta=acima24.length?`<div class="pdx-alerta">${_pdIc('alerta')}<b>${acima24.length} veículo${acima24.length>1?'s':''} acima de 24h</b><i></i><span>Prioridade de acompanhamento: ${esc(_pdJuntar(acima24.slice(0,4).map(x=>`${_pdPlaca(x.op.placa)} (${x.fcNome})`)))}${acima24.length>4?` e mais ${acima24.length-4}`:''}.</span></div>`:'';
+  const limites=n=>n?['&gt; 12h','&gt; 16h','&gt; 24h'].slice(0,n).join(' <i>·</i> '):'—';
+  const linha=x=>{
+    const{op,chegDt,fcNome,ms,nivel}=x,nv=PD_NIVEIS[nivel];
+    const dt=chegDt?`${_pd2(chegDt.getDate())}/${_pd2(chegDt.getMonth()+1)} <i>·</i> ${_pd2(chegDt.getHours())}:${_pd2(chegDt.getMinutes())}`:'—';
+    return`<tr class="pdx-r ${chegDt?nv.k:'sem'}" onclick="openEdit('${esc(op.id)}')" title="${esc(op.mot||'')}${op.transp?' · '+esc(op.transp):''} — toque para abrir a viagem">
+      <td data-l="Veículo / placa"><span class="pdx-placa"><i></i>${esc(_pdPlaca(op.placa))}</span>${op.placaCarreta?`<small class="pdx-carreta">${esc(_pdPlaca(op.placaCarreta))}</small>`:''}</td>
+      <td data-l="FC"><span class="pdx-fcb">${esc(fcNome)}</span></td>
+      <td data-l="Doca" class="pdx-mono pdx-cinza" title="O app ainda não registra a doca de descarga no FC">—</td>
+      <td data-l="Início da descarga" class="pdx-mono pdx-cinza">${dt}</td>
+      <td data-l="Tempo decorrido" class="pdx-mono pdx-tempo">${chegDt?_pdTempo(ms):'—'}</td>
+      <td data-l="Criticidade">${chegDt?`<span class="pdx-pill">${nv.lb}</span>`:'<span class="pdx-pill">Sem horário</span>'}</td>
+      <td data-l="Limites excedidos" class="pdx-lim">${chegDt?limites(nivel):'—'}</td>
+    </tr>`;
+  };
+  const porFC=fcs.map(fc=>[fc,lista.filter(x=>x.fc===fc).length]).filter(([,n])=>n).map(([fc,n])=>`${esc(_pdNomeFC(fc))}: ${n}`).join(' · ');
+  const corpo=!todos.length?'<div class="pdx-tab-vazio">✅ Nenhum veículo em descarga no momento.</div>'
+    :!lista.length?`<div class="pdx-tab-vazio">Nenhum veículo para esse filtro. <button onclick="_pdLimparFiltro()">Limpar filtros</button></div>`
+    :`<div class="pdx-tab-wrap"><table class="pdx-t">
+        <thead><tr><th>Veículo / placa</th><th>FC</th><th>Doca</th><th>Início da descarga</th><th>Tempo decorrido ↓</th><th>Criticidade</th><th>Limites excedidos</th></tr></thead>
+        <tbody>${lista.map(linha).join('')}</tbody></table></div>`;
+  return`${alerta}${corpo}
+    <div class="pdx-tab-foot"><span>${lista.length} de ${todos.length} veículo${todos.length!==1?'s':''}${porFC?' · '+porFC:''}</span><span>Criticidade considera a maior faixa atingida; limites excedidos são cumulativos.</span></div>`;
 }
-// Painel de Descarga: monta o HTML completo (cabeçalho, filtros, indicadores, fila por FC).
+// Texto do botão "FCs exibidos" / opções do filtro de FC.
+function _pdHTMLFiltroFC(fcs){
+  const todosNomes=_pdJuntar(fcs.map(_pdNomeFC))||'Todos';
+  return`<label class="pdx-fcsel" title="Filtrar a tabela por FC">${_pdIc('armazem')}<select onchange="_pdSetFiltroFC(this.value);_pdAtualizarParcial()" aria-label="FCs exibidos">
+    <option value="">${esc(todosNomes)}</option>${fcs.map(fc=>`<option value="${esc(fc)}"${fc===_pdFiltroFC?' selected':''}>${esc(_pdNomeFC(fc))}</option>`).join('')}
+  </select></label>`;
+}
+// Painel de Descarga: monta a tela completa (cabeçalho e menu escuros, resumo, cartões por FC e tabela).
 function _renderPainelDescargaLive(){
-  const c=_pdColors();
   const{todos,lista,fcs}=_pdComputeLista();
-  const{criticos,mediaMs,maisAntigo}=_pdKpisAtuais();
-
-  const header=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:2px">
-    <div style="font-size:1.3rem;font-weight:800;color:${c.text};letter-spacing:.4px">PAINEL DE DESCARGA</div>
-    <button class="btn btn-s" id="pdWhatsBtn" onclick="_pdEnviarWhatsapp()" style="font-size:.72rem">📱 Enviar p/ WhatsApp</button>
-  </div>
-  <div style="font-size:.75rem;color:${c.sub};margin-bottom:16px">Veículos aguardando descarga, ordenados por chegada mais antiga primeiro.</div>`;
-
-  const filtros=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-    <select onchange="_pdSetFiltroFC(this.value)" style="background:${c.inputBg};border:1.5px solid ${c.inputBorder};border-radius:8px;color:${c.inputText};padding:5px 9px;font-size:.72rem;outline:none;">
-      <option value="">Todos os FCs</option>
-      ${fcs.map(fc=>`<option value="${esc(fc)}" ${fc===_pdFiltroFC?'selected':''}>${esc(fc)}</option>`).join('')}
-    </select>
-    <input type="text" placeholder="🔍 Placa ou motorista..." value="${esc(_pdBusca)}" oninput="_pdSetBusca(this.value)" style="background:${c.inputBg};border:1.5px solid ${c.inputBorder};border-radius:8px;color:${c.inputText};padding:5px 9px;font-size:.72rem;outline:none;min-width:180px">
-    ${_pdFiltroFC||_pdBusca?`<button onclick="_pdLimparFiltro()" style="background:${c.limparBg};border:1.5px solid ${c.limparBorder};border-radius:8px;color:${c.inputText};font-size:.68rem;padding:5px 10px;cursor:pointer">✕ Limpar</button>`:''}
-  </div>`;
-
-  const linha=({op,chegDt,fc,cafs,ms,critico})=>`
-    <div style="display:flex;align-items:center;gap:14px;background:${critico?c.critBg:c.rowBg};border:1px solid ${critico?c.critBorder:c.rowBorder};box-shadow:${c.rowShadow};border-radius:10px;padding:11px 16px;flex-wrap:wrap">
-      <div class="pd-timer" data-cheg="${chegDt?chegDt.toISOString():''}" style="flex:0 0 118px;font-family:'Courier New',monospace;font-size:23px;font-weight:800;letter-spacing:1px;color:${critico?c.timerCrit:c.timer}">${chegDt?_fmtHMS(ms):'—'}</div>
-      <div style="flex:1 1 220px;min-width:0">
-        <div style="font-size:15px;font-weight:800;color:${c.placa};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.placa)||'—'}${op.placaCarreta?' <span style="color:'+c.carreta+';font-weight:700">/ '+esc(op.placaCarreta)+'</span>':''}</div>
-        <div style="font-size:11px;color:${c.sub};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(op.rota)||'—'} · chegou ${chegDt?toTime(op.realChegFC):'—'} em ${fmtD(op.dataOp)}${cafs.length?' · CAF '+esc(cafs.join(' | ')):''}</div>
-      </div>
-      <div style="flex:0 0 auto;text-align:right">
-        <div style="font-size:14px;font-weight:800;color:${c.fc}">${esc(fc)}</div>
-        <div style="font-size:10px;color:${c.sub};margin-top:2px">${_pdSemanaLabel(op.dataOp)}</div>
-      </div>
-    </div>`;
-
-  const corpo=!todos.length
-    ?`<div style="text-align:center;color:${c.ok};font-size:.9rem;padding:30px">✅ Nenhum veículo aguardando descarga no momento</div>`
-    :!lista.length
-    ?`<div style="text-align:center;color:${c.sub};font-size:.82rem;padding:30px">Nenhum veículo aguardando descarga para esse filtro</div>`
-    :`<div style="display:flex;flex-direction:column;gap:9px">${lista.map(linha).join('')}</div>
-      <div style="margin-top:14px;padding-top:10px;border-top:1px solid ${c.line};font-size:.72rem;color:${c.sub}">Total: <b style="color:${c.text}">${lista.length}</b> de ${todos.length} veículo${todos.length!==1?'s':''} aguardando descarga</div>`;
-
-  const kpiCard=(label,valId,val,cor)=>`
-    <div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:14px 10px;text-align:center;">
-      <div style="font-size:9.5px;font-weight:700;letter-spacing:.6px;color:${c.sub};text-transform:uppercase;">${label}</div>
-      <div id="${valId}" style="font-family:'Courier New',monospace;font-size:30px;font-weight:800;color:${cor};line-height:1.15;margin-top:4px;">${val}</div>
-    </div>`;
-
-  const porFC=_pdPorFC();
-  const maxFC=porFC.length?porFC[0][1]:1;
-  const fcCard=`<div style="background:${c.rowBg};border:1px solid ${c.rowBorder};box-shadow:${c.rowShadow};border-radius:14px;padding:16px 16px;">
-    <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:${c.sub};text-transform:uppercase;margin-bottom:12px;">Aguardando por FC</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${porFC.length?porFC.map(([fc,n])=>`
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:700;color:${c.text};margin-bottom:4px;">
-            <span>${esc(fc)}</span><span style="font-family:'Courier New',monospace;font-size:16px;color:${c.fc}">${n}</span>
+  if(_pdFiltroFC&&!fcs.includes(_pdFiltroFC))_pdFiltroFC=''; // FC filtrado saiu da descarga
+  return`<div class="pdx">
+    <header class="pdx-top">
+      <div class="pdx-marca"><span class="pdx-logo">${PD_IC.armazem}</span><b>amazon</b><i></i><span>Controle logístico</span></div>
+      <div class="pdx-top-r"><span class="pdx-op">Operação Brasil</span><span class="pdx-badge">${supabaseOK?'Ao vivo':'Offline'}</span></div>
+    </header>
+    <div class="pdx-corpo">
+      <aside class="pdx-side">
+        <div class="pdx-side-l">Monitoramento</div>
+        <div class="pdx-side-item on">${_pdIc('caminhao')}Descarga</div>
+        <div class="pdx-side-l">Centros / FCs</div>
+        <div id="pdxSideFCs" class="pdx-side-fcs">${_pdHTMLMenuFCs(fcs)}</div>
+        <div class="pdx-side-nota">${_pdIc('info')}<p>Veículos com status Aguardando Descarga, a partir da chegada no FC. Atualiza sozinho.</p></div>
+      </aside>
+      <main class="pdx-main">
+        <div id="pdxTopo">${_pdHTMLTopo(todos,fcs)}</div>
+        <section class="pdx-card pdx-tab">
+          <div class="pdx-tab-head">
+            <div><div class="pdx-tab-tit">Veículos em descarga <span id="pdxCont" class="pdx-cont">${lista.length}</span></div>
+              <div class="pdx-tab-sub">Todos os veículos em descarga · maior tempo decorrido primeiro</div></div>
+            <div class="pdx-filtros">
+              <label class="pdx-busca">${_pdIc('busca')}<input type="search" placeholder="Placa ou motorista" value="${esc(_pdBusca)}" oninput="_pdSetBusca(this.value)" aria-label="Buscar placa ou motorista"></label>
+              <span class="pdx-fcsel-l">FCs exibidos</span><span id="pdxFiltroFC">${_pdHTMLFiltroFC(fcs)}</span>
+              <button class="pdx-btn" id="pdWhatsBtn" onclick="_pdEnviarWhatsapp()" title="Gera uma imagem da fila para mandar no WhatsApp">📱 Enviar p/ WhatsApp</button>
+            </div>
           </div>
-          <div style="height:7px;background:${c.line};border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${Math.max(6,Math.round(n/maxFC*100))}%;background:${c.fc};border-radius:4px;"></div>
-          </div>
-        </div>`).join(''):`<div style="font-size:11px;color:${c.sub};text-align:center;">—</div>`}
+          <div id="pdxLinhas">${_pdHTMLLinhas(todos,lista,fcs)}</div>
+        </section>
+        <div class="pdx-rodape"><span>Tempo decorrido = horário atual − chegada no FC (início da espera pela descarga). Apenas veículos aguardando descarga.</span><span>Horário de Brasília · UTC−3</span></div>
+      </main>
     </div>
   </div>`;
-
-  const kpis=`<div style="display:flex;flex-direction:column;gap:12px;flex:0 0 230px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      ${kpiCard('Aguardando','pdKpiTotal',lista.length,c.timer)}
-      ${kpiCard('Críticos >24h','pdKpiCritico',criticos,c.timerCrit)}
-      ${kpiCard('Tempo médio','pdKpiMedia',_fmtHMS(mediaMs),c.text)}
-      ${kpiCard('Mais antigo','pdKpiAntigo',maisAntigo?_fmtHMS(maisAntigo.ms):'—',c.fc)}
-    </div>
-    ${fcCard}
-  </div>`;
-
-  return`<div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap-reverse;">
-    <div style="flex:1 1 480px;min-width:0;">${header}${filtros}${corpo}</div>
-    ${kpis}
-  </div>`;
+}
+// Atualiza só a tabela (ao digitar na busca ou trocar o FC) — o campo de busca não é redesenhado.
+function _pdAtualizarTabela(){
+  const el=document.getElementById('pdxLinhas');if(!el){_pdRefresh();return;}
+  const{todos,lista,fcs}=_pdComputeLista();
+  el.innerHTML=_pdHTMLLinhas(todos,lista,fcs);
+  const c=document.getElementById('pdxCont');if(c)c.textContent=lista.length;
+}
+// Atualiza tudo menos o campo de busca: topo, menu de FCs, filtro de FC e tabela.
+function _pdAtualizarParcial(){
+  const topo=document.getElementById('pdxTopo');if(!topo){_pdRefresh();return;}
+  const{todos,fcs}=_pdComputeLista();
+  if(_pdFiltroFC&&!fcs.includes(_pdFiltroFC))_pdFiltroFC='';
+  topo.innerHTML=_pdHTMLTopo(todos,fcs);
+  const side=document.getElementById('pdxSideFCs');if(side)side.innerHTML=_pdHTMLMenuFCs(fcs);
+  const f=document.getElementById('pdxFiltroFC');if(f)f.innerHTML=_pdHTMLFiltroFC(fcs);
+  _pdAtualizarTabela();
 }
 
 // Análise: mapa das docas (livre/ocupada por viagem em carregamento) e fila de espera.
