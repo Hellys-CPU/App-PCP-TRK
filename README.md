@@ -2,8 +2,7 @@
 
 Sistema de PCP (Planejamento e Controle de Produção) logístico do hub **TZX**. Usado pela Torre de Controle, Doca, Fiscalização de Pátio, Operação CAF, Liderança e pelo cliente Amazon (login externo).
 
-> **Versão atual: v354** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
-> **Versão atual: v351** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
+> **Versão atual: v363** · App single-file (HTML + CSS + JS) · sem build, sem framework · funciona em PC, tablet e celular (PWA instalável).
 
 ---
 
@@ -133,7 +132,10 @@ Roda 100% no navegador. Não existe backend próprio além do Supabase e de duas
   - No PC, tabela.
   - No tablet, cartões com botão de próximo status.
   - Ciclo: Em Produção → Produzida → Em Auditoria GRIS → Vinculada a Veículo → Processo de Entrega → Entrega Realizada.
-- **Painel de Descarga**: fila aguardando descarga com cronômetro ao vivo, filtro por FC e imagem para mandar no WhatsApp.
+- **Painel de Descarga**: veículos aguardando descarga, do maior tempo para o menor.
+  - Resumo geral + um cartão por FC (só os que têm veículo em descarga): em descarga agora, acima de 12h, 16h e 24h (contagens **cumulativas**) e distribuição por tempo.
+  - Tabela: placa, FC, doca, início (chegada no FC), tempo decorrido, criticidade (Até 12h · Atenção · Alto · Crítico) e limites excedidos; faixa de alerta para quem passou de 24h.
+  - Filtros: busca por placa/carreta/motorista e por FC. Imagem para mandar no WhatsApp. Nomes Amazon dos FCs em `FC_NOME_AMAZON` (XC9→XCV9, GR8→GRU8).
 - **FUP FC / FUP Amazon**: acompanhamento por FC. O FUP Amazon tem justificativas de atraso de descarga.
 
 ### Apoio
@@ -314,6 +316,7 @@ O histórico completo fica **dentro do app**: clique no badge da versão, no top
 
 Últimas versões:
 
+- **v363**: Painel de Descarga com visual novo (resumo, cartões por FC, tabela com criticidade e limites).
 - **v354**: Distribuir motoristas em viagens já criadas + divisão proporcional entre transportadoras.
 - **v353**: leitor da lista de motoristas aceita mais formatos (WhatsApp, tudo numa linha, rótulo sem ":" etc.).
 - **v352**: Distribuir motoristas na Programação em Massa, com rotas por transportadora.
